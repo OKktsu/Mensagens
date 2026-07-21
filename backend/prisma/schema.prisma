@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String               @id @default(cuid())
+  name         String
+  email        String               @unique
+  passwordHash String               @map("password_hash")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  memberships  ConversationMember[]
+  messages     Message[]
+
+  @@map("users")
+}
+
+model Conversation {
+  id        String               @id @default(cuid())
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
+  members   ConversationMember[]
+  messages  Message[]
+
+  @@map("conversations")
+}
+
+model ConversationMember {
+  id             String       @id @default(cuid())
+  userId         String       @map("user_id")
+  conversationId String       @map("conversation_id")
+  joinedAt       DateTime     @default(now()) @map("joined_at")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, conversationId])
+  @@map("conversation_members")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  content        String
+  senderId       String       @map("sender_id")
+  conversationId String       @map("conversation_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}

@@ -1,0 +1,16 @@
+{
+  "name": "mensagens",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Aplicacao de mensagens para estudo de frontend, backend, banco de dados, autenticacao e tempo real.",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "pnpm --dir frontend dev",
+    "dev:backend": "pnpm --dir backend dev",
+    "build:frontend": "pnpm --dir frontend build",
+    "build:backend": "pnpm --dir backend build"
+  }
+}
