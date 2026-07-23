@@ -4,6 +4,16 @@ const defaultLocalFrontendOrigins = [
   "http://127.0.0.1:5174",
 ];
 
+function normalizeFrontendOrigin(origin: string) {
+  const originWithoutWrappingQuotes = origin.trim().replace(/^["']|["']$/g, "");
+
+  try {
+    return new URL(originWithoutWrappingQuotes).origin;
+  } catch {
+    return originWithoutWrappingQuotes.replace(/\/$/, "");
+  }
+}
+
 export function getAllowedFrontendOrigins() {
   const configuredFrontendOrigins = process.env.FRONTEND_URLS ?? process.env.FRONTEND_URL;
 
@@ -11,5 +21,8 @@ export function getAllowedFrontendOrigins() {
     return defaultLocalFrontendOrigins;
   }
 
-  return configuredFrontendOrigins.split(",").map((origin) => origin.trim());
+  return configuredFrontendOrigins
+    .split(",")
+    .map(normalizeFrontendOrigin)
+    .filter(Boolean);
 }
