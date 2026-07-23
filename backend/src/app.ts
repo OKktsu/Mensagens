@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 
+import { getAllowedFrontendOrigins } from "./config/frontend-origins.js";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { conversationsRoutes } from "./routes/conversations.routes.js";
@@ -8,11 +9,7 @@ import { usersRoutes } from "./routes/users.routes.js";
 
 export function createApp() {
   const app = express();
-  const allowedOrigins = [
-    process.env.FRONTEND_URL ?? "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174",
-  ];
+  const allowedOrigins = getAllowedFrontendOrigins();
 
   app.use(
     cors({

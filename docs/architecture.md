@@ -6,14 +6,27 @@ Criar uma aplicacao de mensagens com foco em construir uma base real de produto:
 
 O projeto tambem serve como ambiente de estudo para frontend, backend, banco de dados, autenticacao, autorizacao e eventos em tempo real.
 
-## Stack inicial
+## Stack atual
 
 - Frontend: React + Vite + TypeScript
 - Backend: Node.js + Express + TypeScript
-- Banco de dados: SQLite
+- Banco de dados local: SQLite
 - ORM: Prisma
 - Tempo real: Socket.IO
 - Autenticacao: JWT + bcrypt
+
+## Decisao de arquitetura para mercado
+
+Para uma versao publicada, a decisao mais natural seria manter a base atual e trocar a infraestrutura local por servicos mais adequados a producao:
+
+- Frontend: React + TypeScript.
+- Backend: Node.js + TypeScript.
+- Banco principal: PostgreSQL.
+- Cache/estado temporario: Redis.
+- Tempo real: Socket.IO.
+- Arquivos futuros: storage externo, como S3 ou equivalente.
+
+O PostgreSQL seria a fonte da verdade do sistema: usuarios, conversas, membros, mensagens e permissoes. O Redis entraria para estados passageiros, como usuarios online, digitando, cache e coordenacao entre varias instancias da API.
 
 ## Por que essa stack combina com o projeto
 
@@ -23,11 +36,13 @@ Vite mantem o ambiente de frontend simples e rapido, sem exigir uma estrutura ma
 
 TypeScript ajuda a manter claros os formatos principais do sistema, como usuarios, conversas, mensagens e respostas da API.
 
-Node.js e Express combinam bem com uma aplicacao de chat porque o backend precisa lidar com rotas HTTP, autenticacao, acesso ao banco e futuramente conexoes em tempo real.
+Node.js e Express combinam bem com uma aplicacao de chat porque o backend precisa lidar com rotas HTTP, autenticacao, acesso ao banco e conexoes em tempo real. A decisao nao e por performance bruta contra .NET ou Java; e por coesao com o frontend em TypeScript, produtividade web, ecossistema realtime e boa aderencia a uma aplicacao baseada em eventos.
 
-SQLite e suficiente para a primeira versao porque permite persistir dados sem uma infraestrutura pesada. Prisma organiza o acesso ao banco e facilita uma futura migracao para PostgreSQL, caso o projeto cresca.
+SQLite e suficiente para a primeira versao local porque permite persistir dados sem uma infraestrutura pesada. Para publicacao, PostgreSQL seria a escolha principal por lidar melhor com concorrencia, deploy, backup e operacao multiusuario. Prisma organiza o acesso ao banco e facilita essa migracao.
 
 Socket.IO entra na aplicacao para permitir eventos em tempo real entre backend e frontend. Na versao atual, ele autentica a conexao com o token JWT, permite entrar na sala de uma conversa e entrega `message:new` quando uma mensagem nova e salva.
+
+Redis nao e obrigatorio na primeira versao, mas e a proxima camada natural quando o sistema precisar guardar estados temporarios ou rodar com mais de uma instancia de API. Exemplos: `typing:conversation:user`, usuario online, rate limit, cache e pub/sub para sockets.
 
 Eventos iniciais:
 
@@ -168,6 +183,35 @@ Na primeira versao, `POST /conversations` cria ou reaproveita uma conversa diret
 
 As rotas de mensagens so podem ser acessadas por membros da conversa.
 
+## Configuracao de ambiente
+
+Backend:
+
+- `DATABASE_URL`: string de conexao do banco. Localmente aponta para SQLite; em producao deve apontar para PostgreSQL.
+- `JWT_SECRET`: segredo usado para assinar e validar tokens JWT.
+- `PORT`: porta da API.
+- `FRONTEND_URLS`: lista de origens permitidas no CORS, separadas por virgula.
+
+Frontend:
+
+- `VITE_API_URL`: URL publica da API usada pelo frontend.
+
+Essas variaveis evitam que URLs locais fiquem presas no codigo e permitem publicar frontend e backend em ambientes separados.
+
+## Publicacao
+
+O frontend esta preparado para GitHub Pages por meio de GitHub Actions. O Vite usa `GITHUB_PAGES=true` no build para publicar os assets no caminho `/Mensagens/`, que e o formato esperado em project pages do GitHub.
+
+A API ainda precisa ser publicada separadamente, porque o frontend hospedado nao consegue acessar `localhost` da maquina do desenvolvedor. Quando a API estiver publicada, a URL dela deve ser configurada na variavel `VITE_API_URL` do repositorio ou da plataforma de hospedagem.
+
+## Evolucoes futuras
+
+- Login com Google: complexidade media. Exige OAuth, callback, criacao/vinculo de usuario e cuidado com redirect URLs.
+- Integracoes com IA: complexidade media, dependendo da feature. Um bot simples em uma conversa e bem viavel; busca semantica, moderacao e resumo de conversas exigem mais arquitetura.
+- Redis para presenca: complexidade baixa/media. Bom proximo passo para online e digitando.
+- PostgreSQL em producao: complexidade baixa/media. Exige configurar banco, connection string e migracoes.
+- Upload de arquivos: complexidade media. Idealmente usa storage externo, nao salva arquivo direto no banco.
+
 ## Regras importantes
 
 - Um usuario so pode acessar conversas das quais participa.
@@ -184,14 +228,15 @@ As rotas de mensagens so podem ser acessadas por membros da conversa.
 ## Fases do desenvolvimento
 
 1. Criar a estrutura inicial do projeto. Concluido.
-2. Criar o backend REST com Express. Em andamento.
-3. Configurar Prisma e SQLite. Em andamento.
-4. Implementar cadastro e login. Em andamento.
-5. Implementar usuarios, conversas e mensagens. Em andamento.
-6. Criar o frontend com React. Em andamento.
-7. Integrar frontend e backend. Em andamento.
-8. Adicionar comunicacao em tempo real. Em andamento com Socket.IO.
-9. Adicionar recursos extras, como usuario online, digitando e confirmacao de leitura.
+2. Criar o backend REST com Express. Concluido para o MVP inicial.
+3. Configurar Prisma e SQLite. Concluido para ambiente local.
+4. Implementar cadastro e login. Concluido para email/senha.
+5. Implementar usuarios, conversas e mensagens. Concluido para conversa direta.
+6. Criar o frontend com React. Concluido para o fluxo inicial.
+7. Integrar frontend e backend. Concluido para o fluxo inicial.
+8. Adicionar comunicacao em tempo real. Concluido para novas mensagens.
+9. Preparar configuracao para publicacao. Em andamento.
+10. Adicionar recursos extras, como usuario online, digitando e confirmacao de leitura.
 
 ## Estrutura planejada
 
