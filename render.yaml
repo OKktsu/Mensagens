@@ -3,7 +3,7 @@ services:
     name: mensagens-api
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm --dir backend prisma:generate && pnpm --dir backend build
+    buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm --dir backend prisma:generate && pnpm --dir backend build
     startCommand: pnpm --dir backend start:prod
     healthCheckPath: /health
     envVars:
