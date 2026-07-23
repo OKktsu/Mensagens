@@ -9,6 +9,7 @@
     "backend"
   ],
   "scripts": {
+    "build": "pnpm --dir frontend build",
     "dev:frontend": "pnpm --dir frontend dev",
     "dev:backend": "pnpm --dir backend dev",
     "build:frontend": "pnpm --dir frontend build",

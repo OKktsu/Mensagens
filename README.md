@@ -84,6 +84,8 @@ Install command: pnpm install --frozen-lockfile
 Output directory: dist
 ```
 
+Se a Vercel mostrar `vite: command not found`, o projeto provavelmente esta com Root Directory na raiz do repositorio ou com Build Command sobrescrito para `vite build`. Ajuste o projeto da Vercel para usar `frontend` como Root Directory e rode um novo deploy.
+
 Crie a variavel `VITE_API_URL` na Vercel com a URL publica da API. Enquanto a API nao estiver publicada, o frontend hospedado carrega a interface, mas login e mensagens ainda dependem do backend local.
 
 ## Publicacao da API no Render
