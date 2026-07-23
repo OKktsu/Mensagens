@@ -35,7 +35,8 @@ Mensagens/
 - Frontend React integrado com a API.
 - Token JWT salvo no navegador para acessar rotas protegidas.
 - Mensagens novas entregues em tempo real com Socket.IO.
-- Banco SQLite local em `backend/prisma/dev.db`.
+- Banco configurado para PostgreSQL via `DATABASE_URL`.
+- API preparada para deploy com banco gerenciado.
 
 ## Proximos passos
 
@@ -84,6 +85,25 @@ Output directory: dist
 ```
 
 Crie a variavel `VITE_API_URL` na Vercel com a URL publica da API. Enquanto a API nao estiver publicada, o frontend hospedado carrega a interface, mas login e mensagens ainda dependem do backend local.
+
+## Publicacao da API no Render
+
+A API esta preparada para publicacao no Render usando `render.yaml`.
+
+O Blueprint cria:
+
+- Um Web Service para `backend`.
+- Um PostgreSQL gerenciado para `DATABASE_URL`.
+- `JWT_SECRET` gerado automaticamente.
+- `FRONTEND_URLS` como variavel manual, onde deve entrar a URL do frontend publicado na Vercel.
+
+Comandos usados pelo Render:
+
+```txt
+Build: pnpm install --frozen-lockfile && pnpm --dir backend prisma:generate && pnpm --dir backend build
+Pre-deploy: pnpm --dir backend prisma:migrate:deploy
+Start: pnpm --dir backend start
+```
 
 O arquivo `backend/prisma/init.sql` registra o SQL inicial das tabelas do banco.
 

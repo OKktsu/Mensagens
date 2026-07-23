@@ -17,11 +17,11 @@ O projeto tambem serve como ambiente de estudo para frontend, backend, banco de 
 
 ## Decisao de arquitetura para mercado
 
-Para uma versao publicada, a decisao mais natural seria manter a base atual e trocar a infraestrutura local por servicos mais adequados a producao:
+Para uma versao publicada, a decisao mais natural e manter a base atual e trocar a infraestrutura local por servicos mais adequados a producao:
 
 - Frontend: React + TypeScript.
 - Backend: Node.js + TypeScript.
-- Banco principal: PostgreSQL.
+- Banco principal: PostgreSQL, configurado para Render.
 - Cache/estado temporario: Redis.
 - Tempo real: Socket.IO.
 - Arquivos futuros: storage externo, como S3 ou equivalente.
@@ -38,7 +38,7 @@ TypeScript ajuda a manter claros os formatos principais do sistema, como usuario
 
 Node.js e Express combinam bem com uma aplicacao de chat porque o backend precisa lidar com rotas HTTP, autenticacao, acesso ao banco e conexoes em tempo real. A decisao nao e por performance bruta contra .NET ou Java; e por coesao com o frontend em TypeScript, produtividade web, ecossistema realtime e boa aderencia a uma aplicacao baseada em eventos.
 
-SQLite e suficiente para a primeira versao local porque permite persistir dados sem uma infraestrutura pesada. Para publicacao, PostgreSQL seria a escolha principal por lidar melhor com concorrencia, deploy, backup e operacao multiusuario. Prisma organiza o acesso ao banco e facilita essa migracao.
+SQLite foi suficiente para a primeira versao local porque permitiu persistir dados sem uma infraestrutura pesada. Para publicacao, o projeto passa a usar PostgreSQL por lidar melhor com concorrencia, deploy, backup e operacao multiusuario. Prisma organiza o acesso ao banco e aplica as migracoes em producao com `prisma migrate deploy`.
 
 Socket.IO entra na aplicacao para permitir eventos em tempo real entre backend e frontend. Na versao atual, ele autentica a conexao com o token JWT, permite entrar na sala de uma conversa e entrega `message:new` quando uma mensagem nova e salva.
 
@@ -203,6 +203,8 @@ Essas variaveis evitam que URLs locais fiquem presas no codigo e permitem public
 O frontend esta preparado para Vercel por meio do arquivo `frontend/vercel.json`. Na Vercel, o projeto deve usar `frontend` como root directory, `pnpm build` como build command e `dist` como output directory.
 
 A API ainda precisa ser publicada separadamente, porque o frontend hospedado nao consegue acessar `localhost` da maquina do desenvolvedor. Quando a API estiver publicada, a URL dela deve ser configurada na variavel `VITE_API_URL` do repositorio ou da plataforma de hospedagem.
+
+A API esta preparada para Render por meio de `render.yaml`. O Blueprint define um Web Service Node e um banco PostgreSQL gerenciado. Durante o deploy, o Render executa as migracoes do Prisma antes de iniciar a API.
 
 ## Evolucoes futuras
 

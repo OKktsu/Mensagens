@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: mensagens-api
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm --dir backend prisma:generate && pnpm --dir backend build
+    preDeployCommand: pnpm --dir backend prisma:migrate:deploy
+    startCommand: pnpm --dir backend start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mensagens-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URLS
+        sync: false
+
+databases:
+  - name: mensagens-db
+    plan: free
