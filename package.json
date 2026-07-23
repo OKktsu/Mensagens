@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Aplicacao de mensagens para estudo de frontend, backend, banco de dados, autenticacao e tempo real.",
+  "packageManager": "pnpm@9.15.0",
   "workspaces": [
     "frontend",
     "backend"
