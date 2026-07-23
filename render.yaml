@@ -4,8 +4,7 @@ services:
     runtime: node
     plan: free
     buildCommand: pnpm install --frozen-lockfile && pnpm --dir backend prisma:generate && pnpm --dir backend build
-    preDeployCommand: pnpm --dir backend prisma:migrate:deploy
-    startCommand: pnpm --dir backend start
+    startCommand: pnpm --dir backend start:prod
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
