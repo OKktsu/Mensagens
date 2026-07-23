@@ -70,13 +70,19 @@ Frontend:
 VITE_API_URL="http://localhost:3333"
 ```
 
-## Publicacao do frontend
+## Publicacao do frontend na Vercel
 
-O frontend pode ser publicado pelo GitHub Pages usando o workflow em `.github/workflows/deploy-frontend.yml`.
+O frontend esta preparado para publicacao na Vercel usando o arquivo `vercel.json` na raiz do projeto.
 
-Antes de publicar, configure o GitHub Pages do repositorio para usar `GitHub Actions`.
+Configuracao esperada:
 
-Opcionalmente, crie a variavel de repositorio `VITE_API_URL` com a URL publica da API. Enquanto a API nao estiver publicada, o frontend hospedado carrega a interface, mas login e mensagens ainda dependem do backend local.
+```txt
+Build command: pnpm --dir frontend build
+Install command: pnpm install --frozen-lockfile
+Output directory: frontend/dist
+```
+
+Crie a variavel `VITE_API_URL` na Vercel com a URL publica da API. Enquanto a API nao estiver publicada, o frontend hospedado carrega a interface, mas login e mensagens ainda dependem do backend local.
 
 O arquivo `backend/prisma/init.sql` registra o SQL inicial das tabelas do banco.
 

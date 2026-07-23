@@ -200,7 +200,7 @@ Essas variaveis evitam que URLs locais fiquem presas no codigo e permitem public
 
 ## Publicacao
 
-O frontend esta preparado para GitHub Pages por meio de GitHub Actions. O Vite usa `GITHUB_PAGES=true` no build para publicar os assets no caminho `/Mensagens/`, que e o formato esperado em project pages do GitHub.
+O frontend esta preparado para Vercel por meio do arquivo `vercel.json` na raiz do projeto. A configuracao informa como instalar dependencias, como gerar o build do frontend dentro do monorepo e qual pasta deve ser publicada.
 
 A API ainda precisa ser publicada separadamente, porque o frontend hospedado nao consegue acessar `localhost` da maquina do desenvolvedor. Quando a API estiver publicada, a URL dela deve ser configurada na variavel `VITE_API_URL` do repositorio ou da plataforma de hospedagem.
 
