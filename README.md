@@ -72,14 +72,15 @@ VITE_API_URL="http://localhost:3333"
 
 ## Publicacao do frontend na Vercel
 
-O frontend esta preparado para publicacao na Vercel usando o arquivo `vercel.json` na raiz do projeto.
+O frontend esta preparado para publicacao na Vercel usando o arquivo `frontend/vercel.json`.
 
 Configuracao esperada:
 
 ```txt
-Build command: pnpm --dir frontend build
+Root directory: frontend
+Build command: pnpm build
 Install command: pnpm install --frozen-lockfile
-Output directory: frontend/dist
+Output directory: dist
 ```
 
 Crie a variavel `VITE_API_URL` na Vercel com a URL publica da API. Enquanto a API nao estiver publicada, o frontend hospedado carrega a interface, mas login e mensagens ainda dependem do backend local.

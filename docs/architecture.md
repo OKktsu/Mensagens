@@ -200,7 +200,7 @@ Essas variaveis evitam que URLs locais fiquem presas no codigo e permitem public
 
 ## Publicacao
 
-O frontend esta preparado para Vercel por meio do arquivo `vercel.json` na raiz do projeto. A configuracao informa como instalar dependencias, como gerar o build do frontend dentro do monorepo e qual pasta deve ser publicada.
+O frontend esta preparado para Vercel por meio do arquivo `frontend/vercel.json`. Na Vercel, o projeto deve usar `frontend` como root directory, `pnpm build` como build command e `dist` como output directory.
 
 A API ainda precisa ser publicada separadamente, porque o frontend hospedado nao consegue acessar `localhost` da maquina do desenvolvedor. Quando a API estiver publicada, a URL dela deve ser configurada na variavel `VITE_API_URL` do repositorio ou da plataforma de hospedagem.
 
