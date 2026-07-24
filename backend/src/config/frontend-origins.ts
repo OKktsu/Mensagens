@@ -26,3 +26,19 @@ export function getAllowedFrontendOrigins() {
     .map(normalizeFrontendOrigin)
     .filter(Boolean);
 }
+
+export function isFrontendOriginAllowed(origin: string) {
+  const normalizedOrigin = normalizeFrontendOrigin(origin);
+
+  if (getAllowedFrontendOrigins().includes(normalizedOrigin)) {
+    return true;
+  }
+
+  try {
+    const { hostname, protocol } = new URL(normalizedOrigin);
+
+    return protocol === "https:" && hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
+}

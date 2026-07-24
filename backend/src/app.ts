@@ -1,7 +1,7 @@
 import cors from "cors";
 import express from "express";
 
-import { getAllowedFrontendOrigins } from "./config/frontend-origins.js";
+import { isFrontendOriginAllowed } from "./config/frontend-origins.js";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { conversationsRoutes } from "./routes/conversations.routes.js";
@@ -9,11 +9,17 @@ import { usersRoutes } from "./routes/users.routes.js";
 
 export function createApp() {
   const app = express();
-  const allowedOrigins = getAllowedFrontendOrigins();
 
   app.use(
     cors({
-      origin: allowedOrigins,
+      origin(origin, callback) {
+        if (!origin || isFrontendOriginAllowed(origin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error("Origem nao permitida pelo CORS."));
+      },
     }),
   );
   app.use(express.json());
