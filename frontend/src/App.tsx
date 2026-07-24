@@ -56,6 +56,7 @@ export function App() {
   const [token, setToken] = useState(() => localStorage.getItem(tokenStorageKey));
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getStoredUser());
   const [users, setUsers] = useState<User[]>([]);
+  const [userSearchText, setUserSearchText] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -68,6 +69,20 @@ export function App() {
     () => conversations.find((conversation) => conversation.id === selectedConversationId) ?? null,
     [conversations, selectedConversationId],
   );
+  const filteredUsers = useMemo(() => {
+    const normalizedSearchText = userSearchText.trim().toLowerCase();
+
+    if (!normalizedSearchText) {
+      return users;
+    }
+
+    return users.filter((user) => {
+      return (
+        user.name.toLowerCase().includes(normalizedSearchText) ||
+        user.email.toLowerCase().includes(normalizedSearchText)
+      );
+    });
+  }, [userSearchText, users]);
 
   useEffect(() => {
     if (!token) {
@@ -296,13 +311,40 @@ export function App() {
           </button>
         </header>
 
-        <section className="user-strip" aria-label="Usuarios">
-          {users.map((user) => (
-            <button className="user-chip" type="button" key={user.id} onClick={() => handleCreateConversation(user.id)}>
-              <span>{user.name.charAt(0).toUpperCase()}</span>
-              {user.name}
-            </button>
-          ))}
+        <section className="people-panel" aria-label="Encontrar pessoas">
+          <div className="people-panel-header">
+            <strong>Encontrar pessoas</strong>
+            <span>{users.length} disponiveis</span>
+          </div>
+
+          <input
+            type="search"
+            placeholder="Buscar por nome ou email"
+            aria-label="Buscar pessoas"
+            value={userSearchText}
+            onChange={(event) => setUserSearchText(event.target.value)}
+          />
+
+          <div className="people-list">
+            {filteredUsers.map((user) => (
+              <button className="person-item" type="button" key={user.id} onClick={() => handleCreateConversation(user.id)}>
+                <span className="avatar small">{user.name.charAt(0).toUpperCase()}</span>
+                <span>
+                  <strong>{user.name}</strong>
+                  <small>{user.email}</small>
+                </span>
+                <strong>Conversar</strong>
+              </button>
+            ))}
+          </div>
+
+          {!users.length && (
+            <p className="empty-state">Crie outra conta em outro navegador para testar uma conversa.</p>
+          )}
+
+          {Boolean(users.length) && !filteredUsers.length && (
+            <p className="empty-state">Nenhum usuario encontrado para essa busca.</p>
+          )}
         </section>
 
         <section className="conversation-list" aria-label="Lista de conversas">
@@ -377,3 +419,4 @@ export function App() {
     </main>
   );
 }
+
