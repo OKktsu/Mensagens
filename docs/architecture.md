@@ -10,21 +10,21 @@ O projeto tambem serve como ambiente de estudo para frontend, backend, banco de 
 
 - Frontend: React + Vite + TypeScript
 - Backend: Node.js + Express + TypeScript
-- Banco de dados local: SQLite
-- ORM: Prisma
+- Banco de dados: PostgreSQL (Supabase)
+- ORM: Prisma (com directUrl para migrações)
 - Tempo real: Socket.IO
 - Autenticacao: JWT + bcrypt
 
 ## Decisao de arquitetura para mercado
 
-Para uma versao publicada, a decisao mais natural e manter a base atual e trocar a infraestrutura local por servicos mais adequados a producao:
+Para uma versao publicada, a decisao e manter a base atual e utilizar o Supabase como provedor de banco de dados gerenciado:
 
-- Frontend: React + TypeScript.
-- Backend: Node.js + TypeScript.
-- Banco principal: PostgreSQL, configurado para Render.
-- Cache/estado temporario: Redis.
+- Frontend: React + TypeScript (Vercel).
+- Backend: Node.js + TypeScript (Render).
+- Banco principal: PostgreSQL gerenciado no Supabase (com connection pooling Supavisor).
+- Cache/estado temporario: Redis (futuro).
 - Tempo real: Socket.IO.
-- Arquivos futuros: storage externo, como S3 ou equivalente.
+- Arquivos futuros: storage externo, como Supabase Storage ou S3.
 
 O PostgreSQL seria a fonte da verdade do sistema: usuarios, conversas, membros, mensagens e permissoes. O Redis entraria para estados passageiros, como usuarios online, digitando, cache e coordenacao entre varias instancias da API.
 
@@ -187,7 +187,8 @@ As rotas de mensagens so podem ser acessadas por membros da conversa.
 
 Backend:
 
-- `DATABASE_URL`: string de conexao do banco. Localmente aponta para SQLite; em producao deve apontar para PostgreSQL.
+- `DATABASE_URL`: string de conexao com pooling do Supabase (porta 6543, Transaction/Session mode).
+- `DIRECT_URL`: string de conexao direta do Supabase (porta 5432) usada pelo Prisma para aplicar migracoes.
 - `JWT_SECRET`: segredo usado para assinar e validar tokens JWT.
 - `PORT`: porta da API.
 - `FRONTEND_URLS`: lista de origens permitidas no CORS, separadas por virgula.
@@ -204,7 +205,7 @@ O frontend esta preparado para Vercel por meio do arquivo `frontend/vercel.json`
 
 A API ainda precisa ser publicada separadamente, porque o frontend hospedado nao consegue acessar `localhost` da maquina do desenvolvedor. Quando a API estiver publicada, a URL dela deve ser configurada na variavel `VITE_API_URL` do repositorio ou da plataforma de hospedagem.
 
-A API esta preparada para Render por meio de `render.yaml`. O Blueprint define um Web Service Node e um banco PostgreSQL gerenciado. Durante o deploy, o Render executa as migracoes do Prisma antes de iniciar a API.
+A API esta preparada para Render por meio de `render.yaml`. O Blueprint define o Web Service Node conectado ao banco PostgreSQL hospedado no Supabase. Durante o deploy, o Render executa as migracoes do Prisma via `DIRECT_URL` antes de iniciar a API.
 
 ## Evolucoes futuras
 

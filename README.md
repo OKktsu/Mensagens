@@ -6,7 +6,7 @@ Aplicacao de mensagens criada para estudar frontend, backend, banco de dados, au
 
 - Frontend: React + Vite + TypeScript
 - Backend: Node.js + Express + TypeScript
-- Banco de dados local: SQLite
+- Banco de dados: PostgreSQL (Supabase)
 - ORM: Prisma
 - Tempo real: Socket.IO
 - Autenticacao: JWT + bcrypt
@@ -15,7 +15,7 @@ Aplicacao de mensagens criada para estudar frontend, backend, banco de dados, au
 
 O projeto comeca pequeno, mas a arquitetura foi pensada para permitir uma publicacao futura:
 
-- PostgreSQL como banco principal em ambiente publicado.
+- PostgreSQL (Supabase) como banco principal em desenvolvimento e producao.
 - Redis como camada futura para dados temporarios, como online, digitando e cache.
 - Variaveis de ambiente para separar configuracao local e producao.
 - Autenticacao atual com email/senha, com espaco para login social depois.
@@ -35,31 +35,38 @@ Mensagens/
 - Frontend React integrado com a API.
 - Token JWT salvo no navegador para acessar rotas protegidas.
 - Mensagens novas entregues em tempo real com Socket.IO.
-- Banco configurado para PostgreSQL via `DATABASE_URL`.
-- API preparada para deploy com banco gerenciado.
+- Banco configurado para PostgreSQL (Supabase) com `DATABASE_URL` e `DIRECT_URL`.
+- API preparada para deploy no Render conectada ao Supabase.
 
 ## Proximos passos
 
-1. Instalar as dependencias.
-2. Configurar os arquivos `.env` do backend e do frontend.
-3. Criar o banco local.
-4. Rodar backend e frontend em modo desenvolvimento.
+1. Criar um projeto no [Supabase](https://supabase.com).
+2. Instalar as dependencias com `pnpm install`.
+3. Configurar os arquivos `.env` do backend (com as credenciais do Supabase) e do frontend.
+4. Rodar as migracoes no Supabase (`pnpm --dir backend prisma:migrate:deploy` ou `prisma:migrate`).
+5. Rodar backend e frontend em modo desenvolvimento.
 
 ```txt
 pnpm install
 copy backend\.env.example backend\.env
 copy frontend\.env.example frontend\.env
-pnpm --dir backend prisma:migrate
+pnpm --dir backend prisma:generate
+pnpm --dir backend prisma:migrate:deploy
 pnpm dev:backend
 pnpm dev:frontend
 ```
 
 ## Variaveis de ambiente
 
-Backend:
+Backend (`backend/.env`):
 
 ```txt
-DATABASE_URL="file:./dev.db"
+# Supabase Connection Pooling (porta 6543)
+DATABASE_URL="postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# Supabase Direct Connection (porta 5432 - migracoes)
+DIRECT_URL="postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres"
+
 JWT_SECRET="troque-este-segredo"
 PORT=3333
 FRONTEND_URLS="http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:5174"
@@ -95,7 +102,8 @@ A API esta preparada para publicacao no Render usando `render.yaml`.
 O Blueprint cria:
 
 - Um Web Service para `backend`.
-- Um PostgreSQL gerenciado para `DATABASE_URL`.
+- `DATABASE_URL` conectando ao pooling do Supabase (porta 6543).
+- `DIRECT_URL` conectando à conexão direta do Supabase (porta 5432) para as migrações.
 - `JWT_SECRET` gerado automaticamente.
 - `FRONTEND_URLS` como variavel manual, onde deve entrar a URL do frontend publicado na Vercel.
 
