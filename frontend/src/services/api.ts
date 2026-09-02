@@ -27,6 +27,7 @@ export type User = {
 
 export type Conversation = {
   id: string;
+  title?: string | null;
   createdAt: string;
   updatedAt: string;
   members: Array<{
@@ -123,6 +124,21 @@ export function createConversation(token: string, participantId: string) {
     token,
     body: {
       participantId,
+    },
+  });
+}
+
+export function createGroup(
+  token: string,
+  participantIds: string[],
+  title?: string,
+) {
+  return request<{ conversation: Conversation }>("/conversations", {
+    method: "POST",
+    token,
+    body: {
+      participantIds,
+      title: title?.trim() || undefined,
     },
   });
 }

@@ -15,6 +15,7 @@ export async function listConversations(userId: string) {
     },
     select: {
       id: true,
+      title: true,
       createdAt: true,
       updatedAt: true,
       members: {
@@ -85,6 +86,7 @@ export async function createConversation(currentUserId: string, participantId: s
     },
     select: {
       id: true,
+      title: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -109,8 +111,62 @@ export async function createConversation(currentUserId: string, participantId: s
     },
     select: {
       id: true,
+      title: true,
       createdAt: true,
       updatedAt: true,
     },
   });
 }
+
+export async function createGroupConversation(
+  currentUserId: string,
+  participantIds: string[],
+  title?: string,
+) {
+  // Remove duplicados e o próprio usuário se foi passado na lista
+  const uniqueParticipantIds = Array.from(
+    new Set(participantIds.filter((id) => id && id !== currentUserId)),
+  );
+
+  if (uniqueParticipantIds.length < 1) {
+    throw new AppError("Um grupo precisa ter pelo menos 1 outro participante.");
+  }
+
+  // Valida que todos os participantes existem
+  const foundUsers = await prisma.user.findMany({
+    where: {
+      id: {
+        in: uniqueParticipantIds,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (foundUsers.length !== uniqueParticipantIds.length) {
+    throw new AppError("Um ou mais participantes nao foram encontrados.", 404);
+  }
+
+  const allMemberIds = [currentUserId, ...uniqueParticipantIds];
+
+  const trimmedTitle = title?.trim() || null;
+
+  return prisma.conversation.create({
+    data: {
+      title: trimmedTitle,
+      members: {
+        create: allMemberIds.map((userId) => ({
+          userId,
+        })),
+      },
+    },
+    select: {
+      id: true,
+      title: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+}
+

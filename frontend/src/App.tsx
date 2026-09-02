@@ -1,111 +1,66 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
-
+import { FormEvent, useEffect, useMemo, useState, useCallback } from "react";
 import {
-  AuthUser,
   Conversation,
   Message,
   User,
   createConversation,
+  createGroup,
   getConversations,
   getMessages,
   getUsers,
-  login,
-  register,
   sendMessage,
 } from "./services/api";
-import { ChatSocket, createChatSocket } from "./services/socket";
-
-const tokenStorageKey = "mensagens:token";
-const userStorageKey = "mensagens:user";
-
-type AuthMode = "login" | "register";
-
-function getStoredUser() {
-  const storedUser = localStorage.getItem(userStorageKey);
-
-  if (!storedUser) {
-    return null;
-  }
-
-  return JSON.parse(storedUser) as AuthUser;
-}
-
-function getConversationTitle(conversation: Conversation, currentUserId: string) {
-  const otherMember = conversation.members.find((member) => member.user.id !== currentUserId);
-
-  return otherMember?.user.name ?? "Conversa";
-}
-
-function getConversationInitial(conversation: Conversation, currentUserId: string) {
-  return getConversationTitle(conversation, currentUserId).charAt(0).toUpperCase();
-}
-
-function addMessageIfMissing(currentMessages: Message[], newMessage: Message) {
-  if (currentMessages.some((message) => message.id === newMessage.id)) {
-    return currentMessages;
-  }
-
-  return [...currentMessages, newMessage];
-}
+import { useAuth } from "./hooks/useAuth";
+import { useChatSocket } from "./hooks/useChatSocket";
+import { addMessageIfMissing } from "./utils/chat-helpers";
+import { AuthScreen } from "./components/auth/AuthScreen";
+import { Sidebar } from "./components/sidebar/Sidebar";
+import { ChatPanel } from "./components/chat/ChatPanel";
+import { CreateGroupModal } from "./components/sidebar/CreateGroupModal";
 
 export function App() {
-  const [authMode, setAuthMode] = useState<AuthMode>("login");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("marcelo@example.com");
-  const [password, setPassword] = useState("123456");
-  const [token, setToken] = useState(() => localStorage.getItem(tokenStorageKey));
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getStoredUser());
+  const {
+    token,
+    currentUser,
+    isLoading: isAuthLoading,
+    error: authError,
+    login,
+    register,
+    logout,
+    clearError: clearAuthError,
+  } = useAuth();
+
   const [users, setUsers] = useState<User[]>([]);
   const [userSearchText, setUserSearchText] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState("");
-  const [socket, setSocket] = useState<ChatSocket | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [chatError, setChatError] = useState("");
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
 
   const selectedConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === selectedConversationId) ?? null,
     [conversations, selectedConversationId],
   );
-  const filteredUsers = useMemo(() => {
-    const normalizedSearchText = userSearchText.trim().toLowerCase();
 
-    if (!normalizedSearchText) {
-      return users;
-    }
+  const handleNewMessage = useCallback((newMessage: Message) => {
+    setMessages((current) => addMessageIfMissing(current, newMessage));
+  }, []);
 
-    return users.filter((user) => {
-      return (
-        user.name.toLowerCase().includes(normalizedSearchText) ||
-        user.email.toLowerCase().includes(normalizedSearchText)
-      );
-    });
-  }, [userSearchText, users]);
+  const { socketError } = useChatSocket({
+    token,
+    selectedConversationId,
+    onNewMessage: handleNewMessage,
+  });
 
+  // Carrega lista de usuários e conversas iniciais após login
   useEffect(() => {
     if (!token) {
-      setSocket(null);
-      return;
-    }
-
-    const chatSocket = createChatSocket(token);
-
-    chatSocket.on("connect_error", () => {
-      setError("Nao foi possivel conectar ao tempo real.");
-    });
-
-    setSocket(chatSocket);
-
-    return () => {
-      chatSocket.disconnect();
-      setSocket(null);
-    };
-  }, [token]);
-
-  useEffect(() => {
-    if (!token) {
+      setUsers([]);
+      setConversations([]);
+      setSelectedConversationId(null);
+      setMessages([]);
       return;
     }
 
@@ -113,7 +68,7 @@ export function App() {
 
     async function loadInitialData() {
       try {
-        setError("");
+        setChatError("");
         const [usersResponse, conversationsResponse] = await Promise.all([
           getUsers(authToken),
           getConversations(authToken),
@@ -123,14 +78,15 @@ export function App() {
         setConversations(conversationsResponse.conversations);
         setSelectedConversationId((currentId) => currentId ?? conversationsResponse.conversations[0]?.id ?? null);
       } catch (caughtError) {
-        setError(caughtError instanceof Error ? caughtError.message : "Sessao invalida.");
-        handleLogout();
+        setChatError(caughtError instanceof Error ? caughtError.message : "Sessão inválida.");
+        logout();
       }
     }
 
     loadInitialData();
-  }, [token]);
+  }, [token, logout]);
 
+  // Carrega histórico de mensagens da conversa selecionada
   useEffect(() => {
     if (!token || !selectedConversationId) {
       setMessages([]);
@@ -145,277 +101,106 @@ export function App() {
         const response = await getMessages(authToken, conversationId);
         setMessages(response.messages);
       } catch (caughtError) {
-        setError(caughtError instanceof Error ? caughtError.message : "Nao foi possivel carregar as mensagens.");
+        setChatError(caughtError instanceof Error ? caughtError.message : "Não foi possível carregar as mensagens.");
       }
     }
 
     loadMessages();
   }, [token, selectedConversationId]);
 
-  useEffect(() => {
-    if (!socket || !selectedConversationId) {
-      return;
-    }
-
-    socket.emit("conversation:join", selectedConversationId);
-
-    function handleNewMessage(message: Message) {
-      if (message.conversationId !== selectedConversationId) {
-        return;
-      }
-
-      setMessages((currentMessages) => addMessageIfMissing(currentMessages, message));
-    }
-
-    socket.on("message:new", handleNewMessage);
-
-    return () => {
-      socket.emit("conversation:leave", selectedConversationId);
-      socket.off("message:new", handleNewMessage);
-    };
-  }, [socket, selectedConversationId]);
-
-  async function handleAuthSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsLoading(true);
-    setError("");
+  async function handleSelectUser(participantId: string) {
+    if (!token) return;
 
     try {
-      const response =
-        authMode === "login" ? await login(email, password) : await register(name, email, password);
-
-      localStorage.setItem(tokenStorageKey, response.token);
-      localStorage.setItem(userStorageKey, JSON.stringify(response.user));
-      setToken(response.token);
-      setCurrentUser(response.user);
-    } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Nao foi possivel entrar.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  function handleLogout() {
-    localStorage.removeItem(tokenStorageKey);
-    localStorage.removeItem(userStorageKey);
-    setToken(null);
-    setCurrentUser(null);
-    setUsers([]);
-    setConversations([]);
-    setSelectedConversationId(null);
-    setMessages([]);
-    socket?.disconnect();
-    setSocket(null);
-  }
-
-  async function handleCreateConversation(participantId: string) {
-    if (!token) {
-      return;
-    }
-
-    try {
-      setError("");
+      setChatError("");
       const response = await createConversation(token, participantId);
       const conversationsResponse = await getConversations(token);
       setConversations(conversationsResponse.conversations);
       setSelectedConversationId(response.conversation.id);
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Nao foi possivel criar a conversa.");
+      setChatError(caughtError instanceof Error ? caughtError.message : "Não foi possível criar a conversa.");
+    }
+  }
+
+  async function handleCreateGroup(participantIds: string[], title?: string) {
+    if (!token) return;
+
+    try {
+      setChatError("");
+      const response = await createGroup(token, participantIds, title);
+      const conversationsResponse = await getConversations(token);
+      setConversations(conversationsResponse.conversations);
+      setSelectedConversationId(response.conversation.id);
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Não foi possível criar o grupo.";
+      setChatError(message);
+      throw caughtError;
     }
   }
 
   async function handleSendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!token || !selectedConversationId || !messageText.trim()) {
-      return;
-    }
+    if (!token || !selectedConversationId || !messageText.trim()) return;
 
     try {
-      setError("");
+      setChatError("");
       const response = await sendMessage(token, selectedConversationId, messageText);
-      setMessages((currentMessages) => addMessageIfMissing(currentMessages, response.message));
+      setMessages((current) => addMessageIfMissing(current, response.message));
       setMessageText("");
       const conversationsResponse = await getConversations(token);
       setConversations(conversationsResponse.conversations);
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Nao foi possivel enviar a mensagem.");
+      setChatError(caughtError instanceof Error ? caughtError.message : "Não foi possível enviar a mensagem.");
     }
   }
 
   if (!token || !currentUser) {
     return (
-      <main className="auth-shell">
-        <section className="auth-panel">
-          <span className="eyebrow">Mensagens</span>
-          <h1>{authMode === "login" ? "Entrar" : "Criar conta"}</h1>
-
-          <form className="auth-form" onSubmit={handleAuthSubmit}>
-            {authMode === "register" && (
-              <label>
-                Nome
-                <input value={name} onChange={(event) => setName(event.target.value)} />
-              </label>
-            )}
-
-            <label>
-              Email
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </label>
-
-            <label>
-              Senha
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </label>
-
-            {error && <p className="form-error">{error}</p>}
-
-            <button type="submit" disabled={isLoading}>
-              {isLoading ? "Aguarde" : authMode === "login" ? "Entrar" : "Cadastrar"}
-            </button>
-          </form>
-
-          <button
-            className="text-button"
-            type="button"
-            onClick={() => {
-              setError("");
-              setAuthMode(authMode === "login" ? "register" : "login");
-            }}
-          >
-            {authMode === "login" ? "Criar uma conta" : "Ja tenho conta"}
-          </button>
-        </section>
-      </main>
+      <AuthScreen
+        isLoading={isAuthLoading}
+        error={authError}
+        onLogin={login}
+        onRegister={register}
+        onClearError={clearAuthError}
+      />
     );
   }
 
   return (
     <main className="app-shell">
-      <aside className="sidebar">
-        <header className="sidebar-header">
-          <div>
-            <span className="eyebrow">Mensagens</span>
-            <h1>Conversas</h1>
-          </div>
-          <button className="ghost-button" type="button" onClick={handleLogout}>
-            Sair
-          </button>
-        </header>
+      <Sidebar
+        users={users}
+        userSearchText={userSearchText}
+        onSearchChange={setUserSearchText}
+        onSelectUser={handleSelectUser}
+        conversations={conversations}
+        selectedConversationId={selectedConversationId}
+        currentUserId={currentUser.id}
+        onSelectConversation={setSelectedConversationId}
+        onLogout={logout}
+        onOpenCreateGroup={() => setIsCreateGroupOpen(true)}
+      />
 
-        <section className="people-panel" aria-label="Encontrar pessoas">
-          <div className="people-panel-header">
-            <strong>Encontrar pessoas</strong>
-            <span>{users.length} disponiveis</span>
-          </div>
+      <ChatPanel
+        selectedConversation={selectedConversation}
+        currentUserId={currentUser.id}
+        currentUserName={currentUser.name}
+        error={chatError || socketError}
+        messages={messages}
+        messageText={messageText}
+        onMessageChange={setMessageText}
+        onSendMessage={handleSendMessage}
+      />
 
-          <input
-            type="search"
-            placeholder="Buscar por nome ou email"
-            aria-label="Buscar pessoas"
-            value={userSearchText}
-            onChange={(event) => setUserSearchText(event.target.value)}
-          />
-
-          <div className="people-list">
-            {filteredUsers.map((user) => (
-              <button className="person-item" type="button" key={user.id} onClick={() => handleCreateConversation(user.id)}>
-                <span className="avatar small">{user.name.charAt(0).toUpperCase()}</span>
-                <span>
-                  <strong>{user.name}</strong>
-                  <small>{user.email}</small>
-                </span>
-                <strong>Conversar</strong>
-              </button>
-            ))}
-          </div>
-
-          {!users.length && (
-            <p className="empty-state">Crie outra conta em outro navegador para testar uma conversa.</p>
-          )}
-
-          {Boolean(users.length) && !filteredUsers.length && (
-            <p className="empty-state">Nenhum usuario encontrado para essa busca.</p>
-          )}
-        </section>
-
-        <section className="conversation-list" aria-label="Lista de conversas">
-          {conversations.map((conversation) => {
-            const lastMessage = conversation.messages[0];
-            const isSelected = conversation.id === selectedConversationId;
-
-            return (
-              <button
-                className={isSelected ? "conversation-item selected" : "conversation-item"}
-                type="button"
-                key={conversation.id}
-                onClick={() => setSelectedConversationId(conversation.id)}
-              >
-                <span className="avatar">{getConversationInitial(conversation, currentUser.id)}</span>
-                <span className="conversation-content">
-                  <span className="conversation-topline">
-                    <strong>{getConversationTitle(conversation, currentUser.id)}</strong>
-                    <small>{new Date(conversation.updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</small>
-                  </span>
-                  <span>{lastMessage?.content ?? "Conversa criada"}</span>
-                </span>
-              </button>
-            );
-          })}
-        </section>
-      </aside>
-
-      <section className="chat-panel" aria-label="Conversa aberta">
-        <header className="chat-header">
-          {selectedConversation ? (
-            <>
-              <span className="avatar">{getConversationInitial(selectedConversation, currentUser.id)}</span>
-              <div>
-                <strong>{getConversationTitle(selectedConversation, currentUser.id)}</strong>
-                <span>{currentUser.name}</span>
-              </div>
-            </>
-          ) : (
-            <div>
-              <strong>Nenhuma conversa</strong>
-              <span>Escolha um usuario para comecar</span>
-            </div>
-          )}
-        </header>
-
-        {error && <p className="inline-error">{error}</p>}
-
-        <div className="message-list">
-          {messages.map((message) => (
-            <article className={message.sender.id === currentUser.id ? "message mine" : "message"} key={message.id}>
-              <span>{message.sender.name}</span>
-              <p>{message.content}</p>
-            </article>
-          ))}
-        </div>
-
-        <form className="message-form" onSubmit={handleSendMessage}>
-          <input
-            type="text"
-            placeholder="Escreva uma mensagem"
-            aria-label="Mensagem"
-            value={messageText}
-            disabled={!selectedConversation}
-            onChange={(event) => setMessageText(event.target.value)}
-          />
-          <button type="submit" disabled={!selectedConversation || !messageText.trim()}>
-            Enviar
-          </button>
-        </form>
-      </section>
+      <CreateGroupModal
+        isOpen={isCreateGroupOpen}
+        onClose={() => setIsCreateGroupOpen(false)}
+        users={users}
+        onCreateGroup={handleCreateGroup}
+      />
     </main>
   );
 }
