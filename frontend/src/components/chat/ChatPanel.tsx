@@ -11,8 +11,11 @@ type ChatPanelProps = {
   error: string;
   messages: Message[];
   messageText: string;
+  typingText?: string | null;
   onMessageChange: (text: string) => void;
   onSendMessage: (event: FormEvent<HTMLFormElement>) => void;
+  onTypingStart?: () => void;
+  onTypingStop?: () => void;
 };
 
 export function ChatPanel({
@@ -22,8 +25,11 @@ export function ChatPanel({
   error,
   messages,
   messageText,
+  typingText,
   onMessageChange,
   onSendMessage,
+  onTypingStart,
+  onTypingStop,
 }: ChatPanelProps) {
   return (
     <section className="chat-panel" aria-label="Conversa aberta">
@@ -31,6 +37,7 @@ export function ChatPanel({
         conversation={selectedConversation}
         currentUserId={currentUserId}
         currentUserName={currentUserName}
+        typingText={typingText}
       />
 
       {error && <p className="inline-error">{error}</p>}
@@ -41,8 +48,11 @@ export function ChatPanel({
         messageText={messageText}
         onMessageChange={onMessageChange}
         onSendMessage={onSendMessage}
+        onTypingStart={onTypingStart}
+        onTypingStop={onTypingStop}
         disabled={!selectedConversation}
       />
     </section>
   );
 }
+

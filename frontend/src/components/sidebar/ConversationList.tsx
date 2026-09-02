@@ -10,6 +10,7 @@ type ConversationListProps = {
   conversations: Conversation[];
   selectedConversationId: string | null;
   currentUserId: string;
+  typingMap?: Record<string, string[]>;
   onSelectConversation: (conversationId: string) => void;
 };
 
@@ -17,6 +18,7 @@ export function ConversationList({
   conversations,
   selectedConversationId,
   currentUserId,
+  typingMap,
   onSelectConversation,
 }: ConversationListProps) {
   return (
@@ -26,6 +28,8 @@ export function ConversationList({
         const isSelected = conversation.id === selectedConversationId;
         const title = getConversationTitle(conversation, currentUserId);
         const initial = getConversationInitial(conversation, currentUserId);
+        const typers = typingMap?.[conversation.id] ?? [];
+        const isTyping = typers.length > 0;
 
         return (
           <button
@@ -40,7 +44,11 @@ export function ConversationList({
                 <strong>{title}</strong>
                 <small>{formatTime(conversation.updatedAt)}</small>
               </span>
-              <span>{lastMessage?.content ?? "Conversa criada"}</span>
+              {isTyping ? (
+                <span className="typing-preview">digitando...</span>
+              ) : (
+                <span>{lastMessage?.content ?? "Conversa criada"}</span>
+              )}
             </span>
           </button>
         );
@@ -48,3 +56,4 @@ export function ConversationList({
     </section>
   );
 }
+

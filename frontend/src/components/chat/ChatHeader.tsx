@@ -6,12 +6,14 @@ type ChatHeaderProps = {
   conversation: Conversation | null;
   currentUserId: string;
   currentUserName: string;
+  typingText?: string | null;
 };
 
 export function ChatHeader({
   conversation,
   currentUserId,
   currentUserName,
+  typingText,
 }: ChatHeaderProps) {
   return (
     <header className="chat-header">
@@ -20,7 +22,11 @@ export function ChatHeader({
           <Avatar initial={getConversationInitial(conversation, currentUserId)} />
           <div>
             <strong>{getConversationTitle(conversation, currentUserId)}</strong>
-            <span>{currentUserName}</span>
+            {typingText ? (
+              <span className="typing-indicator">{typingText}</span>
+            ) : (
+              <span>{currentUserName}</span>
+            )}
           </div>
         </>
       ) : (
@@ -32,3 +38,4 @@ export function ChatHeader({
     </header>
   );
 }
+

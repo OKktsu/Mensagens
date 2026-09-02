@@ -11,6 +11,7 @@ type SidebarProps = {
   conversations: Conversation[];
   selectedConversationId: string | null;
   currentUserId: string;
+  typingMap?: Record<string, string[]>;
   onSelectConversation: (conversationId: string) => void;
   onLogout: () => void;
   onOpenCreateGroup: () => void;
@@ -24,6 +25,7 @@ export function Sidebar({
   conversations,
   selectedConversationId,
   currentUserId,
+  typingMap,
   onSelectConversation,
   onLogout,
   onOpenCreateGroup,
@@ -41,9 +43,11 @@ export function Sidebar({
         conversations={conversations}
         selectedConversationId={selectedConversationId}
         currentUserId={currentUserId}
+        typingMap={typingMap}
         onSelectConversation={onSelectConversation}
       />
     </aside>
   );
 }
+
 

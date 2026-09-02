@@ -10,6 +10,7 @@ import {
   getUsers,
   sendMessage,
 } from "./services/api";
+import { TypingPayload } from "./services/socket";
 import { useAuth } from "./hooks/useAuth";
 import { useChatSocket } from "./hooks/useChatSocket";
 import { addMessageIfMissing } from "./utils/chat-helpers";
@@ -38,20 +39,93 @@ export function App() {
   const [messageText, setMessageText] = useState("");
   const [chatError, setChatError] = useState("");
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+  
+  // Mapa de digitação: { [conversationId]: { [userId]: userName } }
+  const [typingMap, setTypingMap] = useState<Record<string, Record<string, string>>>({});
 
   const selectedConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === selectedConversationId) ?? null,
     [conversations, selectedConversationId],
   );
 
-  const handleNewMessage = useCallback((newMessage: Message) => {
-    setMessages((current) => addMessageIfMissing(current, newMessage));
+  // Manipulador de novas mensagens recebidas em tempo real
+  const handleNewMessage = useCallback(
+    (newMessage: Message) => {
+      // Se for da conversa aberta no momento, adiciona à lista de mensagens
+      if (newMessage.conversationId === selectedConversationId) {
+        setMessages((current) => addMessageIfMissing(current, newMessage));
+      }
+
+      // Remove status de digitação de quem acabou de enviar a mensagem
+      if (newMessage.conversationId && newMessage.senderId) {
+        setTypingMap((prev) => {
+          const convMap = { ...(prev[newMessage.conversationId!] || {}) };
+          delete convMap[newMessage.senderId!];
+          return {
+            ...prev,
+            [newMessage.conversationId!]: convMap,
+          };
+        });
+      }
+
+      // Atualiza o resumo da conversa na barra lateral e reposiciona no topo
+      setConversations((currentConversations) => {
+        const existingIndex = currentConversations.findIndex(
+          (c) => c.id === newMessage.conversationId,
+        );
+
+        if (existingIndex === -1) {
+          return currentConversations;
+        }
+
+        const updatedConversation: Conversation = {
+          ...currentConversations[existingIndex],
+          updatedAt: newMessage.createdAt,
+          messages: [
+            {
+              id: newMessage.id,
+              content: newMessage.content,
+              createdAt: newMessage.createdAt,
+              sender: {
+                id: newMessage.sender.id,
+                name: newMessage.sender.name,
+              },
+            },
+          ],
+        };
+
+        const remaining = currentConversations.filter(
+          (c) => c.id !== newMessage.conversationId,
+        );
+
+        return [updatedConversation, ...remaining];
+      });
+    },
+    [selectedConversationId],
+  );
+
+  // Manipulador de status de digitação em tempo real
+  const handleUserTyping = useCallback((payload: TypingPayload) => {
+    setTypingMap((prev) => {
+      const convMap = { ...(prev[payload.conversationId] || {}) };
+
+      if (payload.isTyping) {
+        convMap[payload.userId] = payload.userName;
+      } else {
+        delete convMap[payload.userId];
+      }
+
+      return {
+        ...prev,
+        [payload.conversationId]: convMap,
+      };
+    });
   }, []);
 
-  const { socketError } = useChatSocket({
+  const { socketError, sendTypingStart, sendTypingStop } = useChatSocket({
     token,
-    selectedConversationId,
     onNewMessage: handleNewMessage,
+    onUserTyping: handleUserTyping,
   });
 
   // Carrega lista de usuários e conversas iniciais após login
@@ -61,6 +135,7 @@ export function App() {
       setConversations([]);
       setSelectedConversationId(null);
       setMessages([]);
+      setTypingMap({});
       return;
     }
 
@@ -107,6 +182,19 @@ export function App() {
 
     loadMessages();
   }, [token, selectedConversationId]);
+
+  // Dispara início/fim de digitação para a conversa ativa
+  const handleTypingStart = useCallback(() => {
+    if (selectedConversationId) {
+      sendTypingStart(selectedConversationId);
+    }
+  }, [selectedConversationId, sendTypingStart]);
+
+  const handleTypingStop = useCallback(() => {
+    if (selectedConversationId) {
+      sendTypingStop(selectedConversationId);
+    }
+  }, [selectedConversationId, sendTypingStop]);
 
   async function handleSelectUser(participantId: string) {
     if (!token) return;
@@ -157,6 +245,31 @@ export function App() {
     }
   }
 
+  // Texto do indicador de digitação para o cabeçalho do chat aberto
+  const activeTypingText = useMemo(() => {
+    if (!selectedConversationId) return null;
+    const currentTypers = typingMap[selectedConversationId];
+    if (!currentTypers) return null;
+
+    const names = Object.values(currentTypers);
+    if (names.length === 0) return null;
+    if (names.length === 1) return `${names[0]} está digitando...`;
+    if (names.length === 2) return `${names[0]} e ${names[1]} estão digitando...`;
+    return "Várias pessoas estão digitando...";
+  }, [selectedConversationId, typingMap]);
+
+  // Mapa formatado para a barra lateral: { [conversationId]: ["Nome1", "Nome2"] }
+  const sidebarTypingMap = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const [convId, typers] of Object.entries(typingMap)) {
+      const names = Object.values(typers);
+      if (names.length > 0) {
+        result[convId] = names;
+      }
+    }
+    return result;
+  }, [typingMap]);
+
   if (!token || !currentUser) {
     return (
       <AuthScreen
@@ -179,6 +292,7 @@ export function App() {
         conversations={conversations}
         selectedConversationId={selectedConversationId}
         currentUserId={currentUser.id}
+        typingMap={sidebarTypingMap}
         onSelectConversation={setSelectedConversationId}
         onLogout={logout}
         onOpenCreateGroup={() => setIsCreateGroupOpen(true)}
@@ -191,8 +305,11 @@ export function App() {
         error={chatError || socketError}
         messages={messages}
         messageText={messageText}
+        typingText={activeTypingText}
         onMessageChange={setMessageText}
         onSendMessage={handleSendMessage}
+        onTypingStart={handleTypingStart}
+        onTypingStop={handleTypingStop}
       />
 
       <CreateGroupModal
@@ -204,4 +321,5 @@ export function App() {
     </main>
   );
 }
+
 

@@ -326,9 +326,25 @@ h1 {
 }
 
 .chat-header span:not(.avatar) {
-  color: #16a34a;
+  color: #64748b;
   font-size: 0.9rem;
 }
+
+.typing-indicator {
+  color: #16a34a !important;
+  font-weight: 700;
+  font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.typing-preview {
+  color: #16a34a !important;
+  font-weight: 700;
+  font-style: italic;
+}
+
 
 .message-list {
   display: flex;

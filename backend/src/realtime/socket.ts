@@ -32,7 +32,7 @@ function getSocketToken(socket: Socket) {
 export function setupSocketServer(socketServer: Server) {
   io = socketServer;
 
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     try {
       const token = getSocketToken(socket);
 
@@ -46,7 +46,17 @@ export function setupSocketServer(socketServer: Server) {
         return next(new Error("Token invalido."));
       }
 
-      socket.data.userId = payload.sub;
+      const user = await prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, name: true },
+      });
+
+      if (!user) {
+        return next(new Error("Usuario nao encontrado."));
+      }
+
+      socket.data.userId = user.id;
+      socket.data.userName = user.name;
 
       return next();
     } catch {
@@ -55,25 +65,63 @@ export function setupSocketServer(socketServer: Server) {
   });
 
   io.on("connection", (socket) => {
+    // Coloca automaticamente a conexão na Sala Pessoal do usuário
+    const personalRoom = `user:${socket.data.userId}`;
+    socket.join(personalRoom);
+
     socket.emit("connection:ready", {
       socketId: socket.id,
+      userId: socket.data.userId,
     });
 
-    socket.on("conversation:join", async (conversationId: string, callback?: (response: { ok: boolean }) => void) => {
-      const membership = await prisma.conversationMember.findUnique({
+    // Indicador de digitação: início
+    socket.on("typing:start", async (payload: { conversationId: string }) => {
+      const conversationId = payload?.conversationId;
+      if (!conversationId) return;
+
+      const members = await prisma.conversationMember.findMany({
         where: {
-          userId_conversationId: {
-            userId: socket.data.userId,
-            conversationId,
-          },
+          conversationId,
+          userId: { not: socket.data.userId },
         },
+        select: { userId: true },
       });
 
-      if (!membership) {
-        callback?.({ ok: false });
-        return;
-      }
+      members.forEach((member) => {
+        io?.to(`user:${member.userId}`).emit("user:typing", {
+          conversationId,
+          userId: socket.data.userId,
+          userName: socket.data.userName,
+          isTyping: true,
+        });
+      });
+    });
 
+    // Indicador de digitação: parada
+    socket.on("typing:stop", async (payload: { conversationId: string }) => {
+      const conversationId = payload?.conversationId;
+      if (!conversationId) return;
+
+      const members = await prisma.conversationMember.findMany({
+        where: {
+          conversationId,
+          userId: { not: socket.data.userId },
+        },
+        select: { userId: true },
+      });
+
+      members.forEach((member) => {
+        io?.to(`user:${member.userId}`).emit("user:typing", {
+          conversationId,
+          userId: socket.data.userId,
+          userName: socket.data.userName,
+          isTyping: false,
+        });
+      });
+    });
+
+    // Compatibilidade opcional para salas legadas
+    socket.on("conversation:join", async (conversationId: string, callback?: (response: { ok: boolean }) => void) => {
       await socket.join(getConversationRoom(conversationId));
       callback?.({ ok: true });
     });
@@ -84,6 +132,17 @@ export function setupSocketServer(socketServer: Server) {
   });
 }
 
-export function emitMessageCreated(message: MessagePayload) {
-  io?.to(getConversationRoom(message.conversationId)).emit("message:new", message);
+export async function emitMessageCreated(message: MessagePayload) {
+  if (!io) return;
+
+  // Busca todos os membros da conversa para disparar na sala pessoal de cada um
+  const members = await prisma.conversationMember.findMany({
+    where: { conversationId: message.conversationId },
+    select: { userId: true },
+  });
+
+  members.forEach((member) => {
+    io?.to(`user:${member.userId}`).emit("message:new", message);
+  });
 }
+

@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
-import { ChatSocket, createChatSocket } from "../services/socket";
+import { useEffect, useState, useCallback } from "react";
+import { ChatSocket, createChatSocket, TypingPayload } from "../services/socket";
 import type { Message } from "../services/api";
 
 type UseChatSocketOptions = {
   token: string | null;
-  selectedConversationId: string | null;
   onNewMessage: (message: Message) => void;
+  onUserTyping?: (payload: TypingPayload) => void;
 };
 
 export function useChatSocket({
   token,
-  selectedConversationId,
   onNewMessage,
+  onUserTyping,
 }: UseChatSocketOptions) {
   const [socket, setSocket] = useState<ChatSocket | null>(null);
   const [socketError, setSocketError] = useState("");
@@ -29,35 +29,47 @@ export function useChatSocket({
       setSocketError("Não foi possível conectar ao tempo real.");
     });
 
+    chatSocket.on("message:new", (message: Message) => {
+      onNewMessage(message);
+    });
+
+    if (onUserTyping) {
+      chatSocket.on("user:typing", (payload: TypingPayload) => {
+        onUserTyping(payload);
+      });
+    }
+
     setSocket(chatSocket);
 
     return () => {
       chatSocket.disconnect();
       setSocket(null);
     };
-  }, [token]);
+  }, [token, onNewMessage, onUserTyping]);
 
-  // Entra e sai da sala da conversa selecionada
-  useEffect(() => {
-    if (!socket || !selectedConversationId) {
-      return;
-    }
-
-    socket.emit("conversation:join", selectedConversationId);
-
-    function handleNewMessage(message: Message) {
-      if (message.conversationId === selectedConversationId) {
-        onNewMessage(message);
+  const sendTypingStart = useCallback(
+    (conversationId: string) => {
+      if (socket && conversationId) {
+        socket.emit("typing:start", { conversationId });
       }
-    }
+    },
+    [socket],
+  );
 
-    socket.on("message:new", handleNewMessage);
+  const sendTypingStop = useCallback(
+    (conversationId: string) => {
+      if (socket && conversationId) {
+        socket.emit("typing:stop", { conversationId });
+      }
+    },
+    [socket],
+  );
 
-    return () => {
-      socket.emit("conversation:leave", selectedConversationId);
-      socket.off("message:new", handleNewMessage);
-    };
-  }, [socket, selectedConversationId, onNewMessage]);
-
-  return { socket, socketError };
+  return {
+    socket,
+    socketError,
+    sendTypingStart,
+    sendTypingStop,
+  };
 }
+
