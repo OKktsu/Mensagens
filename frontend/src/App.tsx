@@ -242,6 +242,7 @@ export function App() {
 
     async function loadMessages() {
       try {
+        setChatError("");
         const response = await getMessages(authToken, conversationId);
         setMessages(response.messages);
       } catch (caughtError) {
@@ -256,6 +257,7 @@ export function App() {
   const handleSelectConversation = useCallback(
     (conversationId: string) => {
       setSelectedConversationId(conversationId);
+      setChatError("");
 
       setConversations((current) =>
         current.map((c) => (c.id === conversationId ? { ...c, unreadCount: 0 } : c)),
@@ -267,6 +269,7 @@ export function App() {
     },
     [token],
   );
+
 
 
   // Dispara início/fim de digitação para a conversa ativa
