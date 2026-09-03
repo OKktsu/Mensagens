@@ -12,6 +12,8 @@ type ChatPanelProps = {
   messages: Message[];
   messageText: string;
   typingText?: string | null;
+  isOnline?: boolean;
+  recipientLastReadAt?: string | null;
   onMessageChange: (text: string) => void;
   onSendMessage: (event: FormEvent<HTMLFormElement>) => void;
   onTypingStart?: () => void;
@@ -26,6 +28,8 @@ export function ChatPanel({
   messages,
   messageText,
   typingText,
+  isOnline,
+  recipientLastReadAt,
   onMessageChange,
   onSendMessage,
   onTypingStart,
@@ -38,11 +42,16 @@ export function ChatPanel({
         currentUserId={currentUserId}
         currentUserName={currentUserName}
         typingText={typingText}
+        isOnline={isOnline}
       />
 
       {error && <p className="inline-error">{error}</p>}
 
-      <MessageList messages={messages} currentUserId={currentUserId} />
+      <MessageList
+        messages={messages}
+        currentUserId={currentUserId}
+        recipientLastReadAt={recipientLastReadAt}
+      />
 
       <MessageInput
         messageText={messageText}
@@ -55,4 +64,5 @@ export function ChatPanel({
     </section>
   );
 }
+
 

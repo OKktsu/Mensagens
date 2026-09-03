@@ -18,6 +18,7 @@ type MessagePayload = {
 };
  
 let io: Server | null = null;
+const connectedUsers = new Map<string, Set<string>>();
 
 function getConversationRoom(conversationId: string) {
   return `conversation:${conversationId}`;
@@ -65,13 +66,29 @@ export function setupSocketServer(socketServer: Server) {
   });
 
   io.on("connection", (socket) => {
+    const userId = socket.data.userId as string;
+
     // Coloca automaticamente a conexão na Sala Pessoal do usuário
-    const personalRoom = `user:${socket.data.userId}`;
+    const personalRoom = `user:${userId}`;
     socket.join(personalRoom);
+
+    // Gerencia status online
+    const userSockets = connectedUsers.get(userId) ?? new Set<string>();
+    const isFirstConnection = userSockets.size === 0;
+    userSockets.add(socket.id);
+    connectedUsers.set(userId, userSockets);
+
+    if (isFirstConnection) {
+      io?.emit("user:status", {
+        userId,
+        isOnline: true,
+      });
+    }
 
     socket.emit("connection:ready", {
       socketId: socket.id,
-      userId: socket.data.userId,
+      userId,
+      onlineUserIds: Array.from(connectedUsers.keys()),
     });
 
     // Indicador de digitação: início
@@ -82,7 +99,7 @@ export function setupSocketServer(socketServer: Server) {
       const members = await prisma.conversationMember.findMany({
         where: {
           conversationId,
-          userId: { not: socket.data.userId },
+          userId: { not: userId },
         },
         select: { userId: true },
       });
@@ -90,7 +107,7 @@ export function setupSocketServer(socketServer: Server) {
       members.forEach((member) => {
         io?.to(`user:${member.userId}`).emit("user:typing", {
           conversationId,
-          userId: socket.data.userId,
+          userId,
           userName: socket.data.userName,
           isTyping: true,
         });
@@ -105,7 +122,7 @@ export function setupSocketServer(socketServer: Server) {
       const members = await prisma.conversationMember.findMany({
         where: {
           conversationId,
-          userId: { not: socket.data.userId },
+          userId: { not: userId },
         },
         select: { userId: true },
       });
@@ -113,7 +130,7 @@ export function setupSocketServer(socketServer: Server) {
       members.forEach((member) => {
         io?.to(`user:${member.userId}`).emit("user:typing", {
           conversationId,
-          userId: socket.data.userId,
+          userId,
           userName: socket.data.userName,
           isTyping: false,
         });
@@ -128,6 +145,21 @@ export function setupSocketServer(socketServer: Server) {
 
     socket.on("conversation:leave", async (conversationId: string) => {
       await socket.leave(getConversationRoom(conversationId));
+    });
+
+    // Ao desconectar
+    socket.on("disconnect", () => {
+      const sockets = connectedUsers.get(userId);
+      if (sockets) {
+        sockets.delete(socket.id);
+        if (sockets.size === 0) {
+          connectedUsers.delete(userId);
+          io?.emit("user:status", {
+            userId,
+            isOnline: false,
+          });
+        }
+      }
     });
   });
 }
@@ -145,4 +177,25 @@ export async function emitMessageCreated(message: MessagePayload) {
     io?.to(`user:${member.userId}`).emit("message:new", message);
   });
 }
+
+export async function emitConversationRead(conversationId: string, readerUserId: string, readAt: Date) {
+  if (!io) return;
+
+  const members = await prisma.conversationMember.findMany({
+    where: {
+      conversationId,
+      userId: { not: readerUserId },
+    },
+    select: { userId: true },
+  });
+
+  members.forEach((member) => {
+    io?.to(`user:${member.userId}`).emit("conversation:read", {
+      conversationId,
+      userId: readerUserId,
+      readAt,
+    });
+  });
+}
+
 

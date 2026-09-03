@@ -5,6 +5,7 @@ import { Avatar } from "../common/Avatar";
 type PeopleSearchProps = {
   users: User[];
   searchText: string;
+  onlineUserIds?: Set<string>;
   onSearchChange: (text: string) => void;
   onSelectUser: (userId: string) => void;
 };
@@ -12,6 +13,7 @@ type PeopleSearchProps = {
 export function PeopleSearch({
   users,
   searchText,
+  onlineUserIds,
   onSearchChange,
   onSelectUser,
 }: PeopleSearchProps) {
@@ -50,7 +52,11 @@ export function PeopleSearch({
             key={user.id}
             onClick={() => onSelectUser(user.id)}
           >
-            <Avatar name={user.name} size="small" />
+            <Avatar
+              name={user.name}
+              size="small"
+              isOnline={Boolean(onlineUserIds?.has(user.id))}
+            />
             <span>
               <strong>{user.name}</strong>
               <small>{user.email}</small>
@@ -59,6 +65,7 @@ export function PeopleSearch({
           </button>
         ))}
       </div>
+
 
       {!users.length && (
         <p className="empty-state">

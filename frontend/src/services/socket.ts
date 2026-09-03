@@ -11,11 +11,25 @@ export type TypingPayload = {
   isTyping: boolean;
 };
 
+export type UserStatusPayload = {
+  userId: string;
+  isOnline: boolean;
+};
+
+export type ConversationReadPayload = {
+  conversationId: string;
+  userId: string;
+  readAt: string;
+};
+
 type ServerToClientEvents = {
-  "connection:ready": (payload: { socketId: string; userId?: string }) => void;
+  "connection:ready": (payload: { socketId: string; userId?: string; onlineUserIds?: string[] }) => void;
   "message:new": (message: Message) => void;
   "user:typing": (payload: TypingPayload) => void;
+  "user:status": (payload: UserStatusPayload) => void;
+  "conversation:read": (payload: ConversationReadPayload) => void;
 };
+
 
 type ClientToServerEvents = {
   "conversation:join": (conversationId: string, callback?: (response: { ok: boolean }) => void) => void;

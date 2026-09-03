@@ -11,6 +11,7 @@ type ConversationListProps = {
   selectedConversationId: string | null;
   currentUserId: string;
   typingMap?: Record<string, string[]>;
+  onlineUserIds?: Set<string>;
   onSelectConversation: (conversationId: string) => void;
 };
 
@@ -19,6 +20,7 @@ export function ConversationList({
   selectedConversationId,
   currentUserId,
   typingMap,
+  onlineUserIds,
   onSelectConversation,
 }: ConversationListProps) {
   return (
@@ -30,6 +32,10 @@ export function ConversationList({
         const initial = getConversationInitial(conversation, currentUserId);
         const typers = typingMap?.[conversation.id] ?? [];
         const isTyping = typers.length > 0;
+        
+        const isGroup = Boolean(conversation.title || conversation.members.length > 2);
+        const otherMember = conversation.members.find((m) => m.user.id !== currentUserId);
+        const isOnline = !isGroup && otherMember ? Boolean(onlineUserIds?.has(otherMember.user.id)) : false;
 
         return (
           <button
@@ -38,17 +44,23 @@ export function ConversationList({
             key={conversation.id}
             onClick={() => onSelectConversation(conversation.id)}
           >
-            <Avatar initial={initial} />
+            <Avatar initial={initial} isOnline={isOnline} />
             <span className="conversation-content">
+
               <span className="conversation-topline">
                 <strong>{title}</strong>
                 <small>{formatTime(conversation.updatedAt)}</small>
               </span>
-              {isTyping ? (
-                <span className="typing-preview">digitando...</span>
-              ) : (
-                <span>{lastMessage?.content ?? "Conversa criada"}</span>
-              )}
+              <span className="conversation-bottomline">
+                {isTyping ? (
+                  <span className="typing-preview">digitando...</span>
+                ) : (
+                  <span className="message-snippet">{lastMessage?.content ?? "Conversa criada"}</span>
+                )}
+                {Boolean(conversation.unreadCount && conversation.unreadCount > 0) && (
+                  <span className="unread-badge">{conversation.unreadCount}</span>
+                )}
+              </span>
             </span>
           </button>
         );

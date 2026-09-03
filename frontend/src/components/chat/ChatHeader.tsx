@@ -7,6 +7,7 @@ type ChatHeaderProps = {
   currentUserId: string;
   currentUserName: string;
   typingText?: string | null;
+  isOnline?: boolean;
 };
 
 export function ChatHeader({
@@ -14,18 +15,28 @@ export function ChatHeader({
   currentUserId,
   currentUserName,
   typingText,
+  isOnline,
 }: ChatHeaderProps) {
+  const isGroup = Boolean(conversation?.title || (conversation && conversation.members.length > 2));
+
   return (
     <header className="chat-header">
       {conversation ? (
         <>
-          <Avatar initial={getConversationInitial(conversation, currentUserId)} />
+          <Avatar
+            initial={getConversationInitial(conversation, currentUserId)}
+            isOnline={!isGroup && isOnline}
+          />
           <div>
             <strong>{getConversationTitle(conversation, currentUserId)}</strong>
             {typingText ? (
               <span className="typing-indicator">{typingText}</span>
+            ) : isGroup ? (
+              <span>{conversation.members.length} membros</span>
+            ) : isOnline ? (
+              <span className="status-online">Online</span>
             ) : (
-              <span>{currentUserName}</span>
+              <span className="status-offline">Offline</span>
             )}
           </div>
         </>
@@ -38,4 +49,5 @@ export function ChatHeader({
     </header>
   );
 }
+
 

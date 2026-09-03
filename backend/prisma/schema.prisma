@@ -36,6 +36,7 @@ model ConversationMember {
   userId         String       @map("user_id")
   conversationId String       @map("conversation_id")
   joinedAt       DateTime     @default(now()) @map("joined_at")
+  lastReadAt     DateTime     @default(now()) @map("last_read_at")
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 

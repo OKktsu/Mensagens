@@ -4,6 +4,7 @@ import {
   createConversation,
   createGroupConversation,
   listConversations,
+  markConversationAsRead,
 } from "../services/conversations.service.js";
 import { AppError } from "../utils/app-error.js";
 
@@ -24,7 +25,23 @@ export async function index(request: Request, response: Response) {
   });
 }
 
+export async function markAsRead(request: Request, response: Response) {
+  const userId = getAuthenticatedUserId(request);
+  const { conversationId } = request.params;
+
+  if (!conversationId) {
+    throw new AppError("conversationId e obrigatorio.");
+  }
+
+  await markConversationAsRead(userId, String(conversationId));
+
+  return response.json({
+    ok: true,
+  });
+}
+
 export async function create(request: Request, response: Response) {
+
   const userId = getAuthenticatedUserId(request);
   const { participantId, participantIds, title } = request.body;
 

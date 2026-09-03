@@ -12,6 +12,7 @@ type SidebarProps = {
   selectedConversationId: string | null;
   currentUserId: string;
   typingMap?: Record<string, string[]>;
+  onlineUserIds?: Set<string>;
   onSelectConversation: (conversationId: string) => void;
   onLogout: () => void;
   onOpenCreateGroup: () => void;
@@ -26,6 +27,7 @@ export function Sidebar({
   selectedConversationId,
   currentUserId,
   typingMap,
+  onlineUserIds,
   onSelectConversation,
   onLogout,
   onOpenCreateGroup,
@@ -36,6 +38,7 @@ export function Sidebar({
       <PeopleSearch
         users={users}
         searchText={userSearchText}
+        onlineUserIds={onlineUserIds}
         onSearchChange={onSearchChange}
         onSelectUser={onSelectUser}
       />
@@ -44,10 +47,12 @@ export function Sidebar({
         selectedConversationId={selectedConversationId}
         currentUserId={currentUserId}
         typingMap={typingMap}
+        onlineUserIds={onlineUserIds}
         onSelectConversation={onSelectConversation}
       />
     </aside>
   );
 }
+
 
 

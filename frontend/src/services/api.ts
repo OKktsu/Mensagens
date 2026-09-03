@@ -30,7 +30,10 @@ export type Conversation = {
   title?: string | null;
   createdAt: string;
   updatedAt: string;
+  unreadCount?: number;
   members: Array<{
+    userId?: string;
+    lastReadAt?: string;
     user: {
       id: string;
       name: string;
@@ -158,3 +161,12 @@ export function sendMessage(token: string, conversationId: string, content: stri
     },
   });
 }
+
+export function markConversationAsRead(token: string, conversationId: string) {
+  return request<{ ok: boolean }>(`/conversations/${conversationId}/read`, {
+    method: "POST",
+    token,
+  });
+}
+
+

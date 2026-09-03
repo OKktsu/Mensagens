@@ -1,8 +1,9 @@
 import { prisma } from "../database/prisma.js";
+import { emitConversationRead } from "../realtime/socket.js";
 import { AppError } from "../utils/app-error.js";
 
 export async function listConversations(userId: string) {
-  return prisma.conversation.findMany({
+  const conversations = await prisma.conversation.findMany({
     where: {
       members: {
         some: {
@@ -20,6 +21,8 @@ export async function listConversations(userId: string) {
       updatedAt: true,
       members: {
         select: {
+          userId: true,
+          lastReadAt: true,
           user: {
             select: {
               id: true,
@@ -48,7 +51,58 @@ export async function listConversations(userId: string) {
       },
     },
   });
+
+  const conversationsWithUnread = await Promise.all(
+    conversations.map(async (conversation) => {
+      const myMembership = conversation.members.find((m) => m.userId === userId);
+      const lastReadAt = myMembership?.lastReadAt ?? new Date(0);
+
+      const unreadCount = await prisma.message.count({
+        where: {
+          conversationId: conversation.id,
+          senderId: { not: userId },
+          createdAt: { gt: lastReadAt },
+        },
+      });
+
+      return {
+        id: conversation.id,
+        title: conversation.title,
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+        unreadCount,
+        members: conversation.members.map((m) => ({
+          userId: m.userId,
+          lastReadAt: m.lastReadAt,
+          user: m.user,
+        })),
+        messages: conversation.messages,
+      };
+    }),
+  );
+
+  return conversationsWithUnread;
 }
+
+export async function markConversationAsRead(userId: string, conversationId: string) {
+  const readAt = new Date();
+
+  await prisma.conversationMember.updateMany({
+    where: {
+      userId,
+      conversationId,
+    },
+    data: {
+      lastReadAt: readAt,
+    },
+  });
+
+  emitConversationRead(conversationId, userId, readAt);
+
+  return { ok: true };
+}
+
+
 
 export async function createConversation(currentUserId: string, participantId: string) {
   if (currentUserId === participantId) {

@@ -8,6 +8,7 @@ import {
   getConversations,
   getMessages,
   getUsers,
+  markConversationAsRead,
   sendMessage,
 } from "./services/api";
 import { TypingPayload } from "./services/socket";
@@ -42,6 +43,12 @@ export function App() {
   
   // Mapa de digitação: { [conversationId]: { [userId]: userName } }
   const [typingMap, setTypingMap] = useState<Record<string, Record<string, string>>>({});
+  
+  // Usuários online: Set<userId>
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+
+  // Confirmações de leitura: { [conversationId]: { [userId]: lastReadAt } }
+  const [conversationReads, setConversationReads] = useState<Record<string, Record<string, string>>>({});
 
   const selectedConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === selectedConversationId) ?? null,
@@ -51,9 +58,12 @@ export function App() {
   // Manipulador de novas mensagens recebidas em tempo real
   const handleNewMessage = useCallback(
     (newMessage: Message) => {
-      // Se for da conversa aberta no momento, adiciona à lista de mensagens
+      // Se for da conversa aberta no momento, adiciona à lista de mensagens e marca como lida
       if (newMessage.conversationId === selectedConversationId) {
         setMessages((current) => addMessageIfMissing(current, newMessage));
+        if (token && selectedConversationId) {
+          markConversationAsRead(token, selectedConversationId).catch(() => {});
+        }
       }
 
       // Remove status de digitação de quem acabou de enviar a mensagem
@@ -78,9 +88,19 @@ export function App() {
           return currentConversations;
         }
 
+        const existing = currentConversations[existingIndex];
+        const isCurrentlyOpen = newMessage.conversationId === selectedConversationId;
+        const isMyOwnMessage = newMessage.senderId === currentUser?.id;
+
+        // Se o chat está fechado e a mensagem veio de outra pessoa, incrementa +1
+        const newUnreadCount = isCurrentlyOpen || isMyOwnMessage
+          ? 0
+          : (existing.unreadCount || 0) + 1;
+
         const updatedConversation: Conversation = {
-          ...currentConversations[existingIndex],
+          ...existing,
           updatedAt: newMessage.createdAt,
+          unreadCount: newUnreadCount,
           messages: [
             {
               id: newMessage.id,
@@ -101,7 +121,7 @@ export function App() {
         return [updatedConversation, ...remaining];
       });
     },
-    [selectedConversationId],
+    [selectedConversationId, token, currentUser?.id],
   );
 
   // Manipulador de status de digitação em tempo real
@@ -122,10 +142,37 @@ export function App() {
     });
   }, []);
 
+  // Manipulador de status online
+  const handleUserStatus = useCallback((payload: { userId: string; isOnline: boolean }) => {
+    setOnlineUserIds((prev) => {
+      const next = new Set(prev);
+      if (payload.isOnline) {
+        next.add(payload.userId);
+      } else {
+        next.delete(payload.userId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Manipulador de leitura em tempo real
+  const handleConversationRead = useCallback((payload: { conversationId: string; userId: string; readAt: string }) => {
+    setConversationReads((prev) => ({
+      ...prev,
+      [payload.conversationId]: {
+        ...(prev[payload.conversationId] || {}),
+        [payload.userId]: payload.readAt,
+      },
+    }));
+  }, []);
+
   const { socketError, sendTypingStart, sendTypingStop } = useChatSocket({
     token,
     onNewMessage: handleNewMessage,
     onUserTyping: handleUserTyping,
+    onOnlineUserIds: (ids) => setOnlineUserIds(new Set(ids)),
+    onUserStatus: handleUserStatus,
+    onConversationRead: handleConversationRead,
   });
 
   // Carrega lista de usuários e conversas iniciais após login
@@ -136,6 +183,8 @@ export function App() {
       setSelectedConversationId(null);
       setMessages([]);
       setTypingMap({});
+      setOnlineUserIds(new Set());
+      setConversationReads({});
       return;
     }
 
@@ -151,7 +200,26 @@ export function App() {
 
         setUsers(usersResponse.users);
         setConversations(conversationsResponse.conversations);
-        setSelectedConversationId((currentId) => currentId ?? conversationsResponse.conversations[0]?.id ?? null);
+
+        // Preenche o mapa inicial de lastReadAt
+        const initialReads: Record<string, Record<string, string>> = {};
+        for (const conv of conversationsResponse.conversations) {
+          initialReads[conv.id] = {};
+          for (const member of conv.members) {
+            const memberId = member.userId || member.user?.id;
+            if (memberId && member.lastReadAt) {
+              initialReads[conv.id][memberId] = member.lastReadAt;
+            }
+          }
+        }
+        setConversationReads(initialReads);
+
+        const firstConvId = conversationsResponse.conversations[0]?.id ?? null;
+        setSelectedConversationId((currentId) => currentId ?? firstConvId);
+
+        if (firstConvId) {
+          markConversationAsRead(authToken, firstConvId).catch(() => {});
+        }
       } catch (caughtError) {
         setChatError(caughtError instanceof Error ? caughtError.message : "Sessão inválida.");
         logout();
@@ -160,6 +228,7 @@ export function App() {
 
     loadInitialData();
   }, [token, logout]);
+
 
   // Carrega histórico de mensagens da conversa selecionada
   useEffect(() => {
@@ -182,6 +251,23 @@ export function App() {
 
     loadMessages();
   }, [token, selectedConversationId]);
+
+  // Ao selecionar conversa, zera contador e avisa API
+  const handleSelectConversation = useCallback(
+    (conversationId: string) => {
+      setSelectedConversationId(conversationId);
+
+      setConversations((current) =>
+        current.map((c) => (c.id === conversationId ? { ...c, unreadCount: 0 } : c)),
+      );
+
+      if (token) {
+        markConversationAsRead(token, conversationId).catch(() => {});
+      }
+    },
+    [token],
+  );
+
 
   // Dispara início/fim de digitação para a conversa ativa
   const handleTypingStart = useCallback(() => {
@@ -270,6 +356,34 @@ export function App() {
     return result;
   }, [typingMap]);
 
+  // Última leitura do destinatário para a conversa ativa (usado para checks ✓✓ azuis)
+  const activeRecipientLastReadAt = useMemo(() => {
+    if (!selectedConversation || !currentUser) return null;
+
+    const otherMember = selectedConversation.members.find(
+      (m) => (m.userId || m.user?.id) !== currentUser.id,
+    );
+    if (!otherMember) return null;
+
+    const otherId = otherMember.userId || otherMember.user.id;
+    return conversationReads[selectedConversation.id]?.[otherId] || otherMember.lastReadAt || null;
+  }, [selectedConversation, currentUser, conversationReads]);
+
+  // Status online do contato da conversa ativa (em 1-para-1)
+  const isRecipientOnline = useMemo(() => {
+    if (!selectedConversation || !currentUser) return false;
+    const isGroup = Boolean(selectedConversation.title || selectedConversation.members.length > 2);
+    if (isGroup) return false;
+
+    const otherMember = selectedConversation.members.find(
+      (m) => (m.userId || m.user?.id) !== currentUser.id,
+    );
+    if (!otherMember) return false;
+
+    const otherId = otherMember.userId || otherMember.user.id;
+    return onlineUserIds.has(otherId);
+  }, [selectedConversation, currentUser, onlineUserIds]);
+
   if (!token || !currentUser) {
     return (
       <AuthScreen
@@ -293,7 +407,8 @@ export function App() {
         selectedConversationId={selectedConversationId}
         currentUserId={currentUser.id}
         typingMap={sidebarTypingMap}
-        onSelectConversation={setSelectedConversationId}
+        onlineUserIds={onlineUserIds}
+        onSelectConversation={handleSelectConversation}
         onLogout={logout}
         onOpenCreateGroup={() => setIsCreateGroupOpen(true)}
       />
@@ -306,6 +421,8 @@ export function App() {
         messages={messages}
         messageText={messageText}
         typingText={activeTypingText}
+        isOnline={isRecipientOnline}
+        recipientLastReadAt={activeRecipientLastReadAt}
         onMessageChange={setMessageText}
         onSendMessage={handleSendMessage}
         onTypingStart={handleTypingStart}
@@ -321,5 +438,6 @@ export function App() {
     </main>
   );
 }
+
 
 
