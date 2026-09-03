@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   ChatSocket,
   createChatSocket,
@@ -28,7 +28,23 @@ export function useChatSocket({
   const [socket, setSocket] = useState<ChatSocket | null>(null);
   const [socketError, setSocketError] = useState("");
 
-  // Cria e gerencia a conexão do socket com o token
+  // Usamos refs para que mudanças nas funções de callback NÃO reconectem o socket
+  const onNewMessageRef = useRef(onNewMessage);
+  onNewMessageRef.current = onNewMessage;
+
+  const onUserTypingRef = useRef(onUserTyping);
+  onUserTypingRef.current = onUserTyping;
+
+  const onOnlineUserIdsRef = useRef(onOnlineUserIds);
+  onOnlineUserIdsRef.current = onOnlineUserIds;
+
+  const onUserStatusRef = useRef(onUserStatus);
+  onUserStatusRef.current = onUserStatus;
+
+  const onConversationReadRef = useRef(onConversationRead);
+  onConversationReadRef.current = onConversationRead;
+
+  // Cria e gerencia a conexão do socket APENAS quando o token mudar
   useEffect(() => {
     if (!token) {
       setSocket(null);
@@ -37,37 +53,35 @@ export function useChatSocket({
 
     const chatSocket = createChatSocket(token);
 
+    chatSocket.on("connect", () => {
+      setSocketError("");
+    });
+
     chatSocket.on("connect_error", () => {
       setSocketError("Não foi possível conectar ao tempo real.");
     });
 
     chatSocket.on("connection:ready", (payload) => {
-      if (payload.onlineUserIds && onOnlineUserIds) {
-        onOnlineUserIds(payload.onlineUserIds);
+      if (payload.onlineUserIds) {
+        onOnlineUserIdsRef.current?.(payload.onlineUserIds);
       }
     });
 
     chatSocket.on("message:new", (message: Message) => {
-      onNewMessage(message);
+      onNewMessageRef.current?.(message);
     });
 
-    if (onUserTyping) {
-      chatSocket.on("user:typing", (payload: TypingPayload) => {
-        onUserTyping(payload);
-      });
-    }
+    chatSocket.on("user:typing", (payload: TypingPayload) => {
+      onUserTypingRef.current?.(payload);
+    });
 
-    if (onUserStatus) {
-      chatSocket.on("user:status", (payload: UserStatusPayload) => {
-        onUserStatus(payload);
-      });
-    }
+    chatSocket.on("user:status", (payload: UserStatusPayload) => {
+      onUserStatusRef.current?.(payload);
+    });
 
-    if (onConversationRead) {
-      chatSocket.on("conversation:read", (payload: ConversationReadPayload) => {
-        onConversationRead(payload);
-      });
-    }
+    chatSocket.on("conversation:read", (payload: ConversationReadPayload) => {
+      onConversationReadRef.current?.(payload);
+    });
 
     setSocket(chatSocket);
 
@@ -75,7 +89,8 @@ export function useChatSocket({
       chatSocket.disconnect();
       setSocket(null);
     };
-  }, [token, onNewMessage, onUserTyping, onOnlineUserIds, onUserStatus, onConversationRead]);
+  }, [token]);
+
 
 
   const sendTypingStart = useCallback(

@@ -166,11 +166,16 @@ export function App() {
     }));
   }, []);
 
+  // Manipulador de lista inicial de usuários online
+  const handleOnlineUserIds = useCallback((ids: string[]) => {
+    setOnlineUserIds(new Set(ids));
+  }, []);
+
   const { socketError, sendTypingStart, sendTypingStop } = useChatSocket({
     token,
     onNewMessage: handleNewMessage,
     onUserTyping: handleUserTyping,
-    onOnlineUserIds: (ids) => setOnlineUserIds(new Set(ids)),
+    onOnlineUserIds: handleOnlineUserIds,
     onUserStatus: handleUserStatus,
     onConversationRead: handleConversationRead,
   });
