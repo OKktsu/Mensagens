@@ -186,19 +186,24 @@ export function App() {
 
   const {
     callState,
+    callType,
     activePeer,
     incomingCall,
     isMuted,
+    isVideoOff,
     callDuration,
     callError,
+    localStream,
+    remoteStream,
     startCall,
     acceptCall,
     rejectCall,
     endCall,
     toggleMute,
+    toggleVideo,
   } = useWebRTCCall(socket);
 
-  const handleStartCall = useCallback(() => {
+  const handleStartVoiceCall = useCallback(() => {
     if (!selectedConversation || !currentUser) return;
     const otherMember = selectedConversation.members.find(
       (m) => (m.userId || m.user?.id) !== currentUser.id,
@@ -206,8 +211,20 @@ export function App() {
     if (!otherMember) return;
     const otherId = otherMember.userId || otherMember.user.id;
     const otherName = otherMember.user.name;
-    startCall(otherId, otherName, selectedConversation.id);
+    startCall(otherId, otherName, selectedConversation.id, "audio");
   }, [selectedConversation, currentUser, startCall]);
+
+  const handleStartVideoCall = useCallback(() => {
+    if (!selectedConversation || !currentUser) return;
+    const otherMember = selectedConversation.members.find(
+      (m) => (m.userId || m.user?.id) !== currentUser.id,
+    );
+    if (!otherMember) return;
+    const otherId = otherMember.userId || otherMember.user.id;
+    const otherName = otherMember.user.name;
+    startCall(otherId, otherName, selectedConversation.id, "video");
+  }, [selectedConversation, currentUser, startCall]);
+
 
   // Carrega lista de usuários e conversas iniciais após login
 
@@ -461,7 +478,8 @@ export function App() {
         typingText={activeTypingText}
         isOnline={isRecipientOnline}
         recipientLastReadAt={activeRecipientLastReadAt}
-        onStartCall={handleStartCall}
+        onStartVoiceCall={handleStartVoiceCall}
+        onStartVideoCall={handleStartVideoCall}
         onMessageChange={setMessageText}
         onSendMessage={handleSendMessage}
         onTypingStart={handleTypingStart}
@@ -478,6 +496,7 @@ export function App() {
       {incomingCall && callState === "incoming" && (
         <IncomingCallModal
           callerName={incomingCall.fromUserName}
+          callType={incomingCall.callType}
           onAccept={acceptCall}
           onReject={rejectCall}
         />
@@ -485,17 +504,23 @@ export function App() {
 
       {(callState === "calling" || callState === "connected") && (
         <ActiveCallModal
-          peerName={activePeer?.userName ?? "Chamada de Voz"}
+          peerName={activePeer?.userName ?? (callType === "video" ? "Chamada de Vídeo" : "Chamada de Voz")}
           callState={callState}
+          callType={callType}
           callDuration={callDuration}
           isMuted={isMuted}
+          isVideoOff={isVideoOff}
+          localStream={localStream}
+          remoteStream={remoteStream}
           onToggleMute={toggleMute}
+          onToggleVideo={toggleVideo}
           onEndCall={endCall}
         />
       )}
     </main>
   );
 }
+
 
 
 

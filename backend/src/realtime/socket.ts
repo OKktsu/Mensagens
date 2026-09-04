@@ -137,8 +137,8 @@ export function setupSocketServer(socketServer: Server) {
       });
     });
 
-    // Sinalização WebRTC: Convite para chamada
-    socket.on("call:invite", (payload: { toUserId: string; conversationId: string; offer: unknown }) => {
+    // Sinalização WebRTC: Convite para chamada (Voz ou Vídeo)
+    socket.on("call:invite", (payload: { toUserId: string; conversationId: string; offer: unknown; callType?: "audio" | "video" }) => {
       if (!payload?.toUserId || !payload?.offer) return;
 
       io?.to(`user:${payload.toUserId}`).emit("call:incoming", {
@@ -146,8 +146,10 @@ export function setupSocketServer(socketServer: Server) {
         fromUserName: socket.data.userName,
         conversationId: payload.conversationId,
         offer: payload.offer,
+        callType: payload.callType ?? "audio",
       });
     });
+
 
     // Sinalização WebRTC: Resposta à chamada
     socket.on("call:answer", (payload: { toUserId: string; conversationId: string; answer: unknown }) => {

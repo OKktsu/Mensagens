@@ -8,7 +8,8 @@ type ChatHeaderProps = {
   currentUserName: string;
   typingText?: string | null;
   isOnline?: boolean;
-  onStartCall?: () => void;
+  onStartVoiceCall?: () => void;
+  onStartVideoCall?: () => void;
 };
 
 export function ChatHeader({
@@ -17,7 +18,8 @@ export function ChatHeader({
   currentUserName,
   typingText,
   isOnline,
-  onStartCall,
+  onStartVoiceCall,
+  onStartVideoCall,
 }: ChatHeaderProps) {
   const isGroup = Boolean(conversation?.title || (conversation && conversation.members.length > 2));
 
@@ -44,21 +46,35 @@ export function ChatHeader({
             </div>
           </div>
 
-          {!isGroup && onStartCall && (
+          {!isGroup && (onStartVoiceCall || onStartVideoCall) && (
             <div className="chat-header-actions">
-              <button
-                type="button"
-                className="header-call-btn"
-                onClick={onStartCall}
-                title="Iniciar chamada de voz"
-                aria-label="Ligar para o contato"
-              >
-                📞
-              </button>
+              {onStartVoiceCall && (
+                <button
+                  type="button"
+                  className="header-call-btn"
+                  onClick={onStartVoiceCall}
+                  title="Iniciar chamada de voz"
+                  aria-label="Chamada de voz"
+                >
+                  📞
+                </button>
+              )}
+              {onStartVideoCall && (
+                <button
+                  type="button"
+                  className="header-call-btn video"
+                  onClick={onStartVideoCall}
+                  title="Iniciar chamada de vídeo"
+                  aria-label="Chamada de vídeo"
+                >
+                  📹
+                </button>
+              )}
             </div>
           )}
         </>
       ) : (
+
 
         <div>
           <strong>Nenhuma conversa</strong>

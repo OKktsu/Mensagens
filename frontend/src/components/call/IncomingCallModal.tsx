@@ -2,15 +2,19 @@ import { Avatar } from "../common/Avatar";
 
 type IncomingCallModalProps = {
   callerName: string;
+  callType?: "audio" | "video";
   onAccept: () => void;
   onReject: () => void;
 };
 
 export function IncomingCallModal({
   callerName,
+  callType = "audio",
   onAccept,
   onReject,
 }: IncomingCallModalProps) {
+  const isVideo = callType === "video";
+
   return (
     <div className="call-modal-overlay" role="dialog" aria-modal="true" aria-label="Chamada recebida">
       <div className="call-modal incoming">
@@ -18,7 +22,7 @@ export function IncomingCallModal({
           <Avatar name={callerName} size="normal" />
         </div>
         <h3>{callerName}</h3>
-        <p>Chamada de voz recebida...</p>
+        <p>{isVideo ? "Chamada de vídeo recebida..." : "Chamada de voz recebida..."}</p>
 
         <div className="call-modal-actions">
           <button
@@ -39,7 +43,7 @@ export function IncomingCallModal({
             aria-label="Atender chamada"
             title="Atender"
           >
-            <span className="call-icon">📞</span>
+            <span className="call-icon">{isVideo ? "📹" : "📞"}</span>
             <span>Atender</span>
           </button>
         </div>
@@ -47,3 +51,4 @@ export function IncomingCallModal({
     </div>
   );
 }
+

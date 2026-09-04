@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { ChatSocket } from "../services/socket";
+import type { ChatSocket, CallIncomingPayload } from "../services/socket";
 import {
   startOutgoingRingtone,
   stopOutgoingRingtone,
@@ -9,11 +9,13 @@ import {
 } from "../utils/sound-effects";
 
 export type CallState = "idle" | "calling" | "incoming" | "connected";
+export type CallType = "audio" | "video";
 
 type ActivePeer = {
   userId: string;
   userName: string;
   conversationId: string;
+  callType: CallType;
 };
 
 type IncomingCallData = {
@@ -21,6 +23,7 @@ type IncomingCallData = {
   fromUserName: string;
   conversationId: string;
   offer: RTCSessionDescriptionInit;
+  callType: CallType;
 };
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -35,8 +38,11 @@ export function useWebRTCCall(socket: ChatSocket | null) {
   const [activePeer, setActivePeer] = useState<ActivePeer | null>(null);
   const [incomingCall, setIncomingCall] = useState<IncomingCallData | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [callError, setCallError] = useState("");
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -44,7 +50,7 @@ export function useWebRTCCall(socket: ChatSocket | null) {
   const iceCandidatesQueueRef = useRef<RTCIceCandidateInit[]>([]);
   const durationTimerRef = useRef<number | null>(null);
 
-  // Inicializa o elemento de áudio remoto
+  // Inicializa o elemento de áudio remoto (fallback para áudio puro)
   useEffect(() => {
     if (!remoteAudioRef.current) {
       const audio = new Audio();
@@ -97,36 +103,54 @@ export function useWebRTCCall(socket: ChatSocket | null) {
     }
 
     iceCandidatesQueueRef.current = [];
+    setLocalStream(null);
+    setRemoteStream(null);
     setCallState("idle");
     setActivePeer(null);
     setIncomingCall(null);
     setIsMuted(false);
+    setIsVideoOff(false);
   }, []);
 
-  // Iniciar chamada de áudio (Outgoing)
+  // Iniciar chamada (Voz ou Vídeo)
   const startCall = useCallback(
-    async (targetUserId: string, targetUserName: string, conversationId: string) => {
+    async (
+      targetUserId: string,
+      targetUserName: string,
+      conversationId: string,
+      callType: CallType = "audio",
+    ) => {
       if (!socket) return;
       try {
         setCallError("");
         cleanupCall();
 
-        // 1. Obtém acesso ao microfone
-        const stream = await navigator.mediaDevices.getUserMedia({
+        // 1. Obtém acesso aos dispositivos de mídia
+        const constraints: MediaStreamConstraints = {
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
           },
-          video: false,
-        });
+          video:
+            callType === "video"
+              ? {
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 },
+                  facingMode: "user",
+                }
+              : false,
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         localStreamRef.current = stream;
+        setLocalStream(stream);
 
         // 2. Cria PeerConnection
         const pc = new RTCPeerConnection(ICE_SERVERS);
         peerConnectionRef.current = pc;
 
-        // Adiciona faixas de áudio locais
+        // Adiciona faixas de áudio e vídeo
         stream.getTracks().forEach((track) => {
           pc.addTrack(track, stream);
         });
@@ -141,11 +165,14 @@ export function useWebRTCCall(socket: ChatSocket | null) {
           }
         };
 
-        // Recebe áudio remoto
+        // Recebe mídia remota (áudio ou vídeo)
         pc.ontrack = (event) => {
-          if (remoteAudioRef.current && event.streams[0]) {
-            remoteAudioRef.current.srcObject = event.streams[0];
-            remoteAudioRef.current.play().catch(() => {});
+          if (event.streams[0]) {
+            setRemoteStream(event.streams[0]);
+            if (remoteAudioRef.current && callType === "audio") {
+              remoteAudioRef.current.srcObject = event.streams[0];
+              remoteAudioRef.current.play().catch(() => {});
+            }
           }
         };
 
@@ -172,19 +199,21 @@ export function useWebRTCCall(socket: ChatSocket | null) {
           toUserId: targetUserId,
           conversationId,
           offer,
+          callType,
         });
 
         setActivePeer({
           userId: targetUserId,
           userName: targetUserName,
           conversationId,
+          callType,
         });
         setCallState("calling");
         startOutgoingRingtone();
       } catch (err) {
         setCallError(
           err instanceof Error && err.name === "NotAllowedError"
-            ? "Permissão de microfone negada no navegador."
+            ? "Permissão de microfone/câmera negada no navegador."
             : "Não foi possível iniciar a chamada.",
         );
         cleanupCall();
@@ -193,7 +222,7 @@ export function useWebRTCCall(socket: ChatSocket | null) {
     [socket, cleanupCall],
   );
 
-  // Aceitar chamada recebida (Incoming)
+  // Aceitar chamada recebida (Voz ou Vídeo)
   const acceptCall = useCallback(async () => {
     if (!socket || !incomingCall) return;
 
@@ -201,18 +230,28 @@ export function useWebRTCCall(socket: ChatSocket | null) {
       setCallError("");
       stopIncomingRingtone();
 
-      const { fromUserId, fromUserName, conversationId, offer } = incomingCall;
+      const { fromUserId, fromUserName, conversationId, offer, callType } = incomingCall;
 
-      // 1. Obtém acesso ao microfone
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // 1. Obtém acesso à mídia de acordo com o tipo
+      const constraints: MediaStreamConstraints = {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         },
-        video: false,
-      });
+        video:
+          callType === "video"
+            ? {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: "user",
+              }
+            : false,
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       localStreamRef.current = stream;
+      setLocalStream(stream);
 
       // 2. Cria PeerConnection
       const pc = new RTCPeerConnection(ICE_SERVERS);
@@ -232,9 +271,12 @@ export function useWebRTCCall(socket: ChatSocket | null) {
       };
 
       pc.ontrack = (event) => {
-        if (remoteAudioRef.current && event.streams[0]) {
-          remoteAudioRef.current.srcObject = event.streams[0];
-          remoteAudioRef.current.play().catch(() => {});
+        if (event.streams[0]) {
+          setRemoteStream(event.streams[0]);
+          if (remoteAudioRef.current && callType === "audio") {
+            remoteAudioRef.current.srcObject = event.streams[0];
+            remoteAudioRef.current.play().catch(() => {});
+          }
         }
       };
 
@@ -254,7 +296,7 @@ export function useWebRTCCall(socket: ChatSocket | null) {
       // 3. Define descrição remota (Oferta)
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
-      // Aplica candidatos ICE que chegaram antes
+      // Aplica candidatos ICE acumulados
       while (iceCandidatesQueueRef.current.length > 0) {
         const candidate = iceCandidatesQueueRef.current.shift();
         if (candidate) {
@@ -276,13 +318,14 @@ export function useWebRTCCall(socket: ChatSocket | null) {
         userId: fromUserId,
         userName: fromUserName,
         conversationId,
+        callType,
       });
       setIncomingCall(null);
       setCallState("connected");
     } catch (err) {
       setCallError(
         err instanceof Error && err.name === "NotAllowedError"
-          ? "Permissão de microfone negada."
+          ? "Permissão de microfone/câmera negada."
           : "Não foi possível atender a chamada.",
       );
       cleanupCall();
@@ -326,11 +369,22 @@ export function useWebRTCCall(socket: ChatSocket | null) {
     }
   }, []);
 
+  // Alternar câmera (ligar/desligar vídeo)
+  const toggleVideo = useCallback(() => {
+    if (localStreamRef.current) {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsVideoOff(!videoTrack.enabled);
+      }
+    }
+  }, []);
+
   // Listeners dos eventos de sinalização do Socket.IO
   useEffect(() => {
     if (!socket) return;
 
-    const handleIncoming = (payload: IncomingCallData) => {
+    const handleIncoming = (payload: CallIncomingPayload) => {
       // Se já estiver em uma chamada, rejeita automaticamente
       if (callState !== "idle") {
         socket.emit("call:reject", {
@@ -340,7 +394,13 @@ export function useWebRTCCall(socket: ChatSocket | null) {
         return;
       }
 
-      setIncomingCall(payload);
+      setIncomingCall({
+        fromUserId: payload.fromUserId,
+        fromUserName: payload.fromUserName,
+        conversationId: payload.conversationId,
+        offer: payload.offer,
+        callType: payload.callType ?? "audio",
+      });
       setCallState("incoming");
       startIncomingRingtone();
     };
@@ -397,15 +457,20 @@ export function useWebRTCCall(socket: ChatSocket | null) {
 
   return {
     callState,
+    callType: activePeer?.callType ?? incomingCall?.callType ?? "audio",
     activePeer,
     incomingCall,
     isMuted,
+    isVideoOff,
     callDuration,
     callError,
+    localStream,
+    remoteStream,
     startCall,
     acceptCall,
     rejectCall,
     endCall,
     toggleMute,
+    toggleVideo,
   };
 }

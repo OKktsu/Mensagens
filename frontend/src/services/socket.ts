@@ -27,6 +27,7 @@ export type CallIncomingPayload = {
   fromUserName: string;
   conversationId: string;
   offer: RTCSessionDescriptionInit;
+  callType?: "audio" | "video";
 };
 
 export type CallAnsweredPayload = {
@@ -68,12 +69,13 @@ type ClientToServerEvents = {
   "conversation:leave": (conversationId: string) => void;
   "typing:start": (payload: { conversationId: string }) => void;
   "typing:stop": (payload: { conversationId: string }) => void;
-  "call:invite": (payload: { toUserId: string; conversationId: string; offer: RTCSessionDescriptionInit }) => void;
+  "call:invite": (payload: { toUserId: string; conversationId: string; offer: RTCSessionDescriptionInit; callType?: "audio" | "video" }) => void;
   "call:answer": (payload: { toUserId: string; conversationId: string; answer: RTCSessionDescriptionInit }) => void;
   "call:ice-candidate": (payload: { toUserId: string; candidate: RTCIceCandidateInit }) => void;
   "call:reject": (payload: { toUserId: string; conversationId?: string }) => void;
   "call:end": (payload: { toUserId: string; conversationId?: string }) => void;
 };
+
 
 export type ChatSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 

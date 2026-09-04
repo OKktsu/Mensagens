@@ -971,5 +971,193 @@ h1 {
   }
 }
 
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ==========================================================================
+   ESTILOS DE CHAMADA DE VÍDEO (WebRTC Video Calling)
+   ========================================================================== */
+
+.video-call-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(11, 15, 25, 0.95);
+  backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.video-call-container {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  height: min(640px, 86vh);
+  background: #0f172a;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+}
+
+.remote-video-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #020617;
+}
+
+.remote-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-fallback-avatar {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: #f8fafc;
+}
+
+.video-fallback-avatar .avatar {
+  width: 88px;
+  height: 88px;
+  font-size: 2.2rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.video-fallback-avatar p {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.local-video-pip {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 170px;
+  height: 120px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: #1e293b;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  z-index: 20;
+  transition: all 0.2s ease;
+}
+
+.local-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Espelha a câmera selfie */
+}
+
+.pip-video-off {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 6px;
+}
+
+.video-call-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 28px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 20;
+}
+
+.video-call-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #ffffff;
+}
+
+.video-call-info strong {
+  font-size: 1.1rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.video-control-buttons {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.control-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 58px;
+  height: 58px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.25rem;
+}
+
+.control-btn small {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.08);
+}
+
+.control-btn:active {
+  transform: scale(0.95);
+}
+
+.control-btn.active-off {
+  background: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.control-btn.end-btn {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.control-btn.end-btn:hover {
+  background: #dc2626;
+}
+
+
 
 

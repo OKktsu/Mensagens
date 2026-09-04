@@ -14,7 +14,8 @@ type ChatPanelProps = {
   typingText?: string | null;
   isOnline?: boolean;
   recipientLastReadAt?: string | null;
-  onStartCall?: () => void;
+  onStartVoiceCall?: () => void;
+  onStartVideoCall?: () => void;
   onMessageChange: (text: string) => void;
   onSendMessage: (event: FormEvent<HTMLFormElement>) => void;
   onTypingStart?: () => void;
@@ -31,7 +32,8 @@ export function ChatPanel({
   typingText,
   isOnline,
   recipientLastReadAt,
-  onStartCall,
+  onStartVoiceCall,
+  onStartVideoCall,
   onMessageChange,
   onSendMessage,
   onTypingStart,
@@ -45,8 +47,10 @@ export function ChatPanel({
         currentUserName={currentUserName}
         typingText={typingText}
         isOnline={isOnline}
-        onStartCall={onStartCall}
+        onStartVoiceCall={onStartVoiceCall}
+        onStartVideoCall={onStartVideoCall}
       />
+
 
 
       {error && <p className="inline-error">{error}</p>}
