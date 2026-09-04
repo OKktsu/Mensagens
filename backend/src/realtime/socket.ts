@@ -137,6 +137,59 @@ export function setupSocketServer(socketServer: Server) {
       });
     });
 
+    // Sinalização WebRTC: Convite para chamada
+    socket.on("call:invite", (payload: { toUserId: string; conversationId: string; offer: unknown }) => {
+      if (!payload?.toUserId || !payload?.offer) return;
+
+      io?.to(`user:${payload.toUserId}`).emit("call:incoming", {
+        fromUserId: userId,
+        fromUserName: socket.data.userName,
+        conversationId: payload.conversationId,
+        offer: payload.offer,
+      });
+    });
+
+    // Sinalização WebRTC: Resposta à chamada
+    socket.on("call:answer", (payload: { toUserId: string; conversationId: string; answer: unknown }) => {
+      if (!payload?.toUserId || !payload?.answer) return;
+
+      io?.to(`user:${payload.toUserId}`).emit("call:answered", {
+        fromUserId: userId,
+        conversationId: payload.conversationId,
+        answer: payload.answer,
+      });
+    });
+
+    // Sinalização WebRTC: Candidatos ICE de rede
+    socket.on("call:ice-candidate", (payload: { toUserId: string; candidate: unknown }) => {
+      if (!payload?.toUserId || !payload?.candidate) return;
+
+      io?.to(`user:${payload.toUserId}`).emit("call:ice-candidate", {
+        fromUserId: userId,
+        candidate: payload.candidate,
+      });
+    });
+
+    // Sinalização WebRTC: Rejeição de chamada
+    socket.on("call:reject", (payload: { toUserId: string; conversationId?: string }) => {
+      if (!payload?.toUserId) return;
+
+      io?.to(`user:${payload.toUserId}`).emit("call:rejected", {
+        fromUserId: userId,
+        conversationId: payload.conversationId,
+      });
+    });
+
+    // Sinalização WebRTC: Encerramento de chamada
+    socket.on("call:end", (payload: { toUserId: string; conversationId?: string }) => {
+      if (!payload?.toUserId) return;
+
+      io?.to(`user:${payload.toUserId}`).emit("call:ended", {
+        fromUserId: userId,
+        conversationId: payload.conversationId,
+      });
+    });
+
     // Compatibilidade opcional para salas legadas
     socket.on("conversation:join", async (conversationId: string, callback?: (response: { ok: boolean }) => void) => {
       await socket.join(getConversationRoom(conversationId));
@@ -146,6 +199,7 @@ export function setupSocketServer(socketServer: Server) {
     socket.on("conversation:leave", async (conversationId: string) => {
       await socket.leave(getConversationRoom(conversationId));
     });
+
 
     // Ao desconectar
     socket.on("disconnect", () => {

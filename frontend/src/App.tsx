@@ -14,11 +14,15 @@ import {
 import { TypingPayload } from "./services/socket";
 import { useAuth } from "./hooks/useAuth";
 import { useChatSocket } from "./hooks/useChatSocket";
+import { useWebRTCCall } from "./hooks/useWebRTCCall";
 import { addMessageIfMissing } from "./utils/chat-helpers";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { Sidebar } from "./components/sidebar/Sidebar";
 import { ChatPanel } from "./components/chat/ChatPanel";
 import { CreateGroupModal } from "./components/sidebar/CreateGroupModal";
+import { IncomingCallModal } from "./components/call/IncomingCallModal";
+import { ActiveCallModal } from "./components/call/ActiveCallModal";
+
 
 export function App() {
   const {
@@ -171,7 +175,7 @@ export function App() {
     setOnlineUserIds(new Set(ids));
   }, []);
 
-  const { socketError, sendTypingStart, sendTypingStop } = useChatSocket({
+  const { socket, socketError, sendTypingStart, sendTypingStop } = useChatSocket({
     token,
     onNewMessage: handleNewMessage,
     onUserTyping: handleUserTyping,
@@ -180,7 +184,33 @@ export function App() {
     onConversationRead: handleConversationRead,
   });
 
+  const {
+    callState,
+    activePeer,
+    incomingCall,
+    isMuted,
+    callDuration,
+    callError,
+    startCall,
+    acceptCall,
+    rejectCall,
+    endCall,
+    toggleMute,
+  } = useWebRTCCall(socket);
+
+  const handleStartCall = useCallback(() => {
+    if (!selectedConversation || !currentUser) return;
+    const otherMember = selectedConversation.members.find(
+      (m) => (m.userId || m.user?.id) !== currentUser.id,
+    );
+    if (!otherMember) return;
+    const otherId = otherMember.userId || otherMember.user.id;
+    const otherName = otherMember.user.name;
+    startCall(otherId, otherName, selectedConversation.id);
+  }, [selectedConversation, currentUser, startCall]);
+
   // Carrega lista de usuários e conversas iniciais após login
+
   useEffect(() => {
     if (!token) {
       setUsers([]);
@@ -425,12 +455,13 @@ export function App() {
         selectedConversation={selectedConversation}
         currentUserId={currentUser.id}
         currentUserName={currentUser.name}
-        error={chatError || socketError}
+        error={callError || chatError || socketError}
         messages={messages}
         messageText={messageText}
         typingText={activeTypingText}
         isOnline={isRecipientOnline}
         recipientLastReadAt={activeRecipientLastReadAt}
+        onStartCall={handleStartCall}
         onMessageChange={setMessageText}
         onSendMessage={handleSendMessage}
         onTypingStart={handleTypingStart}
@@ -443,9 +474,29 @@ export function App() {
         users={users}
         onCreateGroup={handleCreateGroup}
       />
+
+      {incomingCall && callState === "incoming" && (
+        <IncomingCallModal
+          callerName={incomingCall.fromUserName}
+          onAccept={acceptCall}
+          onReject={rejectCall}
+        />
+      )}
+
+      {(callState === "calling" || callState === "connected") && (
+        <ActiveCallModal
+          peerName={activePeer?.userName ?? "Chamada de Voz"}
+          callState={callState}
+          callDuration={callDuration}
+          isMuted={isMuted}
+          onToggleMute={toggleMute}
+          onEndCall={endCall}
+        />
+      )}
     </main>
   );
 }
+
 
 
 

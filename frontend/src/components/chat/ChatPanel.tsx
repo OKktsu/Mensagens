@@ -14,6 +14,7 @@ type ChatPanelProps = {
   typingText?: string | null;
   isOnline?: boolean;
   recipientLastReadAt?: string | null;
+  onStartCall?: () => void;
   onMessageChange: (text: string) => void;
   onSendMessage: (event: FormEvent<HTMLFormElement>) => void;
   onTypingStart?: () => void;
@@ -30,6 +31,7 @@ export function ChatPanel({
   typingText,
   isOnline,
   recipientLastReadAt,
+  onStartCall,
   onMessageChange,
   onSendMessage,
   onTypingStart,
@@ -43,7 +45,9 @@ export function ChatPanel({
         currentUserName={currentUserName}
         typingText={typingText}
         isOnline={isOnline}
+        onStartCall={onStartCall}
       />
+
 
       {error && <p className="inline-error">{error}</p>}
 
