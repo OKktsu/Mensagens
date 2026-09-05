@@ -7,6 +7,7 @@ import { errorMiddleware } from "./middlewares/error.middleware.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { callsRoutes } from "./routes/calls.routes.js";
 import { conversationsRoutes } from "./routes/conversations.routes.js";
+import { linkPreviewRoutes } from "./routes/link-preview.routes.js";
 import { uploadRoutes } from "./routes/upload.routes.js";
 import { usersRoutes } from "./routes/users.routes.js";
 
@@ -43,6 +44,7 @@ export function createApp() {
   app.use("/conversations", conversationsRoutes);
   app.use("/calls", callsRoutes);
   app.use("/upload", uploadRoutes);
+  app.use("/link-preview", linkPreviewRoutes);
   app.use(errorMiddleware);
 
   return app;

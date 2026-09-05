@@ -407,5 +407,23 @@ export function createCallLog(
   });
 }
 
+export type LinkPreviewData = {
+  url: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  siteName?: string;
+  favicon?: string;
+  themeColor?: string;
+  mediaType?: string;
+};
 
-
+export function getLinkPreview(token: string, url: string) {
+  return request<{ preview: LinkPreviewData | null }>(
+    `/link-preview?url=${encodeURIComponent(url)}`,
+    {
+      method: "GET",
+      token,
+    },
+  );
+}

@@ -2,8 +2,10 @@ import { useState, useMemo } from "react";
 import type { Message } from "../../services/api";
 import { getMediaUrl } from "../../services/api";
 import { formatTime } from "../../utils/chat-helpers";
+import { extractFirstUrl, parseTextWithLinks } from "../../utils/link-extractor";
 import { useCachedMedia } from "../../utils/media-cache";
 import { AudioPlayer } from "./AudioPlayer";
+import { LinkPreviewCard } from "./LinkPreviewCard";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
@@ -13,7 +15,9 @@ type MessageItemProps = {
   isMine: boolean;
   isRead?: boolean;
   isPinned?: boolean;
+  token?: string | null;
   onImageClick?: (url: string) => void;
+  onPdfClick?: (url: string, fileName?: string) => void;
   onReply?: (message: Message) => void;
   onForward?: (message: Message) => void;
   onEdit?: (message: Message) => void;
@@ -37,7 +41,9 @@ export function MessageItem({
   isMine,
   isRead,
   isPinned,
+  token,
   onImageClick,
+  onPdfClick,
   onReply,
   onForward,
   onEdit,
@@ -58,6 +64,24 @@ export function MessageItem({
   const rawMediaUrl = message.fileUrl ? getMediaUrl(message.fileUrl) : null;
   const { mediaUrl: cachedMediaUrl } = useCachedMedia(rawMediaUrl);
   const effectiveMediaUrl = cachedMediaUrl || rawMediaUrl || "";
+
+  // Detecção de link e PDF
+  const firstUrl = useMemo(
+    () => (type === "text" && !isDeleted ? extractFirstUrl(message.content) : null),
+    [type, isDeleted, message.content],
+  );
+
+  const textSegments = useMemo(
+    () => (message.content ? parseTextWithLinks(message.content) : []),
+    [message.content],
+  );
+
+  const isPdf = useMemo(() => {
+    return (
+      message.fileName?.toLowerCase().endsWith(".pdf") ||
+      effectiveMediaUrl.toLowerCase().includes(".pdf")
+    );
+  }, [message.fileName, effectiveMediaUrl]);
 
   // Agrupa reações por emoji: { "👍": { count: 2, hasMine: true }, ... }
   const groupedReactions = useMemo(() => {
@@ -145,30 +169,68 @@ export function MessageItem({
             {/* RENDERIZAÇÃO DE ARQUIVO/DOCUMENTO */}
             {type === "file" && effectiveMediaUrl && (
               <div className="message-file-wrapper">
-                <a
-                  href={effectiveMediaUrl}
-                  download={message.fileName || "arquivo"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="message-file-card"
+                <div
+                  className={`message-file-card ${isPdf ? "is-pdf-clickable" : ""}`}
+                  onClick={() => {
+                    if (isPdf && onPdfClick) {
+                      onPdfClick(effectiveMediaUrl, message.fileName || "documento.pdf");
+                    }
+                  }}
+                  title={isPdf ? "Clique para visualizar o PDF no app" : undefined}
                 >
-                  <div className="file-icon-box">📄</div>
+                  <div className={`file-icon-box ${isPdf ? "pdf-box" : ""}`}>
+                    {isPdf ? "📕" : "📄"}
+                  </div>
                   <div className="file-info-box">
                     <strong className="file-name">{message.fileName || "Documento"}</strong>
-                    {message.fileSize && (
-                      <span className="file-size">{formatBytes(message.fileSize)}</span>
-                    )}
+                    <div className="file-meta-row">
+                      {message.fileSize && (
+                        <span className="file-size">{formatBytes(message.fileSize)}</span>
+                      )}
+                      {isPdf && <span className="file-preview-badge">Visualizar PDF</span>}
+                    </div>
                   </div>
-                  <span className="file-download-icon" title="Baixar arquivo">
+
+                  <a
+                    href={effectiveMediaUrl}
+                    download={message.fileName || "arquivo"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="file-download-icon"
+                    title="Baixar arquivo"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     ⬇
-                  </span>
-                </a>
+                  </a>
+                </div>
                 {message.content && <p className="message-text file-caption">{message.content}</p>}
               </div>
             )}
 
-            {/* RENDERIZAÇÃO DE TEXTO PURO */}
-            {type === "text" && <p className="message-text">{message.content}</p>}
+            {/* RENDERIZAÇÃO DE TEXTO COM LINKS CLICÁVEIS E PREVIEW */}
+            {type === "text" && (
+              <div className="message-text-wrapper">
+                <p className="message-text">
+                  {textSegments.map((segment, idx) =>
+                    segment.type === "link" ? (
+                      <a
+                        key={idx}
+                        href={segment.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="chat-inline-link"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {segment.content}
+                      </a>
+                    ) : (
+                      <span key={idx}>{segment.content}</span>
+                    ),
+                  )}
+                </p>
+                {firstUrl && <LinkPreviewCard url={firstUrl} token={token} />}
+              </div>
+            )}
           </>
         )}
 

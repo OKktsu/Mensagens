@@ -2668,6 +2668,429 @@ h1 {
   }
 }
 
+/* ==========================================================================
+   11. LINKS INLINE & PRÉ-VISUALIZAÇÃO DE LINKS (OPENGRAPH / DISCORD EMBEDS)
+   ========================================================================== */
+
+.chat-inline-link {
+  color: #60a5fa;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+  transition: color 0.15s ease;
+}
+
+.chat-inline-link:hover {
+  color: #93c5fd;
+}
+
+.message-text-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.link-preview-card {
+  position: relative;
+  display: flex;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 480px;
+  margin-top: 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.link-preview-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.preview-accent-bar {
+  width: 4px;
+  background-color: var(--preview-theme, #6366f1);
+  flex-shrink: 0;
+}
+
+.preview-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.preview-favicon {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  object-fit: contain;
+}
+
+.preview-site-icon {
+  font-size: 0.8rem;
+}
+
+.preview-site-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.preview-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #60a5fa;
+  text-decoration: none;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.15s ease;
+}
+
+.preview-title:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+.preview-description {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.preview-media-container {
+  margin-top: 6px;
+  border-radius: 6px;
+  overflow: hidden;
+  max-height: 220px;
+  background: #000000;
+}
+
+.preview-thumb-img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+/* YOUTUBE EMBED PLAYER IN-CHAT */
+.preview-youtube-wrapper {
+  margin-top: 6px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000000;
+}
+
+.preview-video-container {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+  height: 0;
+}
+
+.preview-iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+}
+
+.preview-video-thumbnail {
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  background: #0b0f19;
+}
+
+.preview-video-thumbnail .preview-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s ease, filter 0.25s ease;
+}
+
+.preview-video-thumbnail:hover .preview-thumb-img {
+  transform: scale(1.03);
+  filter: brightness(0.85);
+}
+
+.preview-play-btn {
+  position: absolute;
+  width: 52px;
+  height: 36px;
+  background: rgba(239, 68, 68, 0.9);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.preview-video-thumbnail:hover .preview-play-btn {
+  transform: scale(1.12);
+  background: #dc2626;
+}
+
+.preview-play-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+
+/* SKELETON PREVIEW LOADING */
+.skeleton-preview {
+  opacity: 0.75;
+}
+
+.skeleton-preview .preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  width: 100%;
+}
+
+.skeleton-line {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.05) 75%);
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.4s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-line.line-site {
+  width: 30%;
+  height: 10px;
+}
+
+.skeleton-line.line-title {
+  width: 80%;
+  height: 14px;
+}
+
+.skeleton-line.line-desc {
+  width: 95%;
+  height: 12px;
+}
+
+@keyframes skeletonPulse {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ==========================================================================
+   12. PDF BADGE & VISUALIZADOR DE PDF IN-APP (ESTILO WHATSAPP/TELEGRAM)
+   ========================================================================== */
+
+.message-file-card.is-pdf-clickable {
+  cursor: pointer;
+  transition: background-color 0.18s ease, transform 0.15s ease;
+}
+
+.message-file-card.is-pdf-clickable:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.file-icon-box.pdf-box {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.file-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-preview-badge {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+/* MODAL DE PDF FULLSCREEN */
+.pdf-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.pdf-modal-container {
+  display: flex;
+  flex-direction: column;
+  width: 92vw;
+  max-width: 1100px;
+  height: 90vh;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  animation: zoomIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pdf-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #1e293b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pdf-modal-title-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pdf-modal-icon {
+  font-size: 1.5rem;
+}
+
+.pdf-modal-text-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pdf-modal-filename {
+  font-size: 0.95rem;
+  color: #f8fafc;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-modal-subtitle {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.pdf-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pdf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: all 0.18s ease;
+}
+
+.pdf-btn-download {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.pdf-btn-download:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.pdf-btn-external {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+
+.pdf-btn-external:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.pdf-btn-close {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  font-size: 1.1rem;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.pdf-btn-close:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.pdf-modal-body {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  background: #1e293b;
+  position: relative;
+}
+
+.pdf-modal-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+
 
 
 

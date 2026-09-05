@@ -8,7 +8,9 @@ type MessageListProps = {
   currentUserId: string;
   recipientLastReadAt?: string | null;
   pinnedMessageId?: string | null;
+  token?: string | null;
   onImageClick?: (url: string) => void;
+  onPdfClick?: (url: string, fileName?: string) => void;
   onReply?: (message: Message) => void;
   onForward?: (message: Message) => void;
   onEdit?: (message: Message) => void;
@@ -23,7 +25,9 @@ export function MessageList({
   currentUserId,
   recipientLastReadAt,
   pinnedMessageId,
+  token,
   onImageClick,
+  onPdfClick,
   onReply,
   onForward,
   onEdit,
@@ -77,7 +81,9 @@ export function MessageList({
               isMine={isMine}
               isRead={isRead}
               isPinned={isPinned}
+              token={token}
               onImageClick={onImageClick}
+              onPdfClick={onPdfClick}
               onReply={onReply}
               onForward={onForward}
               onEdit={onEdit}

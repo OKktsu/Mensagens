@@ -40,7 +40,9 @@ type ChatPanelProps = {
   onStartVideoCall?: () => void;
   onSendFile?: (file: File) => void;
   onSendVoiceNote?: (audioBlob: Blob, duration: number) => void;
+  token?: string | null;
   onImageClick?: (url: string) => void;
+  onPdfClick?: (url: string, fileName?: string) => void;
   onMessageChange: (text: string) => void;
   onSendMessage: (event: FormEvent<HTMLFormElement>) => void;
   onTypingStart?: () => void;
@@ -76,7 +78,9 @@ export function ChatPanel({
   onStartVideoCall,
   onSendFile,
   onSendVoiceNote,
+  token,
   onImageClick,
+  onPdfClick,
   onMessageChange,
   onSendMessage,
   onTypingStart,
@@ -130,7 +134,9 @@ export function ChatPanel({
         currentUserId={currentUserId}
         recipientLastReadAt={recipientLastReadAt}
         pinnedMessageId={selectedConversation?.pinnedMessageId}
+        token={token}
         onImageClick={onImageClick}
+        onPdfClick={onPdfClick}
         onReply={onReply}
         onForward={onForward}
         onEdit={onEdit}

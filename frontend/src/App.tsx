@@ -37,6 +37,7 @@ import { IncomingCallModal } from "./components/call/IncomingCallModal";
 import { ActiveCallModal } from "./components/call/ActiveCallModal";
 import { GroupCallModal } from "./components/call/GroupCallModal";
 import { ImageLightbox } from "./components/chat/ImageLightbox";
+import { PdfViewerModal } from "./components/chat/PdfViewerModal";
 
 export function App() {
   const {
@@ -53,6 +54,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<SidebarTab>("chats");
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [pdfModalData, setPdfModalData] = useState<{ url: string; fileName?: string } | null>(null);
 
   const [users, setUsers] = useState<User[]>([]);
 
@@ -928,7 +930,9 @@ export function App() {
         onStartVideoCall={handleStartVideoCall}
         onSendFile={handleSendFile}
         onSendVoiceNote={handleSendVoiceNote}
+        token={token}
         onImageClick={setLightboxImage}
+        onPdfClick={(url, fileName) => setPdfModalData({ url, fileName })}
         onMessageChange={setMessageText}
         onSendMessage={handleSendMessage}
         onTypingStart={handleTypingStart}
@@ -997,6 +1001,14 @@ export function App() {
 
       {lightboxImage && (
         <ImageLightbox src={lightboxImage} onClose={() => setLightboxImage(null)} />
+      )}
+
+      {pdfModalData && (
+        <PdfViewerModal
+          pdfUrl={pdfModalData.url}
+          fileName={pdfModalData.fileName}
+          onClose={() => setPdfModalData(null)}
+        />
       )}
     </main>
   );
