@@ -50,6 +50,11 @@ model ConversationMember {
 model Message {
   id             String       @id @default(cuid())
   content        String
+  type           String       @default("text") // "text" | "image" | "audio" | "file"
+  fileUrl        String?      @map("file_url")
+  fileName       String?      @map("file_name")
+  fileSize       Int?         @map("file_size")
+  duration       Int?         // Duração em segundos para mensagens de áudio
   senderId       String       @map("sender_id")
   conversationId String       @map("conversation_id")
   createdAt      DateTime     @default(now()) @map("created_at")
@@ -58,6 +63,7 @@ model Message {
 
   @@map("messages")
 }
+
 
 model Call {
   id             String        @id @default(cuid())

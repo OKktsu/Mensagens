@@ -30,6 +30,11 @@ export async function listMessages(conversationId: string, userId: string) {
     select: {
       id: true,
       content: true,
+      type: true,
+      fileUrl: true,
+      fileName: true,
+      fileSize: true,
+      duration: true,
       createdAt: true,
       conversationId: true,
       senderId: true,
@@ -44,24 +49,53 @@ export async function listMessages(conversationId: string, userId: string) {
   });
 }
 
-export async function createMessage(conversationId: string, senderId: string, content: string) {
-  const trimmedContent = content.trim();
+type CreateMessageInput = {
+  content?: string;
+  type?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  duration?: number;
+};
 
-  if (!trimmedContent) {
-    throw new AppError("Mensagem nao pode ser vazia.");
+export async function createMessage(
+  conversationId: string,
+  senderId: string,
+  input: string | CreateMessageInput,
+) {
+  const isString = typeof input === "string";
+  const content = (isString ? input : input.content ?? "").trim();
+  const fileUrl = isString ? undefined : input.fileUrl;
+  const type = isString ? "text" : input.type ?? (fileUrl ? "file" : "text");
+  const fileName = isString ? undefined : input.fileName;
+  const fileSize = isString ? undefined : input.fileSize;
+  const duration = isString ? undefined : input.duration;
+
+  if (!content && !fileUrl) {
+    throw new AppError("Mensagem ou anexo obrigatorio.");
   }
 
   await ensureConversationMember(conversationId, senderId);
 
   const message = await prisma.message.create({
     data: {
-      content: trimmedContent,
+      content,
+      type,
+      fileUrl: fileUrl ?? null,
+      fileName: fileName ?? null,
+      fileSize: fileSize ? Math.floor(fileSize) : null,
+      duration: duration ? Math.floor(duration) : null,
       senderId,
       conversationId,
     },
     select: {
       id: true,
       content: true,
+      type: true,
+      fileUrl: true,
+      fileName: true,
+      fileSize: true,
+      duration: true,
       createdAt: true,
       conversationId: true,
       senderId: true,
@@ -88,3 +122,4 @@ export async function createMessage(conversationId: string, senderId: string, co
 
   return message;
 }
+

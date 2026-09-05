@@ -7,12 +7,14 @@ type MessageListProps = {
   messages: Message[];
   currentUserId: string;
   recipientLastReadAt?: string | null;
+  onImageClick?: (url: string) => void;
 };
 
 export function MessageList({
   messages,
   currentUserId,
   recipientLastReadAt,
+  onImageClick,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -45,6 +47,7 @@ export function MessageList({
               message={message}
               isMine={isMine}
               isRead={isRead}
+              onImageClick={onImageClick}
             />
           </Fragment>
         );
@@ -53,4 +56,5 @@ export function MessageList({
     </div>
   );
 }
+
 

@@ -10,6 +10,7 @@ import {
   getMessages,
   getUsers,
   getCalls,
+  uploadFile,
   markConversationAsRead,
   sendMessage,
 } from "./services/api";
@@ -27,7 +28,7 @@ import { CreateGroupModal } from "./components/sidebar/CreateGroupModal";
 import { IncomingCallModal } from "./components/call/IncomingCallModal";
 import { ActiveCallModal } from "./components/call/ActiveCallModal";
 import { GroupCallModal } from "./components/call/GroupCallModal";
-
+import { ImageLightbox } from "./components/chat/ImageLightbox";
 
 export function App() {
   const {
@@ -43,8 +44,10 @@ export function App() {
 
   const [activeTab, setActiveTab] = useState<SidebarTab>("chats");
   const [calls, setCalls] = useState<CallRecord[]>([]);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const [users, setUsers] = useState<User[]>([]);
+
   const [userSearchText, setUserSearchText] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -447,6 +450,58 @@ export function App() {
     }
   }
 
+  const handleSendFile = useCallback(
+    async (file: File) => {
+      if (!token || !selectedConversationId) return;
+      try {
+        setChatError("");
+        const uploadRes = await uploadFile(token, file);
+        const sendRes = await sendMessage(token, selectedConversationId, {
+          type: uploadRes.type,
+          fileUrl: uploadRes.fileUrl,
+          fileName: uploadRes.fileName,
+          fileSize: uploadRes.fileSize,
+        });
+        setMessages((current) => addMessageIfMissing(current, sendRes.message));
+        const conversationsResponse = await getConversations(token);
+        setConversations(conversationsResponse.conversations);
+      } catch (caughtError) {
+        setChatError(
+          caughtError instanceof Error ? caughtError.message : "Não foi possível enviar o arquivo.",
+        );
+      }
+    },
+    [token, selectedConversationId],
+  );
+
+  const handleSendVoiceNote = useCallback(
+    async (audioBlob: Blob, duration: number) => {
+      if (!token || !selectedConversationId) return;
+      try {
+        setChatError("");
+        const file = new File([audioBlob], `voice-note-${Date.now()}.webm`, {
+          type: audioBlob.type || "audio/webm",
+        });
+        const uploadRes = await uploadFile(token, file);
+        const sendRes = await sendMessage(token, selectedConversationId, {
+          type: "audio",
+          fileUrl: uploadRes.fileUrl,
+          fileName: uploadRes.fileName,
+          fileSize: uploadRes.fileSize,
+          duration,
+        });
+        setMessages((current) => addMessageIfMissing(current, sendRes.message));
+        const conversationsResponse = await getConversations(token);
+        setConversations(conversationsResponse.conversations);
+      } catch (caughtError) {
+        setChatError(
+          caughtError instanceof Error ? caughtError.message : "Não foi possível enviar o áudio.",
+        );
+      }
+    },
+    [token, selectedConversationId],
+  );
+
   // Texto do indicador de digitação para o cabeçalho do chat aberto
   const activeTypingText = useMemo(() => {
     if (!selectedConversationId) return null;
@@ -553,6 +608,9 @@ export function App() {
         }}
         onStartVoiceCall={handleStartVoiceCall}
         onStartVideoCall={handleStartVideoCall}
+        onSendFile={handleSendFile}
+        onSendVoiceNote={handleSendVoiceNote}
+        onImageClick={setLightboxImage}
         onMessageChange={setMessageText}
         onSendMessage={handleSendMessage}
         onTypingStart={handleTypingStart}
@@ -607,6 +665,10 @@ export function App() {
           onToggleVideo={toggleGroupVideo}
           onLeaveCall={leaveGroupCall}
         />
+      )}
+
+      {lightboxImage && (
+        <ImageLightbox src={lightboxImage} onClose={() => setLightboxImage(null)} />
       )}
     </main>
   );

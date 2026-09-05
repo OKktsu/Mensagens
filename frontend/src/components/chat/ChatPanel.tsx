@@ -24,6 +24,9 @@ type ChatPanelProps = {
   onJoinGroupCall?: () => void;
   onStartVoiceCall?: () => void;
   onStartVideoCall?: () => void;
+  onSendFile?: (file: File) => void;
+  onSendVoiceNote?: (audioBlob: Blob, duration: number) => void;
+  onImageClick?: (url: string) => void;
   onMessageChange: (text: string) => void;
   onSendMessage: (event: FormEvent<HTMLFormElement>) => void;
   onTypingStart?: () => void;
@@ -44,6 +47,9 @@ export function ChatPanel({
   onJoinGroupCall,
   onStartVoiceCall,
   onStartVideoCall,
+  onSendFile,
+  onSendVoiceNote,
+  onImageClick,
   onMessageChange,
   onSendMessage,
   onTypingStart,
@@ -70,21 +76,21 @@ export function ChatPanel({
         />
       )}
 
-
-
-
       {error && <p className="inline-error">{error}</p>}
 
       <MessageList
         messages={messages}
         currentUserId={currentUserId}
         recipientLastReadAt={recipientLastReadAt}
+        onImageClick={onImageClick}
       />
 
       <MessageInput
         messageText={messageText}
         onMessageChange={onMessageChange}
         onSendMessage={onSendMessage}
+        onSendFile={onSendFile}
+        onSendVoiceNote={onSendVoiceNote}
         onTypingStart={onTypingStart}
         onTypingStop={onTypingStop}
         disabled={!selectedConversation}
@@ -92,5 +98,6 @@ export function ChatPanel({
     </section>
   );
 }
+
 
 

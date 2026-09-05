@@ -24,10 +24,19 @@ export async function index(request: Request, response: Response) {
 export async function create(request: Request, response: Response) {
   const userId = getAuthenticatedUserId(request);
   const { conversationId } = request.params;
-  const { content } = request.body;
-  const message = await createMessage(conversationId, userId, String(content ?? ""));
+  const { content, type, fileUrl, fileName, fileSize, duration } = request.body;
+
+  const message = await createMessage(conversationId, userId, {
+    content: typeof content === "string" ? content : "",
+    type,
+    fileUrl,
+    fileName,
+    fileSize,
+    duration,
+  });
 
   return response.status(201).json({
     message,
   });
 }
+

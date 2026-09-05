@@ -54,6 +54,11 @@ export type Conversation = {
 export type Message = {
   id: string;
   content: string;
+  type?: "text" | "image" | "audio" | "file";
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+  duration?: number | null;
   createdAt: string;
   conversationId?: string;
   senderId?: string;
@@ -63,6 +68,7 @@ export type Message = {
     email: string;
   };
 };
+
 
 export type CallRecord = {
   id: string;
@@ -179,17 +185,73 @@ export function getMessages(token: string, conversationId: string) {
   });
 }
 
-export function sendMessage(token: string, conversationId: string, content: string) {
+export type SendMessagePayload = {
+  content?: string;
+  type?: "text" | "image" | "audio" | "file";
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  duration?: number;
+};
+
+export function sendMessage(
+  token: string,
+  conversationId: string,
+  payload: string | SendMessagePayload,
+) {
+  const body = typeof payload === "string" ? { content: payload } : payload;
+
   return request<{ message: Message }>(`/conversations/${conversationId}/messages`, {
     method: "POST",
     token,
-    body: {
-      content,
-    },
+    body,
   });
 }
 
+export async function uploadFile(
+  token: string,
+  file: File | Blob,
+  fileName?: string,
+): Promise<{
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  type: "image" | "audio" | "file";
+}> {
+  const formData = new FormData();
+  if (file instanceof File) {
+    formData.append("file", file);
+  } else {
+    formData.append("file", file, fileName || "audio_gravado.webm");
+  }
+
+  const response = await fetch(`${API_URL}/upload`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Falha ao enviar arquivo.");
+  }
+
+  return response.json();
+}
+
+export function getMediaUrl(path?: string | null): string {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:")) {
+    return path;
+  }
+  return `${API_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 export function markConversationAsRead(token: string, conversationId: string) {
+
   return request<{ ok: boolean }>(`/conversations/${conversationId}/read`, {
     method: "POST",
     token,

@@ -16,4 +16,6 @@ package-lock.json
 
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
+uploads/
+backend/uploads/
 

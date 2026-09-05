@@ -1,3 +1,4 @@
+import path from "node:path";
 import cors from "cors";
 import express from "express";
 
@@ -6,6 +7,7 @@ import { errorMiddleware } from "./middlewares/error.middleware.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { callsRoutes } from "./routes/calls.routes.js";
 import { conversationsRoutes } from "./routes/conversations.routes.js";
+import { uploadRoutes } from "./routes/upload.routes.js";
 import { usersRoutes } from "./routes/users.routes.js";
 
 export function createApp() {
@@ -25,6 +27,10 @@ export function createApp() {
   );
   app.use(express.json());
 
+  // Servidor de arquivos estáticos para uploads (imagens, áudios, documentos)
+  const uploadsPath = path.join(process.cwd(), "uploads");
+  app.use("/uploads", express.static(uploadsPath));
+
   app.get("/health", (_request, response) => {
     response.json({
       status: "ok",
@@ -36,8 +42,10 @@ export function createApp() {
   app.use("/users", usersRoutes);
   app.use("/conversations", conversationsRoutes);
   app.use("/calls", callsRoutes);
+  app.use("/upload", uploadRoutes);
   app.use(errorMiddleware);
 
   return app;
 }
+
 

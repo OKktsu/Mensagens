@@ -7,6 +7,11 @@ import { verifyAuthToken } from "../utils/auth-token.js";
 type MessagePayload = {
   id: string;
   content: string;
+  type?: string;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+  duration?: number | null;
   createdAt: Date;
   conversationId: string;
   senderId: string;
@@ -16,6 +21,7 @@ type MessagePayload = {
     email: string;
   };
 };
+
  
 let io: Server | null = null;
 const connectedUsers = new Map<string, Set<string>>();
