@@ -20,9 +20,27 @@ type MessagePayload = {
 let io: Server | null = null;
 const connectedUsers = new Map<string, Set<string>>();
 
+type GroupCallParticipant = {
+  socketId: string;
+  userId: string;
+  userName: string;
+};
+
+type ActiveGroupCall = {
+  conversationId: string;
+  initiatorId: string;
+  initiatorName: string;
+  callType: "audio" | "video";
+  startedAt: Date;
+  participants: Map<string, GroupCallParticipant>;
+};
+
+const activeGroupCalls = new Map<string, ActiveGroupCall>();
+
 function getConversationRoom(conversationId: string) {
   return `conversation:${conversationId}`;
 }
+
 
 function getSocketToken(socket: Socket) {
   const token = socket.handshake.auth.token;
@@ -182,7 +200,7 @@ export function setupSocketServer(socketServer: Server) {
       });
     });
 
-    // Sinalização WebRTC: Encerramento de chamada
+    // Sinalização WebRTC: Encerramento de chamada 1-para-1
     socket.on("call:end", (payload: { toUserId: string; conversationId?: string }) => {
       if (!payload?.toUserId) return;
 
@@ -190,6 +208,133 @@ export function setupSocketServer(socketServer: Server) {
         fromUserId: userId,
         conversationId: payload.conversationId,
       });
+    });
+
+    // ==========================================================================
+    // SINALIZAÇÃO WEBRTC: CHAMADAS EM GRUPO (Mesh)
+    // ==========================================================================
+
+    const handleUserLeaveGroupCall = (conversationId: string) => {
+      const call = activeGroupCalls.get(conversationId);
+      if (!call) return;
+
+      call.participants.delete(userId);
+      socket.leave(`group-call:${conversationId}`);
+
+      socket.to(`group-call:${conversationId}`).emit("group-call:user-left", {
+        conversationId,
+        userId,
+        userName: socket.data.userName,
+      });
+
+      if (call.participants.size === 0) {
+        activeGroupCalls.delete(conversationId);
+        io?.to(getConversationRoom(conversationId)).emit("group-call:status", {
+          conversationId,
+          isActive: false,
+          participantCount: 0,
+        });
+      } else {
+        io?.to(getConversationRoom(conversationId)).emit("group-call:status", {
+          conversationId,
+          isActive: true,
+          callType: call.callType,
+          initiatorName: call.initiatorName,
+          participantCount: call.participants.size,
+        });
+      }
+    };
+
+    socket.on("group-call:join", (payload: { conversationId: string; callType?: "audio" | "video" }) => {
+      if (!payload?.conversationId) return;
+
+      const callType = payload.callType ?? "video";
+      let call = activeGroupCalls.get(payload.conversationId);
+
+      if (!call) {
+        call = {
+          conversationId: payload.conversationId,
+          initiatorId: userId,
+          initiatorName: socket.data.userName,
+          callType,
+          startedAt: new Date(),
+          participants: new Map(),
+        };
+        activeGroupCalls.set(payload.conversationId, call);
+      }
+
+      call.participants.set(userId, {
+        socketId: socket.id,
+        userId,
+        userName: socket.data.userName,
+      });
+
+      socket.join(`group-call:${payload.conversationId}`);
+
+      // Lista de participantes já existentes
+      const existingParticipants = Array.from(call.participants.values())
+        .filter((p) => p.userId !== userId)
+        .map((p) => ({ userId: p.userId, userName: p.userName }));
+
+      socket.emit("group-call:joined", {
+        conversationId: payload.conversationId,
+        callType: call.callType,
+        participants: existingParticipants,
+      });
+
+      socket.to(`group-call:${payload.conversationId}`).emit("group-call:user-joined", {
+        conversationId: payload.conversationId,
+        userId,
+        userName: socket.data.userName,
+        callType: call.callType,
+      });
+
+      io?.to(getConversationRoom(payload.conversationId)).emit("group-call:status", {
+        conversationId: payload.conversationId,
+        isActive: true,
+        callType: call.callType,
+        initiatorName: call.initiatorName,
+        participantCount: call.participants.size,
+      });
+    });
+
+    socket.on("group-call:signal", (payload: {
+      conversationId: string;
+      toUserId: string;
+      signal: unknown;
+    }) => {
+      if (!payload?.toUserId || !payload?.signal) return;
+
+      io?.to(`user:${payload.toUserId}`).emit("group-call:signal", {
+        conversationId: payload.conversationId,
+        fromUserId: userId,
+        fromUserName: socket.data.userName,
+        signal: payload.signal,
+      });
+    });
+
+    socket.on("group-call:leave", (payload: { conversationId: string }) => {
+      if (payload?.conversationId) {
+        handleUserLeaveGroupCall(payload.conversationId);
+      }
+    });
+
+    socket.on("group-call:get-status", (payload: { conversationId: string }, callback?: (status: unknown) => void) => {
+      if (!payload?.conversationId) return;
+      const call = activeGroupCalls.get(payload.conversationId);
+      if (call && call.participants.size > 0) {
+        callback?.({
+          isActive: true,
+          callType: call.callType,
+          initiatorName: call.initiatorName,
+          participantCount: call.participants.size,
+        });
+      } else {
+        callback?.({
+          isActive: false,
+          participantCount: 0,
+        });
+      }
     });
 
     // Compatibilidade opcional para salas legadas
@@ -202,9 +347,15 @@ export function setupSocketServer(socketServer: Server) {
       await socket.leave(getConversationRoom(conversationId));
     });
 
-
     // Ao desconectar
     socket.on("disconnect", () => {
+      // Limpa chamadas de grupo em que o usuário estava
+      for (const [convId, call] of activeGroupCalls.entries()) {
+        if (call.participants.has(userId)) {
+          handleUserLeaveGroupCall(convId);
+        }
+      }
+
       const sockets = connectedUsers.get(userId);
       if (sockets) {
         sockets.delete(socket.id);
@@ -218,6 +369,7 @@ export function setupSocketServer(socketServer: Server) {
       }
     });
   });
+
 }
 
 export async function emitMessageCreated(message: MessagePayload) {

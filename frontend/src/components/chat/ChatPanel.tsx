@@ -3,6 +3,7 @@ import type { Conversation, Message } from "../../services/api";
 import { ChatHeader } from "./ChatHeader";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
+import { GroupCallBanner } from "./GroupCallBanner";
 
 type ChatPanelProps = {
   selectedConversation: Conversation | null;
@@ -14,6 +15,13 @@ type ChatPanelProps = {
   typingText?: string | null;
   isOnline?: boolean;
   recipientLastReadAt?: string | null;
+  activeGroupCallBanner?: {
+    isActive: boolean;
+    callType: "audio" | "video";
+    participantCount: number;
+    initiatorName: string;
+  };
+  onJoinGroupCall?: () => void;
   onStartVoiceCall?: () => void;
   onStartVideoCall?: () => void;
   onMessageChange: (text: string) => void;
@@ -32,6 +40,8 @@ export function ChatPanel({
   typingText,
   isOnline,
   recipientLastReadAt,
+  activeGroupCallBanner,
+  onJoinGroupCall,
   onStartVoiceCall,
   onStartVideoCall,
   onMessageChange,
@@ -50,6 +60,16 @@ export function ChatPanel({
         onStartVoiceCall={onStartVoiceCall}
         onStartVideoCall={onStartVideoCall}
       />
+
+      {activeGroupCallBanner && activeGroupCallBanner.isActive && onJoinGroupCall && (
+        <GroupCallBanner
+          callType={activeGroupCallBanner.callType}
+          participantCount={activeGroupCallBanner.participantCount}
+          initiatorName={activeGroupCallBanner.initiatorName}
+          onJoin={onJoinGroupCall}
+        />
+      )}
+
 
 
 

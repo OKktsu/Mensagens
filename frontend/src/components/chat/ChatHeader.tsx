@@ -46,14 +46,14 @@ export function ChatHeader({
             </div>
           </div>
 
-          {!isGroup && (onStartVoiceCall || onStartVideoCall) && (
+          {(onStartVoiceCall || onStartVideoCall) && (
             <div className="chat-header-actions">
               {onStartVoiceCall && (
                 <button
                   type="button"
                   className="header-call-btn"
                   onClick={onStartVoiceCall}
-                  title="Iniciar chamada de voz"
+                  title={isGroup ? "Iniciar chamada de voz em grupo" : "Iniciar chamada de voz"}
                   aria-label="Chamada de voz"
                 >
                   📞
@@ -64,7 +64,7 @@ export function ChatHeader({
                   type="button"
                   className="header-call-btn video"
                   onClick={onStartVideoCall}
-                  title="Iniciar chamada de vídeo"
+                  title={isGroup ? "Iniciar chamada de vídeo em grupo" : "Iniciar chamada de vídeo"}
                   aria-label="Chamada de vídeo"
                 >
                   📹
@@ -72,6 +72,7 @@ export function ChatHeader({
               )}
             </div>
           )}
+
         </>
       ) : (
 

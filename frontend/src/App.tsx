@@ -17,6 +17,7 @@ import { TypingPayload } from "./services/socket";
 import { useAuth } from "./hooks/useAuth";
 import { useChatSocket } from "./hooks/useChatSocket";
 import { useWebRTCCall } from "./hooks/useWebRTCCall";
+import { useGroupWebRTCCall } from "./hooks/useGroupWebRTCCall";
 import { addMessageIfMissing } from "./utils/chat-helpers";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { Sidebar } from "./components/sidebar/Sidebar";
@@ -25,6 +26,8 @@ import { ChatPanel } from "./components/chat/ChatPanel";
 import { CreateGroupModal } from "./components/sidebar/CreateGroupModal";
 import { IncomingCallModal } from "./components/call/IncomingCallModal";
 import { ActiveCallModal } from "./components/call/ActiveCallModal";
+import { GroupCallModal } from "./components/call/GroupCallModal";
+
 
 export function App() {
   const {
@@ -224,8 +227,29 @@ export function App() {
     toggleVideo,
   } = useWebRTCCall(socket, token, handleCallLogged);
 
+  const {
+    isInGroupCall,
+    activeConversationId: groupCallConvId,
+    callType: groupCallType,
+    isMuted: isGroupMuted,
+    isVideoOff: isGroupVideoOff,
+    callDuration: groupCallDuration,
+    localStream: groupLocalStream,
+    remoteParticipants: groupRemoteParticipants,
+    groupCallBanners,
+    joinGroupCall,
+    leaveGroupCall,
+    toggleMute: toggleGroupMute,
+    toggleVideo: toggleGroupVideo,
+  } = useGroupWebRTCCall(socket, token, currentUser?.id, handleCallLogged);
+
   const handleStartVoiceCall = useCallback(() => {
     if (!selectedConversation || !currentUser) return;
+    const isGroup = Boolean(selectedConversation.title || selectedConversation.members.length > 2);
+    if (isGroup) {
+      joinGroupCall(selectedConversation.id, "audio");
+      return;
+    }
     const otherMember = selectedConversation.members.find(
       (m) => (m.userId || m.user?.id) !== currentUser.id,
     );
@@ -233,10 +257,15 @@ export function App() {
     const otherId = otherMember.userId || otherMember.user.id;
     const otherName = otherMember.user.name;
     startCall(otherId, otherName, selectedConversation.id, "audio");
-  }, [selectedConversation, currentUser, startCall]);
+  }, [selectedConversation, currentUser, joinGroupCall, startCall]);
 
   const handleStartVideoCall = useCallback(() => {
     if (!selectedConversation || !currentUser) return;
+    const isGroup = Boolean(selectedConversation.title || selectedConversation.members.length > 2);
+    if (isGroup) {
+      joinGroupCall(selectedConversation.id, "video");
+      return;
+    }
     const otherMember = selectedConversation.members.find(
       (m) => (m.userId || m.user?.id) !== currentUser.id,
     );
@@ -244,7 +273,7 @@ export function App() {
     const otherId = otherMember.userId || otherMember.user.id;
     const otherName = otherMember.user.name;
     startCall(otherId, otherName, selectedConversation.id, "video");
-  }, [selectedConversation, currentUser, startCall]);
+  }, [selectedConversation, currentUser, joinGroupCall, startCall]);
 
   const handleStartVoiceCallDirect = useCallback((targetUserId: string, targetUserName: string, conversationId?: string) => {
     startCall(targetUserId, targetUserName, conversationId ?? "", "audio");
@@ -253,6 +282,7 @@ export function App() {
   const handleStartVideoCallDirect = useCallback((targetUserId: string, targetUserName: string, conversationId?: string) => {
     startCall(targetUserId, targetUserName, conversationId ?? "", "video");
   }, [startCall]);
+
 
   // Carrega lista de usuários e conversas iniciais após login
   useEffect(() => {
@@ -515,6 +545,12 @@ export function App() {
         typingText={activeTypingText}
         isOnline={isRecipientOnline}
         recipientLastReadAt={activeRecipientLastReadAt}
+        activeGroupCallBanner={selectedConversationId ? groupCallBanners[selectedConversationId] : undefined}
+        onJoinGroupCall={() => {
+          if (selectedConversationId) {
+            joinGroupCall(selectedConversationId, groupCallBanners[selectedConversationId]?.callType ?? "video");
+          }
+        }}
         onStartVoiceCall={handleStartVoiceCall}
         onStartVideoCall={handleStartVideoCall}
         onMessageChange={setMessageText}
@@ -554,9 +590,28 @@ export function App() {
           onEndCall={endCall}
         />
       )}
+
+      {isInGroupCall && (
+        <GroupCallModal
+          conversationTitle={
+            conversations.find((c) => c.id === groupCallConvId)?.title || "Chamada em Grupo"
+          }
+          callType={groupCallType}
+          callDuration={groupCallDuration}
+          isMuted={isGroupMuted}
+          isVideoOff={isGroupVideoOff}
+          currentUserName={currentUser.name}
+          localStream={groupLocalStream}
+          remoteParticipants={groupRemoteParticipants}
+          onToggleMute={toggleGroupMute}
+          onToggleVideo={toggleGroupVideo}
+          onLeaveCall={leaveGroupCall}
+        />
+      )}
     </main>
   );
 }
+
 
 
 

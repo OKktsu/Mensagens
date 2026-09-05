@@ -51,6 +51,43 @@ export type CallEndedPayload = {
   conversationId?: string;
 };
 
+export type GroupCallJoinedPayload = {
+  conversationId: string;
+  callType: "audio" | "video";
+  participants: Array<{ userId: string; userName: string }>;
+};
+
+export type GroupCallUserJoinedPayload = {
+  conversationId: string;
+  userId: string;
+  userName: string;
+  callType: "audio" | "video";
+};
+
+export type GroupCallSignalPayload = {
+  conversationId: string;
+  fromUserId: string;
+  fromUserName: string;
+  signal:
+    | { type: "offer"; offer: RTCSessionDescriptionInit }
+    | { type: "answer"; answer: RTCSessionDescriptionInit }
+    | { type: "candidate"; candidate: RTCIceCandidateInit };
+};
+
+export type GroupCallUserLeftPayload = {
+  conversationId: string;
+  userId: string;
+  userName: string;
+};
+
+export type GroupCallStatusPayload = {
+  conversationId: string;
+  isActive: boolean;
+  callType?: "audio" | "video";
+  initiatorName?: string;
+  participantCount: number;
+};
+
 type ServerToClientEvents = {
   "connection:ready": (payload: { socketId: string; userId?: string; onlineUserIds?: string[] }) => void;
   "message:new": (message: Message) => void;
@@ -62,6 +99,11 @@ type ServerToClientEvents = {
   "call:ice-candidate": (payload: CallIceCandidatePayload) => void;
   "call:rejected": (payload: CallRejectedPayload) => void;
   "call:ended": (payload: CallEndedPayload) => void;
+  "group-call:joined": (payload: GroupCallJoinedPayload) => void;
+  "group-call:user-joined": (payload: GroupCallUserJoinedPayload) => void;
+  "group-call:signal": (payload: GroupCallSignalPayload) => void;
+  "group-call:user-left": (payload: GroupCallUserLeftPayload) => void;
+  "group-call:status": (payload: GroupCallStatusPayload) => void;
 };
 
 type ClientToServerEvents = {
@@ -74,7 +116,12 @@ type ClientToServerEvents = {
   "call:ice-candidate": (payload: { toUserId: string; candidate: RTCIceCandidateInit }) => void;
   "call:reject": (payload: { toUserId: string; conversationId?: string }) => void;
   "call:end": (payload: { toUserId: string; conversationId?: string }) => void;
+  "group-call:join": (payload: { conversationId: string; callType?: "audio" | "video" }) => void;
+  "group-call:signal": (payload: { conversationId: string; toUserId: string; signal: unknown }) => void;
+  "group-call:leave": (payload: { conversationId: string }) => void;
+  "group-call:get-status": (payload: { conversationId: string }, callback?: (status: { isActive: boolean; callType?: "audio" | "video"; initiatorName?: string; participantCount: number }) => void) => void;
 };
+
 
 
 export type ChatSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
