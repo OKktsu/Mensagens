@@ -1,5 +1,6 @@
-import { FormEvent, useRef, useEffect, useState } from "react";
+import { FormEvent, useRef, useEffect, useState, useMemo } from "react";
 import type { Message } from "../../services/api";
+import { extractFirstUrl } from "../../utils/link-extractor";
 import { EmojiPicker } from "./EmojiPicker";
 import { VoiceRecorder } from "./VoiceRecorder";
 
@@ -41,6 +42,8 @@ export function MessageInput({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
+
+  const detectedUrl = useMemo(() => extractFirstUrl(messageText), [messageText]);
 
   // Foca no input quando entrar em modo resposta ou edição
   useEffect(() => {
@@ -122,11 +125,14 @@ export function MessageInput({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (disabled) return;
 
-    if (editingMessage) {
-      onSaveEdit?.(messageText);
+    if (editingMessage && onSaveEdit) {
+      onSaveEdit(messageText);
       return;
     }
+
+    if (!messageText.trim()) return;
 
     if (typingTimerRef.current) {
       clearTimeout(typingTimerRef.current);
@@ -151,6 +157,19 @@ export function MessageInput({
 
   return (
     <div className="message-input-wrapper">
+      {/* BANNER DE LINK DETECTADO DURANTE A DIGITAÇÃO */}
+      {detectedUrl && !replyingToMessage && !editingMessage && (
+        <div className="input-link-detect-banner">
+          <div className="link-detect-bar" />
+          <div className="link-detect-info">
+            <span className="link-detect-icon">🔗</span>
+            <span className="link-detect-text">
+              Link detectado: <strong>{(() => { try { return new URL(detectedUrl).hostname; } catch { return detectedUrl; } })()}</strong> — card de pré-visualização será anexado
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* BANNER DE RESPOSTA ATIVA */}
       {replyingToMessage && !editingMessage && (
         <div className="input-reply-banner">
