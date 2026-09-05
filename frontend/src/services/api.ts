@@ -1,7 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 type RequestOptions = {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   token?: string | null;
 };
@@ -25,9 +25,68 @@ export type User = {
   createdAt: string;
 };
 
+export type MessageReaction = {
+  id: string;
+  emoji: string;
+  userId: string;
+  user?: {
+    id: string;
+    name: string;
+  };
+};
+
+export type Message = {
+  id: string;
+  content: string;
+  type?: "text" | "image" | "audio" | "file";
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+  duration?: number | null;
+  isForwarded?: boolean;
+  isEdited?: boolean;
+  isDeleted?: boolean;
+  replyToId?: string | null;
+  replyTo?: {
+    id: string;
+    content: string;
+    type?: "text" | "image" | "audio" | "file";
+    fileUrl?: string | null;
+    fileName?: string | null;
+    sender: {
+      id: string;
+      name: string;
+    };
+  } | null;
+  reactions?: MessageReaction[];
+  starredBy?: Array<{
+    userId: string;
+  }>;
+  createdAt: string;
+  updatedAt?: string;
+  conversationId?: string;
+  senderId?: string;
+  sender: {
+    id: string;
+    name: string;
+    email: string;
+  };
+};
+
 export type Conversation = {
   id: string;
   title?: string | null;
+  pinnedMessageId?: string | null;
+  pinnedMessage?: {
+    id: string;
+    content: string;
+    type?: "text" | "image" | "audio" | "file";
+    fileName?: string | null;
+    sender: {
+      id: string;
+      name: string;
+    };
+  } | null;
   createdAt: string;
   updatedAt: string;
   unreadCount?: number;
@@ -49,24 +108,6 @@ export type Conversation = {
       name: string;
     };
   }>;
-};
-
-export type Message = {
-  id: string;
-  content: string;
-  type?: "text" | "image" | "audio" | "file";
-  fileUrl?: string | null;
-  fileName?: string | null;
-  fileSize?: number | null;
-  duration?: number | null;
-  createdAt: string;
-  conversationId?: string;
-  senderId?: string;
-  sender: {
-    id: string;
-    name: string;
-    email: string;
-  };
 };
 
 
@@ -192,6 +233,8 @@ export type SendMessagePayload = {
   fileName?: string;
   fileSize?: number;
   duration?: number;
+  replyToId?: string;
+  isForwarded?: boolean;
 };
 
 export function sendMessage(
@@ -205,6 +248,87 @@ export function sendMessage(
     method: "POST",
     token,
     body,
+  });
+}
+
+export function updateMessage(
+  token: string,
+  conversationId: string,
+  messageId: string,
+  content: string,
+) {
+  return request<{ message: Message }>(
+    `/conversations/${conversationId}/messages/${messageId}`,
+    {
+      method: "PATCH",
+      token,
+      body: { content },
+    },
+  );
+}
+
+export function deleteMessage(
+  token: string,
+  conversationId: string,
+  messageId: string,
+) {
+  return request<{ message: Message }>(
+    `/conversations/${conversationId}/messages/${messageId}`,
+    {
+      method: "DELETE",
+      token,
+    },
+  );
+}
+
+export function toggleReaction(
+  token: string,
+  conversationId: string,
+  messageId: string,
+  emoji: string,
+) {
+  return request<{ reactions: MessageReaction[] }>(
+    `/conversations/${conversationId}/messages/${messageId}/reactions`,
+    {
+      method: "POST",
+      token,
+      body: { emoji },
+    },
+  );
+}
+
+export function toggleStarMessage(
+  token: string,
+  conversationId: string,
+  messageId: string,
+) {
+  return request<{ isStarred: boolean }>(
+    `/conversations/${conversationId}/messages/${messageId}/star`,
+    {
+      method: "POST",
+      token,
+    },
+  );
+}
+
+export function pinMessage(
+  token: string,
+  conversationId: string,
+  messageId: string,
+) {
+  return request<{ ok: boolean; pinnedMessage: Message }>(
+    `/conversations/${conversationId}/pin/${messageId}`,
+    {
+      method: "POST",
+      token,
+    },
+  );
+}
+
+export function unpinMessage(token: string, conversationId: string) {
+  return request<{ ok: boolean }>(`/conversations/${conversationId}/pin`, {
+    method: "DELETE",
+    token,
   });
 }
 

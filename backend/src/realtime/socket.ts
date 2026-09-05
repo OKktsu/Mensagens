@@ -4,7 +4,7 @@ import type { JwtPayload } from "jsonwebtoken";
 import { prisma } from "../database/prisma.js";
 import { verifyAuthToken } from "../utils/auth-token.js";
 
-type MessagePayload = {
+export type MessagePayload = {
   id: string;
   content: string;
   type?: string;
@@ -12,7 +12,35 @@ type MessagePayload = {
   fileName?: string | null;
   fileSize?: number | null;
   duration?: number | null;
+  isForwarded?: boolean;
+  isEdited?: boolean;
+  isDeleted?: boolean;
+  replyToId?: string | null;
+  replyTo?: {
+    id: string;
+    content: string;
+    type?: string;
+    fileUrl?: string | null;
+    fileName?: string | null;
+    sender: {
+      id: string;
+      name: string;
+    };
+  } | null;
+  reactions?: Array<{
+    id: string;
+    emoji: string;
+    userId: string;
+    user?: {
+      id: string;
+      name: string;
+    };
+  }>;
+  starredBy?: Array<{
+    userId: string;
+  }>;
   createdAt: Date;
+  updatedAt?: Date;
   conversationId: string;
   senderId: string;
   sender: {
@@ -392,6 +420,74 @@ export async function emitMessageCreated(message: MessagePayload) {
   });
 }
 
+export async function emitMessageUpdated(message: MessagePayload) {
+  if (!io) return;
+
+  const members = await prisma.conversationMember.findMany({
+    where: { conversationId: message.conversationId },
+    select: { userId: true },
+  });
+
+  members.forEach((member) => {
+    io?.to(`user:${member.userId}`).emit("message:updated", message);
+  });
+}
+
+export async function emitMessageDeleted(payload: { conversationId: string; messageId: string }) {
+  if (!io) return;
+
+  const members = await prisma.conversationMember.findMany({
+    where: { conversationId: payload.conversationId },
+    select: { userId: true },
+  });
+
+  members.forEach((member) => {
+    io?.to(`user:${member.userId}`).emit("message:deleted", payload);
+  });
+}
+
+export async function emitMessageReaction(payload: {
+  conversationId: string;
+  messageId: string;
+  reactions: Array<{
+    id: string;
+    emoji: string;
+    userId: string;
+    user?: {
+      id: string;
+      name: string;
+    };
+  }>;
+}) {
+  if (!io) return;
+
+  const members = await prisma.conversationMember.findMany({
+    where: { conversationId: payload.conversationId },
+    select: { userId: true },
+  });
+
+  members.forEach((member) => {
+    io?.to(`user:${member.userId}`).emit("message:reaction", payload);
+  });
+}
+
+export async function emitConversationPinned(payload: {
+  conversationId: string;
+  pinnedMessageId: string | null;
+  pinnedMessage?: unknown;
+}) {
+  if (!io) return;
+
+  const members = await prisma.conversationMember.findMany({
+    where: { conversationId: payload.conversationId },
+    select: { userId: true },
+  });
+
+  members.forEach((member) => {
+    io?.to(`user:${member.userId}`).emit("conversation:pinned", payload);
+  });
+}
+
 export async function emitConversationRead(conversationId: string, readerUserId: string, readAt: Date) {
   if (!io) return;
 
@@ -411,5 +507,6 @@ export async function emitConversationRead(conversationId: string, readerUserId:
     });
   });
 }
+
 
 

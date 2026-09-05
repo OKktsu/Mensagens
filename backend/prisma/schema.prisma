@@ -9,27 +9,31 @@ datasource db {
 }
 
 model User {
-  id            String               @id @default(cuid())
-  name          String
-  email         String               @unique
-  passwordHash  String               @map("password_hash")
-  createdAt     DateTime             @default(now()) @map("created_at")
-  memberships   ConversationMember[]
-  messages      Message[]
-  callsMade     Call[]               @relation("CallsMade")
-  callsReceived Call[]               @relation("CallsReceived")
+  id              String               @id @default(cuid())
+  name            String
+  email           String               @unique
+  passwordHash    String               @map("password_hash")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  memberships     ConversationMember[]
+  messages        Message[]
+  reactions       MessageReaction[]
+  starredMessages StarredMessage[]
+  callsMade       Call[]               @relation("CallsMade")
+  callsReceived   Call[]               @relation("CallsReceived")
 
   @@map("users")
 }
 
 model Conversation {
-  id        String               @id @default(cuid())
-  title     String?              @map("title")
-  createdAt DateTime             @default(now()) @map("created_at")
-  updatedAt DateTime             @updatedAt @map("updated_at")
-  members   ConversationMember[]
-  messages  Message[]
-  calls     Call[]
+  id              String               @id @default(cuid())
+  title           String?              @map("title")
+  pinnedMessageId String?              @map("pinned_message_id")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  members         ConversationMember[]
+  messages        Message[]
+  pinnedMessage   Message?             @relation("PinnedMessage", fields: [pinnedMessageId], references: [id], onDelete: SetNull)
+  calls           Call[]
 
   @@map("conversations")
 }
@@ -48,22 +52,56 @@ model ConversationMember {
 }
 
 model Message {
-  id             String       @id @default(cuid())
-  content        String
-  type           String       @default("text") // "text" | "image" | "audio" | "file"
-  fileUrl        String?      @map("file_url")
-  fileName       String?      @map("file_name")
-  fileSize       Int?         @map("file_size")
-  duration       Int?         // Duração em segundos para mensagens de áudio
-  senderId       String       @map("sender_id")
-  conversationId String       @map("conversation_id")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  id                     String               @id @default(cuid())
+  content                String
+  type                   String               @default("text") // "text" | "image" | "audio" | "file"
+  fileUrl                String?              @map("file_url")
+  fileName               String?              @map("file_name")
+  fileSize               Int?                 @map("file_size")
+  duration               Int?                 // Duração em segundos para mensagens de áudio
+  isForwarded            Boolean              @default(false) @map("is_forwarded")
+  isEdited               Boolean              @default(false) @map("is_edited")
+  isDeleted              Boolean              @default(false) @map("is_deleted")
+  replyToId              String?              @map("reply_to_id")
+  replyTo                Message?             @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies                Message[]            @relation("MessageReplies")
+  reactions              MessageReaction[]
+  starredBy              StarredMessage[]
+  pinnedInConversations  Conversation[]       @relation("PinnedMessage")
+  senderId               String               @map("sender_id")
+  conversationId         String               @map("conversation_id")
+  createdAt              DateTime             @default(now()) @map("created_at")
+  updatedAt              DateTime             @default(now()) @updatedAt @map("updated_at")
+  sender                 User                 @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  conversation           Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }
 
+model MessageReaction {
+  id        String   @id @default(cuid())
+  emoji     String   // "👍", "❤️", "😂", "😮", "😢", "🙏", etc.
+  userId    String   @map("user_id")
+  messageId String   @map("message_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId, emoji])
+  @@map("message_reactions")
+}
+
+model StarredMessage {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  messageId String   @map("message_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId])
+  @@map("starred_messages")
+}
 
 model Call {
   id             String        @id @default(cuid())

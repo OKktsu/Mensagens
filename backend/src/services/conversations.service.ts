@@ -17,6 +17,21 @@ export async function listConversations(userId: string) {
     select: {
       id: true,
       title: true,
+      pinnedMessageId: true,
+      pinnedMessage: {
+        select: {
+          id: true,
+          content: true,
+          type: true,
+          fileName: true,
+          sender: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
       createdAt: true,
       updatedAt: true,
       members: {
@@ -68,6 +83,8 @@ export async function listConversations(userId: string) {
       return {
         id: conversation.id,
         title: conversation.title,
+        pinnedMessageId: conversation.pinnedMessageId,
+        pinnedMessage: conversation.pinnedMessage,
         createdAt: conversation.createdAt,
         updatedAt: conversation.updatedAt,
         unreadCount,

@@ -13,6 +13,13 @@ import {
   uploadFile,
   markConversationAsRead,
   sendMessage,
+  updateMessage,
+  deleteMessage,
+  toggleReaction,
+  toggleStarMessage,
+  pinMessage,
+  unpinMessage,
+  SendMessagePayload,
 } from "./services/api";
 import { TypingPayload } from "./services/socket";
 import { useAuth } from "./hooks/useAuth";
@@ -25,6 +32,7 @@ import { Sidebar } from "./components/sidebar/Sidebar";
 import { SidebarTab } from "./components/sidebar/SidebarHeader";
 import { ChatPanel } from "./components/chat/ChatPanel";
 import { CreateGroupModal } from "./components/sidebar/CreateGroupModal";
+import { ForwardMessageModal } from "./components/chat/ForwardMessageModal";
 import { IncomingCallModal } from "./components/call/IncomingCallModal";
 import { ActiveCallModal } from "./components/call/ActiveCallModal";
 import { GroupCallModal } from "./components/call/GroupCallModal";
@@ -56,6 +64,10 @@ export function App() {
   const [chatError, setChatError] = useState("");
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
 
+  // Estados para interações de mensagem
+  const [replyingToMessage, setReplyingToMessage] = useState<Message | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [messageToForward, setMessageToForward] = useState<Message | null>(null);
   
   // Mapa de digitação: { [conversationId]: { [userId]: userName } }
   const [typingMap, setTypingMap] = useState<Record<string, Record<string, string>>>({});
@@ -140,6 +152,90 @@ export function App() {
     [selectedConversationId, token, currentUser?.id],
   );
 
+  // Manipulador de mensagem editada em tempo real
+  const handleMessageUpdated = useCallback((updatedMessage: Message) => {
+    setMessages((current) =>
+      current.map((msg) => (msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg))
+    );
+    setConversations((current) =>
+      current.map((c) => {
+        if (c.id === updatedMessage.conversationId && c.messages?.[0]?.id === updatedMessage.id) {
+          return {
+            ...c,
+            messages: [
+              {
+                ...c.messages[0],
+                content: updatedMessage.content,
+              },
+            ],
+          };
+        }
+        return c;
+      })
+    );
+  }, []);
+
+  // Manipulador de mensagem excluída em tempo real (soft delete)
+  const handleMessageDeleted = useCallback((payload: { conversationId: string; messageId: string }) => {
+    setMessages((current) =>
+      current.map((msg) =>
+        msg.id === payload.messageId
+          ? { ...msg, isDeleted: true, content: "🚫 Esta mensagem foi apagada", type: "text" }
+          : msg
+      )
+    );
+    setConversations((current) =>
+      current.map((c) => {
+        if (c.id === payload.conversationId && c.messages?.[0]?.id === payload.messageId) {
+          return {
+            ...c,
+            messages: [
+              {
+                ...c.messages[0],
+                content: "🚫 Esta mensagem foi apagada",
+              },
+            ],
+          };
+        }
+        return c;
+      })
+    );
+  }, []);
+
+  // Manipulador de reação em tempo real
+  const handleMessageReaction = useCallback((payload: {
+    conversationId: string;
+    messageId: string;
+    reactions: Array<{ id: string; emoji: string; userId: string; user?: { id: string; name: string } }>;
+  }) => {
+    setMessages((current) =>
+      current.map((msg) =>
+        msg.id === payload.messageId
+          ? { ...msg, reactions: payload.reactions }
+          : msg
+      )
+    );
+  }, []);
+
+  // Manipulador de mensagem fixada/desafixada na conversa
+  const handleConversationPinned = useCallback((payload: {
+    conversationId: string;
+    pinnedMessageId: string | null;
+    pinnedMessage?: unknown;
+  }) => {
+    setConversations((current) =>
+      current.map((c) =>
+        c.id === payload.conversationId
+          ? {
+              ...c,
+              pinnedMessageId: payload.pinnedMessageId,
+              pinnedMessage: payload.pinnedMessage as Message | undefined,
+            }
+          : c
+      )
+    );
+  }, []);
+
   // Manipulador de status de digitação em tempo real
   const handleUserTyping = useCallback((payload: TypingPayload) => {
     setTypingMap((prev) => {
@@ -190,6 +286,10 @@ export function App() {
   const { socket, socketError, sendTypingStart, sendTypingStop } = useChatSocket({
     token,
     onNewMessage: handleNewMessage,
+    onMessageUpdated: handleMessageUpdated,
+    onMessageDeleted: handleMessageDeleted,
+    onMessageReaction: handleMessageReaction,
+    onConversationPinned: handleConversationPinned,
     onUserTyping: handleUserTyping,
     onOnlineUserIds: handleOnlineUserIds,
     onUserStatus: handleUserStatus,
@@ -374,6 +474,8 @@ export function App() {
     (conversationId: string) => {
       setSelectedConversationId(conversationId);
       setChatError("");
+      setReplyingToMessage(null);
+      setEditingMessage(null);
 
       setConversations((current) =>
         current.map((c) => (c.id === conversationId ? { ...c, unreadCount: 0 } : c)),
@@ -440,9 +542,14 @@ export function App() {
 
     try {
       setChatError("");
-      const response = await sendMessage(token, selectedConversationId, messageText);
+      const response = await sendMessage(token, selectedConversationId, {
+        content: messageText,
+        type: "text",
+        replyToId: replyingToMessage?.id,
+      });
       setMessages((current) => addMessageIfMissing(current, response.message));
       setMessageText("");
+      setReplyingToMessage(null);
       const conversationsResponse = await getConversations(token);
       setConversations(conversationsResponse.conversations);
     } catch (caughtError) {
@@ -461,8 +568,10 @@ export function App() {
           fileUrl: uploadRes.fileUrl,
           fileName: uploadRes.fileName,
           fileSize: uploadRes.fileSize,
+          replyToId: replyingToMessage?.id,
         });
         setMessages((current) => addMessageIfMissing(current, sendRes.message));
+        setReplyingToMessage(null);
         const conversationsResponse = await getConversations(token);
         setConversations(conversationsResponse.conversations);
       } catch (caughtError) {
@@ -471,7 +580,7 @@ export function App() {
         );
       }
     },
-    [token, selectedConversationId],
+    [token, selectedConversationId, replyingToMessage],
   );
 
   const handleSendVoiceNote = useCallback(
@@ -489,8 +598,10 @@ export function App() {
           fileName: uploadRes.fileName,
           fileSize: uploadRes.fileSize,
           duration,
+          replyToId: replyingToMessage?.id,
         });
         setMessages((current) => addMessageIfMissing(current, sendRes.message));
+        setReplyingToMessage(null);
         const conversationsResponse = await getConversations(token);
         setConversations(conversationsResponse.conversations);
       } catch (caughtError) {
@@ -499,7 +610,201 @@ export function App() {
         );
       }
     },
+    [token, selectedConversationId, replyingToMessage],
+  );
+
+  // Ações de mensagem
+  const handleStartReply = useCallback((msg: Message) => {
+    setEditingMessage(null);
+    setReplyingToMessage(msg);
+  }, []);
+
+  const handleCancelReply = useCallback(() => {
+    setReplyingToMessage(null);
+  }, []);
+
+  const handleStartEdit = useCallback((msg: Message) => {
+    setReplyingToMessage(null);
+    setEditingMessage(msg);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingMessage(null);
+  }, []);
+
+  const handleSaveEdit = useCallback(
+    async (newContent: string) => {
+      if (!token || !selectedConversationId || !editingMessage) return;
+      try {
+        setChatError("");
+        const res = await updateMessage(token, selectedConversationId, editingMessage.id, newContent);
+        setMessages((current) =>
+          current.map((m) => (m.id === editingMessage.id ? { ...m, ...res.message } : m))
+        );
+        setEditingMessage(null);
+      } catch (caughtError) {
+        setChatError(
+          caughtError instanceof Error ? caughtError.message : "Não foi possível editar a mensagem.",
+        );
+      }
+    },
+    [token, selectedConversationId, editingMessage],
+  );
+
+  const handleDeleteMessage = useCallback(
+    async (messageId: string) => {
+      if (!token || !selectedConversationId) return;
+      try {
+        setChatError("");
+        await deleteMessage(token, selectedConversationId, messageId);
+        setMessages((current) =>
+          current.map((m) =>
+            m.id === messageId
+              ? { ...m, isDeleted: true, content: "🚫 Esta mensagem foi apagada", type: "text" }
+              : m,
+          ),
+        );
+      } catch (caughtError) {
+        setChatError(
+          caughtError instanceof Error ? caughtError.message : "Não foi possível apagar a mensagem.",
+        );
+      }
+    },
     [token, selectedConversationId],
+  );
+
+  const handleReaction = useCallback(
+    async (messageId: string, emoji: string) => {
+      if (!token || !selectedConversationId) return;
+      try {
+        const res = await toggleReaction(token, selectedConversationId, messageId, emoji);
+        setMessages((current) =>
+          current.map((m) => (m.id === messageId ? { ...m, reactions: res.reactions } : m)),
+        );
+      } catch (caughtError) {
+        setChatError(
+          caughtError instanceof Error ? caughtError.message : "Não foi possível reagir à mensagem.",
+        );
+      }
+    },
+    [token, selectedConversationId],
+  );
+
+  const handleToggleStar = useCallback(
+    async (messageId: string) => {
+      if (!token || !selectedConversationId || !currentUser) return;
+      try {
+        const res = await toggleStarMessage(token, selectedConversationId, messageId);
+        setMessages((current) =>
+          current.map((m) => {
+            if (m.id !== messageId) return m;
+            const starredBy = m.starredBy || [];
+            const alreadyStarred = starredBy.some((s) => s.userId === currentUser.id);
+            let updatedStarred;
+            if (res.isStarred && !alreadyStarred) {
+              updatedStarred = [...starredBy, { id: "temp", userId: currentUser.id, messageId }];
+            } else if (!res.isStarred) {
+              updatedStarred = starredBy.filter((s) => s.userId !== currentUser.id);
+            } else {
+              updatedStarred = starredBy;
+            }
+            return { ...m, starredBy: updatedStarred };
+          }),
+        );
+      } catch (caughtError) {
+        setChatError(
+          caughtError instanceof Error ? caughtError.message : "Não foi possível favoritar a mensagem.",
+        );
+      }
+    },
+    [token, selectedConversationId, currentUser],
+  );
+
+  const handlePin = useCallback(
+    async (messageId: string) => {
+      if (!token || !selectedConversationId) return;
+      try {
+        const res = await pinMessage(token, selectedConversationId, messageId);
+        setConversations((current) =>
+          current.map((c) =>
+            c.id === selectedConversationId
+              ? { ...c, pinnedMessageId: messageId, pinnedMessage: res.pinnedMessage }
+              : c,
+          ),
+        );
+      } catch (caughtError) {
+        setChatError(
+          caughtError instanceof Error ? caughtError.message : "Não foi possível fixar a mensagem.",
+        );
+      }
+    },
+    [token, selectedConversationId],
+  );
+
+  const handleUnpin = useCallback(
+    async () => {
+      if (!token || !selectedConversationId) return;
+      try {
+        await unpinMessage(token, selectedConversationId);
+        setConversations((current) =>
+          current.map((c) =>
+            c.id === selectedConversationId
+              ? { ...c, pinnedMessageId: null, pinnedMessage: undefined }
+              : c,
+          ),
+        );
+      } catch (caughtError) {
+        setChatError(
+          caughtError instanceof Error ? caughtError.message : "Não foi possível desafixar a mensagem.",
+        );
+      }
+    },
+    [token, selectedConversationId],
+  );
+
+  const handleStartForward = useCallback((msg: Message) => {
+    setMessageToForward(msg);
+  }, []);
+
+  const handleForwardMessage = useCallback(
+    async (targetConversationIds: string[], targetUserIds: string[]) => {
+      if (!token || !messageToForward) return;
+      try {
+        setChatError("");
+        const finalConvIds = [...targetConversationIds];
+
+        for (const targetUserId of targetUserIds) {
+          const convRes = await createConversation(token, targetUserId);
+          finalConvIds.push(convRes.conversation.id);
+        }
+
+        const payload: SendMessagePayload = {
+          content: messageToForward.content,
+          type: messageToForward.type,
+          fileUrl: messageToForward.fileUrl || undefined,
+          fileName: messageToForward.fileName || undefined,
+          fileSize: messageToForward.fileSize || undefined,
+          duration: messageToForward.duration || undefined,
+          isForwarded: true,
+        };
+
+        for (const convId of finalConvIds) {
+          const res = await sendMessage(token, convId, payload);
+          if (convId === selectedConversationId) {
+            setMessages((current) => addMessageIfMissing(current, res.message));
+          }
+        }
+
+        const conversationsResponse = await getConversations(token);
+        setConversations(conversationsResponse.conversations);
+        setMessageToForward(null);
+      } catch (caughtError) {
+        setChatError(
+          caughtError instanceof Error ? caughtError.message : "Não foi possível encaminhar a mensagem.",
+        );
+      }
+    },
+    [token, messageToForward, selectedConversationId],
   );
 
   // Texto do indicador de digitação para o cabeçalho do chat aberto
@@ -600,6 +905,19 @@ export function App() {
         typingText={activeTypingText}
         isOnline={isRecipientOnline}
         recipientLastReadAt={activeRecipientLastReadAt}
+        replyingToMessage={replyingToMessage}
+        onCancelReply={handleCancelReply}
+        editingMessage={editingMessage}
+        onCancelEdit={handleCancelEdit}
+        onSaveEdit={handleSaveEdit}
+        onReply={handleStartReply}
+        onForward={handleStartForward}
+        onEdit={handleStartEdit}
+        onDelete={handleDeleteMessage}
+        onReaction={handleReaction}
+        onToggleStar={handleToggleStar}
+        onPin={handlePin}
+        onUnpin={handleUnpin}
         activeGroupCallBanner={selectedConversationId ? groupCallBanners[selectedConversationId] : undefined}
         onJoinGroupCall={() => {
           if (selectedConversationId) {
@@ -622,6 +940,16 @@ export function App() {
         onClose={() => setIsCreateGroupOpen(false)}
         users={users}
         onCreateGroup={handleCreateGroup}
+      />
+
+      <ForwardMessageModal
+        isOpen={Boolean(messageToForward)}
+        onClose={() => setMessageToForward(null)}
+        messageToForward={messageToForward}
+        conversations={conversations}
+        users={users}
+        currentUserId={currentUser.id}
+        onForward={handleForwardMessage}
       />
 
       {incomingCall && callState === "incoming" && (

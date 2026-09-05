@@ -91,6 +91,18 @@ export type GroupCallStatusPayload = {
 type ServerToClientEvents = {
   "connection:ready": (payload: { socketId: string; userId?: string; onlineUserIds?: string[] }) => void;
   "message:new": (message: Message) => void;
+  "message:updated": (message: Message) => void;
+  "message:deleted": (payload: { conversationId: string; messageId: string }) => void;
+  "message:reaction": (payload: {
+    conversationId: string;
+    messageId: string;
+    reactions: Array<{ id: string; emoji: string; userId: string; user?: { id: string; name: string } }>;
+  }) => void;
+  "conversation:pinned": (payload: {
+    conversationId: string;
+    pinnedMessageId: string | null;
+    pinnedMessage?: unknown;
+  }) => void;
   "user:typing": (payload: TypingPayload) => void;
   "user:status": (payload: UserStatusPayload) => void;
   "conversation:read": (payload: ConversationReadPayload) => void;

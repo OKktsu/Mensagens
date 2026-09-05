@@ -11,6 +11,18 @@ import type { Message } from "../services/api";
 type UseChatSocketOptions = {
   token: string | null;
   onNewMessage: (message: Message) => void;
+  onMessageUpdated?: (message: Message) => void;
+  onMessageDeleted?: (payload: { conversationId: string; messageId: string }) => void;
+  onMessageReaction?: (payload: {
+    conversationId: string;
+    messageId: string;
+    reactions: Array<{ id: string; emoji: string; userId: string; user?: { id: string; name: string } }>;
+  }) => void;
+  onConversationPinned?: (payload: {
+    conversationId: string;
+    pinnedMessageId: string | null;
+    pinnedMessage?: unknown;
+  }) => void;
   onUserTyping?: (payload: TypingPayload) => void;
   onOnlineUserIds?: (ids: string[]) => void;
   onUserStatus?: (payload: UserStatusPayload) => void;
@@ -20,6 +32,10 @@ type UseChatSocketOptions = {
 export function useChatSocket({
   token,
   onNewMessage,
+  onMessageUpdated,
+  onMessageDeleted,
+  onMessageReaction,
+  onConversationPinned,
   onUserTyping,
   onOnlineUserIds,
   onUserStatus,
@@ -31,6 +47,18 @@ export function useChatSocket({
   // Usamos refs para que mudanças nas funções de callback NÃO reconectem o socket
   const onNewMessageRef = useRef(onNewMessage);
   onNewMessageRef.current = onNewMessage;
+
+  const onMessageUpdatedRef = useRef(onMessageUpdated);
+  onMessageUpdatedRef.current = onMessageUpdated;
+
+  const onMessageDeletedRef = useRef(onMessageDeleted);
+  onMessageDeletedRef.current = onMessageDeleted;
+
+  const onMessageReactionRef = useRef(onMessageReaction);
+  onMessageReactionRef.current = onMessageReaction;
+
+  const onConversationPinnedRef = useRef(onConversationPinned);
+  onConversationPinnedRef.current = onConversationPinned;
 
   const onUserTypingRef = useRef(onUserTyping);
   onUserTypingRef.current = onUserTyping;
@@ -69,6 +97,22 @@ export function useChatSocket({
 
     chatSocket.on("message:new", (message: Message) => {
       onNewMessageRef.current?.(message);
+    });
+
+    chatSocket.on("message:updated", (message: Message) => {
+      onMessageUpdatedRef.current?.(message);
+    });
+
+    chatSocket.on("message:deleted", (payload) => {
+      onMessageDeletedRef.current?.(payload);
+    });
+
+    chatSocket.on("message:reaction", (payload) => {
+      onMessageReactionRef.current?.(payload);
+    });
+
+    chatSocket.on("conversation:pinned", (payload) => {
+      onConversationPinnedRef.current?.(payload);
     });
 
     chatSocket.on("user:typing", (payload: TypingPayload) => {

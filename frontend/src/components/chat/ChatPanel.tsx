@@ -4,6 +4,7 @@ import { ChatHeader } from "./ChatHeader";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
 import { GroupCallBanner } from "./GroupCallBanner";
+import { PinnedMessageBanner } from "./PinnedMessageBanner";
 
 type ChatPanelProps = {
   selectedConversation: Conversation | null;
@@ -15,6 +16,19 @@ type ChatPanelProps = {
   typingText?: string | null;
   isOnline?: boolean;
   recipientLastReadAt?: string | null;
+  replyingToMessage?: Message | null;
+  onCancelReply?: () => void;
+  editingMessage?: Message | null;
+  onCancelEdit?: () => void;
+  onSaveEdit?: (newContent: string) => void;
+  onReply?: (message: Message) => void;
+  onForward?: (message: Message) => void;
+  onEdit?: (message: Message) => void;
+  onDelete?: (messageId: string) => void;
+  onReaction?: (messageId: string, emoji: string) => void;
+  onToggleStar?: (messageId: string) => void;
+  onPin?: (messageId: string) => void;
+  onUnpin?: () => void;
   activeGroupCallBanner?: {
     isActive: boolean;
     callType: "audio" | "video";
@@ -43,6 +57,19 @@ export function ChatPanel({
   typingText,
   isOnline,
   recipientLastReadAt,
+  replyingToMessage,
+  onCancelReply,
+  editingMessage,
+  onCancelEdit,
+  onSaveEdit,
+  onReply,
+  onForward,
+  onEdit,
+  onDelete,
+  onReaction,
+  onToggleStar,
+  onPin,
+  onUnpin,
   activeGroupCallBanner,
   onJoinGroupCall,
   onStartVoiceCall,
@@ -55,6 +82,17 @@ export function ChatPanel({
   onTypingStart,
   onTypingStop,
 }: ChatPanelProps) {
+  const handleJumpToMessage = (messageId: string) => {
+    const el = document.getElementById(`message-${messageId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("highlight-pulse");
+      setTimeout(() => {
+        el.classList.remove("highlight-pulse");
+      }, 1500);
+    }
+  };
+
   return (
     <section className="chat-panel" aria-label="Conversa aberta">
       <ChatHeader
@@ -66,6 +104,15 @@ export function ChatPanel({
         onStartVoiceCall={onStartVoiceCall}
         onStartVideoCall={onStartVideoCall}
       />
+
+      {/* BANNER DE MENSAGEM FIXADA */}
+      {selectedConversation?.pinnedMessage && onUnpin && (
+        <PinnedMessageBanner
+          pinnedMessage={selectedConversation.pinnedMessage}
+          onJumpToMessage={handleJumpToMessage}
+          onUnpin={onUnpin}
+        />
+      )}
 
       {activeGroupCallBanner && activeGroupCallBanner.isActive && onJoinGroupCall && (
         <GroupCallBanner
@@ -82,7 +129,15 @@ export function ChatPanel({
         messages={messages}
         currentUserId={currentUserId}
         recipientLastReadAt={recipientLastReadAt}
+        pinnedMessageId={selectedConversation?.pinnedMessageId}
         onImageClick={onImageClick}
+        onReply={onReply}
+        onForward={onForward}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onReaction={onReaction}
+        onToggleStar={onToggleStar}
+        onPin={onPin}
       />
 
       <MessageInput
@@ -93,11 +148,17 @@ export function ChatPanel({
         onSendVoiceNote={onSendVoiceNote}
         onTypingStart={onTypingStart}
         onTypingStop={onTypingStop}
+        replyingToMessage={replyingToMessage}
+        onCancelReply={onCancelReply}
+        editingMessage={editingMessage}
+        onCancelEdit={onCancelEdit}
+        onSaveEdit={onSaveEdit}
         disabled={!selectedConversation}
       />
     </section>
   );
 }
+
 
 
 
