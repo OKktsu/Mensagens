@@ -22,6 +22,7 @@ type SidebarProps = {
   onSelectConversation: (conversationId: string) => void;
   onLogout: () => void;
   onOpenCreateGroup: () => void;
+  onOpenSearch?: () => void;
 };
 
 export function Sidebar({
@@ -42,6 +43,7 @@ export function Sidebar({
   onSelectConversation,
   onLogout,
   onOpenCreateGroup,
+  onOpenSearch,
 }: SidebarProps) {
   return (
     <aside className="sidebar">
@@ -50,6 +52,7 @@ export function Sidebar({
         onTabChange={onTabChange}
         onLogout={onLogout}
         onOpenCreateGroup={onOpenCreateGroup}
+        onOpenSearch={onOpenSearch}
       />
 
       {activeTab === "chats" ? (

@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PulseChat - Direct Messages</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;family=Space+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+    @layer base {
+      html, body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        background-color: #0f1013;
+        color: #f3f4f6;
+      }
+      body { overscroll-behavior: none; }
+      main > :first-child { margin-top: 0 !important; }
+      main > :last-child { margin-bottom: 0 !important; }
+    }
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2a2c35;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3f4250;
+    }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#a78bfa",
+            "primary-container": "#7c3aed",
+            "on-primary-container": "#ffffff",
+            "surface": "#0f1013",
+            "surface-sidebar": "#131418",
+            "surface-card": "#1a1b22",
+            "surface-elevated": "#22232a",
+            "surface-hover": "#1e2027",
+            "outline-neutral": "#282a33",
+            "outline-light": "#363844",
+            "accent-purple": "#8b5cf6",
+            "accent-purple-dark": "#7c3aed",
+            "text-muted": "#9ca3af",
+            "text-subtle": "#6b7280"
+          },
+          fontFamily: {
+            sans: ["Plus Jakarta Sans", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"],
+            display: ["Space Grotesk", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#0f1013] font-sans text-gray-100 select-none antialiased h-screen overflow-hidden flex">
+<!-- 1. High-Tech Navigation Sidebar (DMs & Channels) - Discord-inspired neutral charcoal -->
+<aside aria-label="PulseChat Modular Workspace Hub" class="w-[330px] h-full bg-[#131418] border-r border-[#242630] flex flex-col shrink-0 z-40 relative">
+<!-- Header: Brand & Workspace Selector + Customizer -->
+<div class="p-3.5 pb-2.5 border-b border-[#242630] bg-[#131418]/95 backdrop-blur-md">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2.5 cursor-pointer group">
+<div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-[#6d28d9] flex items-center justify-center shadow-[0_0_12px_rgba(124,58,237,0.35)] ring-1 ring-violet-400/30 group-hover:scale-105 transition-transform shrink-0">
+<span class="material-symbols-outlined text-white text-[20px]">electric_bolt</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-display font-bold text-sm text-white tracking-tight group-hover:text-violet-300 transition-colors">PulseHub</span>
+<span class="px-1.5 py-0.2 bg-violet-500/15 border border-violet-500/30 text-violet-300 text-[9px] font-mono rounded font-bold uppercase tracking-wider">v2.4</span>
+</div>
+<p class="text-[10px] text-gray-400 font-mono truncate">Workspace • Dev &amp; Comunidade</p>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button aria-label="Personalizar Hub" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#20222b] text-gray-400 hover:text-white border border-transparent transition-all" title="Personalizar Widgets &amp; Layout">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+</button>
+<button aria-label="Nova Conversa" class="w-7 h-7 flex items-center justify-center rounded-lg bg-[#20222b] hover:bg-violet-600 hover:text-white text-gray-300 border border-[#2e303d] hover:border-violet-500 transition-all" title="Iniciar nova conversa ou grupo">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+<!-- Quick Search Field -->
+<div class="relative flex items-center">
+<input class="w-full h-8 pl-8 pr-12 bg-[#1b1c23] hover:bg-[#20222a] focus:bg-[#20222a] border border-[#2a2c37] focus:border-violet-500/60 rounded-xl text-xs text-white placeholder:text-gray-500 focus:outline-none transition-all font-sans" placeholder="Buscar DMs, Squads ou mensagens (⌘K)" type="text"/>
+<span class="material-symbols-outlined text-[15px] text-gray-500 absolute left-2.5 pointer-events-none">search</span>
+<span class="font-mono text-[9px] px-1 py-0.5 rounded bg-[#272935] border border-[#353745] text-gray-400 font-semibold absolute right-2">⌘K</span>
+</div>
+<!-- Dual-Mode Segmented Navigation Pill Header -->
+<div class="flex items-center p-1 bg-[#1a1b22] rounded-xl border border-[#282a35] mt-3 gap-1">
+<button class="flex-1 py-1 px-1.5 rounded-lg bg-violet-600 text-white font-display font-semibold text-[11px] shadow-[0_0_12px_rgba(139,92,246,0.3)] flex items-center justify-center gap-1.5 transition-all">
+<span class="material-symbols-outlined text-[14px]">forum</span>
+<span>DMs</span>
+<span class="px-1.5 py-0.2 bg-white/20 text-white text-[9px] font-mono rounded-full font-bold">5</span>
+</button>
+<button class="flex-1 py-1 px-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#232530] font-display font-medium text-[11px] flex items-center justify-center gap-1.5 transition-all">
+<span class="material-symbols-outlined text-[14px]">groups</span>
+<span>Squads</span>
+<span class="px-1 py-0.2 bg-[#272935] text-gray-400 text-[9px] font-mono rounded">3</span>
+</button>
+<button class="py-1 px-2 rounded-lg text-gray-400 hover:text-white hover:bg-[#232530] font-display font-medium text-[11px] flex items-center justify-center gap-1 transition-all" title="Canais e Servidores">
+<span class="material-symbols-outlined text-[14px]">hub</span>
+</button>
+<button class="py-1 px-2 rounded-lg text-gray-400 hover:text-white hover:bg-[#232530] font-display font-medium text-[11px] flex items-center justify-center gap-1 transition-all" title="Itens Fixados">
+<span class="material-symbols-outlined text-[14px]">push_pin</span>
+</button>
+</div>
+</div>
+<!-- Modular Content Stream (Scrollable) -->
+<div class="flex-1 overflow-y-auto px-3 py-3 space-y-4"><div class="space-y-6 px-1 py-1.5">
+<!-- Section 1: Grupos & Squads -->
+<div>
+<div class="flex items-center justify-between px-2 mb-2">
+<span class="font-display font-bold text-[10px] uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[13px] text-violet-400">hub</span>
+        Grupos &amp; Squads
+      </span>
+<button aria-label="Novo Grupo" class="w-5 h-5 flex items-center justify-center rounded-md hover:bg-[#22242e] text-gray-400 hover:text-white transition-colors" title="Criar novo squad">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button>
+</div>
+<div class="space-y-1">
+<!-- Squad 1 -->
+<div class="p-2 rounded-xl hover:bg-[#1a1c24] border border-transparent hover:border-[#2b2d39] transition-all cursor-pointer group">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#232530] border border-[#303342] flex items-center justify-center text-white text-xs font-bold shrink-0 group-hover:scale-105 transition-transform">
+              🚀
+            </div>
+<div class="min-w-0">
+<p class="font-display font-semibold text-xs text-white truncate group-hover:text-violet-300 transition-colors">Squad Rocket HQ</p>
+<p class="text-[10px] text-gray-400 font-mono truncate">Build deployed • <span class="text-emerald-400">2 em call</span></p>
+</div>
+</div>
+<button class="w-6 h-6 rounded-md bg-[#232530] hover:bg-violet-600 text-gray-300 hover:text-white flex items-center justify-center transition-colors shrink-0 border border-[#303342]" title="Conectar à call">
+<span class="material-symbols-outlined text-[12px]">call</span>
+</button>
+</div>
+</div>
+<!-- Squad 2 -->
+<div class="p-2 rounded-xl hover:bg-[#1a1c24] border border-transparent hover:border-[#2b2d39] transition-all cursor-pointer group">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-[#232530] border border-[#303342] flex items-center justify-center text-violet-300 text-xs font-bold shrink-0 group-hover:scale-105 transition-transform">
+              DEV
+            </div>
+<div class="min-w-0">
+<p class="font-display font-semibold text-xs text-white truncate group-hover:text-violet-300 transition-colors">Dev Community BR</p>
+<p class="text-[10px] text-gray-400 font-mono truncate">#geral • 14.2k devs</p>
+</div>
+</div>
+<span class="font-mono text-[10px] text-gray-500 shrink-0">20:15</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Mensagens Diretas -->
+<div>
+<div class="flex items-center justify-between px-2 mb-2">
+<span class="font-display font-bold text-[10px] uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[13px] text-violet-400">chat_bubble</span>
+        Mensagens Diretas
+      </span>
+<button aria-label="Nova Mensagem Direta" class="w-5 h-5 flex items-center justify-center rounded-md hover:bg-[#22242e] text-gray-400 hover:text-white transition-colors" title="Iniciar nova conversa">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button>
+</div>
+<div class="space-y-1">
+<!-- DM Item 1: Teste (Active / Selected) - Clean neutral card with crisp purple accent border -->
+<div class="flex items-center gap-2.5 p-2 rounded-xl bg-[#1e2029] border border-violet-500/60 text-white cursor-pointer group relative shadow-sm">
+<div class="relative shrink-0">
+<img alt="Eliezer" class="w-8 h-8 rounded-lg object-cover ring-1 ring-violet-500/50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOv4qiNEL485ZB1hZninI7u-eHxuqImOVKtsmUeQUVMU7V2h4m4aida9CZGnK2mAnUYmhJHA114ptvzd_LlqQGTbWKnOYzG7OPtSEGP7ByeNjNJNFf1vRIW__r1XT5g8pRCVwhcrNErIIC3jPiaTdC-SxsZ1-lv4A2AhzI4UC2SnJaV9_IJuZknYfg8P63ousqfr_3L7G8l6gRyqmxc0W6hgv8B970vFkzNelLPFLC7HUNIkBrgn8FCg"/>
+<span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[#1e2029]"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 truncate">
+<span class="font-display font-semibold text-xs text-white truncate">Teste</span>
+<span class="px-1 py-0.2 bg-violet-500/20 text-violet-300 font-mono text-[9px] rounded font-semibold border border-violet-500/30">AMIGO</span>
+</div>
+<span class="font-mono text-[10px] text-violet-400 font-semibold shrink-0">23:05</span>
+</div>
+<div class="flex items-center gap-1 text-[11px] text-violet-300 truncate mt-0.5">
+<span class="w-1 h-1 rounded-full bg-violet-400 animate-bounce"></span>
+<span class="italic truncate text-[10px]">digitando no chat...</span>
+</div>
+</div>
+</div>
+<!-- DM Item 2: Joao Silva -->
+<div class="flex items-center gap-2.5 p-2 rounded-xl hover:bg-[#1a1c24] border border-transparent hover:border-[#2c2e3a] text-gray-400 hover:text-white cursor-pointer transition-all group">
+<div class="relative shrink-0">
+<div class="w-8 h-8 rounded-lg bg-[#232530] flex items-center justify-center font-display font-semibold text-xs text-gray-200 border border-[#323544] group-hover:border-violet-500/40 transition-colors">
+            JS
+          </div>
+<span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#131418]"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1 truncate">
+<span class="font-medium text-xs text-white truncate group-hover:text-violet-300 transition-colors">Joao Silva</span>
+<span class="px-1 py-0.2 bg-[#242632] text-gray-400 text-[9px] font-mono rounded">Frontend</span>
+</div>
+<span class="font-mono text-[10px] text-gray-500 shrink-0">21:40</span>
+</div>
+<p class="text-[11px] text-gray-400 truncate mt-0.5">Mandei os arquivos lá.</p>
+</div>
+</div>
+<!-- DM Item 3: Marcelo -->
+<div class="flex items-center gap-2.5 p-2 rounded-xl hover:bg-[#1a1c24] border border-transparent hover:border-[#2c2e3a] text-gray-400 hover:text-white cursor-pointer transition-all group">
+<div class="relative shrink-0">
+<div class="w-8 h-8 rounded-lg bg-[#232530] flex items-center justify-center font-display font-semibold text-xs text-gray-200 border border-[#323544] group-hover:border-violet-500/40 transition-colors">
+            MA
+          </div>
+<span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-slate-500 ring-2 ring-[#131418]"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1 truncate">
+<span class="font-medium text-xs text-white truncate group-hover:text-violet-300 transition-colors">Marcelo</span>
+<span class="px-1 py-0.2 bg-[#242632] text-gray-400 text-[9px] font-mono rounded">Design</span>
+</div>
+<span class="font-mono text-[10px] text-gray-500 shrink-0">Ontem</span>
+</div>
+<p class="text-[11px] text-gray-400 truncate mt-0.5">Até amanhã!</p>
+</div>
+</div>
+<!-- DM Item 4: bah -->
+<div class="flex items-center gap-2.5 p-2 rounded-xl hover:bg-[#1a1c24] border border-transparent hover:border-[#2c2e3a] text-gray-400 hover:text-white cursor-pointer transition-all group">
+<div class="relative shrink-0">
+<div class="w-8 h-8 rounded-lg bg-[#232530] flex items-center justify-center font-display font-semibold text-xs text-gray-200 border border-[#323544] group-hover:border-violet-500/40 transition-colors">
+            BA
+          </div>
+<span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-slate-500 ring-2 ring-[#131418]"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-medium text-xs text-white truncate group-hover:text-violet-300 transition-colors">bah</span>
+<span class="font-mono text-[10px] text-gray-500 shrink-0">Terça</span>
+</div>
+<p class="text-[11px] text-gray-400 truncate mt-0.5">hahaha bele</p>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+<!-- Bottom Workspace & Tactile Profile Dock (Lucas #0001 Pulse Pro) -->
+<div class="p-3 bg-[#131418] border-t border-[#242630]">
+<div class="flex items-center justify-between p-2 rounded-2xl bg-[#1b1c23] border border-[#2b2d3a] hover:border-[#3a3d4e] transition-all shadow-sm">
+<div class="flex items-center gap-2.5 min-w-0 cursor-pointer group">
+<div class="relative shrink-0">
+<img alt="Profile" class="w-9 h-9 rounded-xl object-cover ring-1 ring-[#373a4b] group-hover:ring-violet-500 transition-all" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0bVGe6eiXJFKxK9OfE5nPUTGNtrdADhs2tvpWbOX9JvJ9fjmJA_eF2Az1jDppRombDyjcNI35WOr_q0jGiihNjLIVYs_2FYF3BwrKv0dgbTPFTb46x2SmH6r9_59Y1rkZOm4VmgAHw9oKxQCCpI7dj2dblRKm6ex9H1tFYTQZK_FO91T-lDiN9-fnqps4VuDLMej3lgL2Th57HyuvogmYZDxAU-UGbxsk_F-Gvj-_c0NxHqJwPHNxyw"/>
+<span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[#1b1c23]"></span>
+</div>
+<div class="min-w-0">
+<div class="font-semibold text-xs text-white leading-tight truncate flex items-center gap-1.5">
+<span>Lucas</span>
+<span class="px-1.5 py-0.2 bg-violet-600 text-white text-[9px] font-mono rounded font-bold shadow-[0_0_8px_rgba(139,92,246,0.3)]">PRO</span>
+</div>
+<div class="flex items-center gap-1 mt-0.5 font-mono text-[10px] text-emerald-400 leading-tight truncate">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+<span>#0001 • Online</span>
+</div>
+</div>
+</div>
+<!-- Tactile Sound / Mic Toggles & Quick Controls -->
+<div class="flex items-center gap-0.5 text-gray-400">
+<button aria-label="Mutar Microfone" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#272935] hover:text-white transition-colors relative group" title="Microfone (Ativo)">
+<span class="material-symbols-outlined text-[17px]">mic</span>
+<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+</button>
+<button aria-label="Desativar Áudio" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#272935] hover:text-white transition-colors relative group" title="Áudio (Ativo)">
+<span class="material-symbols-outlined text-[17px]">headphones</span>
+<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+</button>
+<button aria-label="Configurações Rápidas" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#272935] hover:text-white transition-colors" title="Preferências do Workspace">
+<span class="material-symbols-outlined text-[17px]">settings</span>
+</button>
+</div>
+</div>
+</div>
+</aside>
+<!-- 3. Central & Right Dynamic Workspace Container -->
+<div class="flex-1 flex flex-col h-full min-w-0 bg-[#0f1013]">
+<!-- Top Primary Global Bar -->
+<header class="h-14 bg-[#131418] border-b border-[#242630] z-30 flex items-center justify-between px-5 shrink-0">
+<!-- Active Channel Context / Partner -->
+<div class="flex items-center gap-3 min-w-0">
+<div class="relative shrink-0">
+<img alt="Avatar Teste" class="w-9 h-9 rounded-xl object-cover ring-1 ring-[#323544]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOv4qiNEL485ZB1hZninI7u-eHxuqImOVKtsmUeQUVMU7V2h4m4aida9CZGnK2mAnUYmhJHA114ptvzd_LlqQGTbWKnOYzG7OPtSEGP7ByeNjNJNFf1vRIW__r1XT5g8pRCVwhcrNErIIC3jPiaTdC-SxsZ1-lv4A2AhzI4UC2SnJaV9_IJuZknYfg8P63ousqfr_3L7G8l6gRyqmxc0W6hgv8B970vFkzNelLPFLC7HUNIkBrgn8FCg"/>
+<span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-[#131418]"></span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-display font-bold text-sm text-white truncate">Teste</span>
+<span class="font-mono text-xs text-gray-400">@eliezer.dev</span>
+<span class="px-1.5 py-0.2 bg-violet-500/15 border border-violet-500/30 text-violet-300 font-mono text-[10px] rounded-md font-semibold tracking-wide">AMIGO</span>
+<span class="px-1.5 py-0.2 bg-[#232532] border border-[#353849] text-gray-300 font-mono text-[10px] rounded-md font-semibold tracking-wide">CORE DEV</span>
+</div>
+<div class="flex items-center gap-1.5 text-gray-400 text-[11px]">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+<span class="truncate italic">Codando novidades no PulseChat...</span>
+</div>
+</div>
+</div>
+<!-- Quick Action Toolbar -->
+<div class="flex items-center gap-1.5 text-gray-400">
+<button aria-label="Iniciar Chamada de Voz" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#20222a] hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[19px]">call</span>
+</button>
+<button aria-label="Iniciar Chamada de Vídeo" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#20222a] hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[19px]">videocam</span>
+</button>
+<button aria-label="Mensagens Fixadas" class="relative w-8 h-8 flex items-center justify-center rounded-lg bg-[#1f212a] border border-[#2e313f] text-violet-300 hover:bg-[#272935] transition-all" id="pinnedMessagesBtn">
+<span class="material-symbols-outlined text-[19px]">push_pin</span>
+<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+</button>
+<button aria-label="Adicionar Amigos à DM" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#20222a] hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[19px]">person_add</span>
+</button>
+<button aria-label="Ver Perfil" class="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1f212a] border border-[#2e313f] text-gray-300 hover:text-white hover:border-violet-500/50 transition-all" id="toggleProfileBtn">
+<span class="material-symbols-outlined text-[19px]">account_box</span>
+</button>
+<div class="w-[1px] h-5 bg-[#282a35] mx-1"></div>
+<div class="relative flex items-center">
+<input class="w-36 focus:w-48 h-8 bg-[#1a1b22] border border-[#2c2e3a] focus:border-violet-500/50 text-gray-200 text-xs rounded-lg px-2.5 pr-7 focus:outline-none transition-all placeholder:text-gray-500 font-sans" placeholder="Buscar na conversa" type="text"/>
+<span class="material-symbols-outlined text-gray-500 text-[16px] absolute right-2 pointer-events-none">search</span>
+</div>
+</div>
+</header>
+<!-- Pinned Notice Sub-banner (Discord style minimal clean dark bar with purple accent pin) -->
+<div class="flex items-center justify-between px-5 py-2 bg-[#171820] border-b border-[#242630] text-gray-400 text-xs">
+<div class="flex items-center gap-2.5 truncate">
+<span class="material-symbols-outlined text-violet-400 text-[16px]">push_pin</span>
+<span class="text-white font-semibold text-xs">Mensagem fixada:</span>
+<span class="truncate max-w-xl text-gray-300 italic">"Build deployed com sucesso no cluster de staging! Testem aí."</span>
+</div>
+<div class="flex items-center gap-3 shrink-0">
+<button class="text-violet-400 hover:text-violet-300 hover:underline font-mono text-xs font-semibold">Ver todas (3)</button>
+<button class="hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">close</span></button>
+</div>
+</div>
+<!-- Central Interactive Area: Chat Stream + Profile Drawer -->
+<div class="flex flex-1 w-full overflow-hidden">
+<!-- Chat Column -->
+<div class="flex flex-col flex-1 min-w-0 bg-[#0f1013]">
+<!-- Conversation History Stream -->
+<div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+<!-- Welcome Direct Message Card (Discord-neutral dark surface) -->
+<div class="my-3 p-5 rounded-2xl bg-[#16171e] border border-[#262833] max-w-xl shadow-lg relative overflow-hidden">
+<div class="relative w-16 h-16 rounded-2xl overflow-hidden mb-3.5 ring-1 ring-[#323544] bg-[#22242e]">
+<img alt="Teste" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCj3hEhW0iLFK6JaGr2vmBQ1h2zkMFtbfwgj2tsiIMIri9lrHKUx0P-6HerzPdmBJqacb9Bok-Ck5V_ue4_GAW-rbmh8pUv-N4uVSVFfr7OXs_7Wfbudd_7Mts-VUNrmpwtBZxOx_pV1AaQMgiqGBat8_9-ghJ7vIuL-R5JhTqOHgJvbNd4AGcx_BOpOHsPnlhlR6j1YBn9aY3TngCcZDotBFbny-h5qYiRKxv7jou_f8Sosa6Gv7PdZQ"/>
+</div>
+<h1 class="font-display font-bold text-2xl text-white tracking-tight">Teste</h1>
+<p class="font-mono text-xs text-violet-400 mt-0.5 font-medium">@eliezer.dev</p>
+<p class="text-xs text-gray-400 mt-2.5 leading-relaxed">
+              Este é o início do histórico das suas mensagens diretas com <strong class="text-white">Teste</strong>. Vocês compartilham 3 servidores mútuos e o amor por código limpo.
+            </p>
+<div class="flex items-center gap-2.5 mt-4">
+<button class="px-3.5 py-1.5 bg-[#20222b] hover:bg-[#282a36] border border-[#303342] text-white text-xs font-medium rounded-xl shadow-sm transition-all hover:border-violet-500/40">
+                Remover Amigo
+              </button>
+<button class="px-3.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-medium rounded-xl shadow-sm transition-all">
+                Bloquear
+              </button>
+</div>
+</div>
+<!-- Date Divider -->
+<div class="relative flex items-center justify-center my-4">
+<div class="w-full h-[1px] bg-[#242630]"></div>
+<span class="absolute px-3 py-0.5 bg-[#171820] border border-[#282a35] rounded-full font-mono text-[11px] text-gray-400 uppercase tracking-wider font-semibold">
+              Hoje — 23 de Fevereiro
+            </span>
+</div>
+<!-- Message Item 1: Lucas -->
+<div class="group relative flex gap-3 p-2.5 rounded-xl hover:bg-[#16171f] border border-transparent transition-all">
+<div class="relative shrink-0">
+<img alt="Lucas" class="w-10 h-10 rounded-xl object-cover ring-1 ring-[#323544]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYjBQR_kQYk8RpbQDKdL7Fk9CMTmrR1f5hxKIUC8Op6PVGCVvTt0_z4vkP8meo93I9-Mwm3iHw4kra-Y_cW9W0cfZvGKAXmn0bOugcn_tHIPIV74tbXhd4hOTUU6ur41pz-bvO8mRYla7FKXsOjszlO8SpLwUEdKUP1GEWRSCB7VFlgpLqVL_9yU4RdDGV1UCuCwkp9BaJgjqsYJ60SmEqTLVQV5udXgBIcMiV31wiW42STJxwB7WrGg"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-baseline gap-2">
+<span class="font-display font-semibold text-xs text-white hover:underline cursor-pointer">Lucas</span>
+<span class="px-1.5 py-0.2 bg-violet-600 text-white font-mono text-[9px] rounded font-semibold">PULSE PRO</span>
+<span class="font-mono text-[11px] text-gray-500">Hoje às 23:05</span>
+<span class="material-symbols-outlined text-[13px] text-emerald-400" title="Lida">done_all</span>
+</div>
+<div class="text-sm text-gray-200 mt-1 leading-relaxed">
+                oi?
+              </div>
+</div>
+<!-- Quick Floating Action Toolbar -->
+<div class="absolute right-3 -top-3.5 hidden group-hover:flex items-center bg-[#1e2029] border border-[#2f3240] rounded-xl shadow-lg px-1 py-0.5 gap-0.5 z-10">
+<button class="p-1.5 hover:bg-[#2b2d3a] rounded-lg text-gray-400 hover:text-white transition-colors" title="Adicionar Reação">
+<span class="material-symbols-outlined text-[16px]">add_reaction</span>
+</button>
+<button class="p-1.5 hover:bg-[#2b2d3a] rounded-lg text-gray-400 hover:text-white transition-colors" title="Responder">
+<span class="material-symbols-outlined text-[16px]">reply</span>
+</button>
+<button class="p-1.5 hover:bg-[#2b2d3a] rounded-lg text-gray-400 hover:text-white transition-colors" title="Fixar">
+<span class="material-symbols-outlined text-[16px]">push_pin</span>
+</button>
+<button class="p-1.5 hover:bg-[#2b2d3a] rounded-lg text-gray-400 hover:text-white transition-colors" title="Mais opções">
+<span class="material-symbols-outlined text-[16px]">more_horiz</span>
+</button>
+</div>
+</div>
+<!-- Message Item 2: Teste -->
+<div class="group relative flex gap-3 p-2.5 rounded-xl hover:bg-[#16171f] border border-transparent transition-all">
+<div class="relative shrink-0">
+<img alt="Teste" class="w-10 h-10 rounded-xl object-cover ring-1 ring-[#323544]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2Efmh-O-YELsi5safM-USmKrO-EZ-GUP61h_FeN9fVC0bR4RWK73xJ6Bhi-ZUg2HdB-gBq2H6MxhLR9Tlrup5Wpq-qbMI1zhAZZC6lFp6hihxz7twxG-FGnNxvIQOa7dSpEY5Jj9jGHSdwvS4ba-j9mMwvIYlyCaFtsSSB6Mt5f8r3yRmJq52fkmKBMyYiUMJnH4MdymPf7u4qKXiG4G8S201iNtUblKfp9xHa0O4ayDjm91YQ6oPNw"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-baseline gap-2">
+<span class="font-display font-semibold text-xs text-violet-300 hover:underline cursor-pointer">Teste</span>
+<span class="font-mono text-[11px] text-gray-500">Hoje às 23:05</span>
+</div>
+<div class="text-sm text-gray-200 mt-1 leading-relaxed">
+                Lucas? Kkkkkkk
+              </div>
+</div>
+<div class="absolute right-3 -top-3.5 hidden group-hover:flex items-center bg-[#1e2029] border border-[#2f3240] rounded-xl shadow-lg px-1 py-0.5 gap-0.5 z-10">
+<button class="p-1.5 hover:bg-[#2b2d3a] rounded-lg text-gray-400 hover:text-white"><span class="material-symbols-outlined text-[16px]">add_reaction</span></button>
+<button class="p-1.5 hover:bg-[#2b2d3a] rounded-lg text-gray-400 hover:text-white"><span class="material-symbols-outlined text-[16px]">reply</span></button>
+<button class="p-1.5 hover:bg-[#2b2d3a] rounded-lg text-gray-400 hover:text-white"><span class="material-symbols-outlined text-[16px]">more_horiz</span></button>
+</div>
+</div>
+<!-- Message Item 3: Lucas (Sequential + Reactions) -->
+<div class="group relative flex gap-3 p-2.5 rounded-xl hover:bg-[#16171f] border border-transparent transition-all">
+<div class="relative shrink-0">
+<img alt="Lucas" class="w-10 h-10 rounded-xl object-cover ring-1 ring-[#323544]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuASxKzIA1eXYo_8rrRYj_mqOfrrz6M52dk0Exrutrlk6sQQr_apwt-eOIuhzymV5vOoIaPeHRjii1UXEpfKyuHywmJHYMWCLwkpSzxzq6805kxmWJPowaMIRdfAcUMzPevuU2xYp0dIr77NEJI9ByPpK5cTT25tWhWyjKGFXo0d_SO2AyKFzsxrEshWtMslw7ngGjagX5r8BFHA7cjK1neE67FtOllULW8TXFl7ePep74rJAt5NU-0Cmw"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-baseline gap-2">
+<span class="font-display font-semibold text-xs text-white hover:underline cursor-pointer">Lucas</span>
+<span class="px-1.5 py-0.2 bg-violet-600 text-white font-mono text-[9px] rounded font-semibold">PULSE PRO</span>
+<span class="font-mono text-[11px] text-gray-500">Hoje às 23:07</span>
+</div>
+<div class="text-sm text-gray-200 mt-1 leading-relaxed">
+                Kkkkkkkkkk
+              </div>
+<div class="text-sm text-gray-200 mt-0.5 leading-relaxed">
+                Eu sou varias pessoas
+              </div>
+<!-- Reactions Pills with Sober Neutral Styling & Purple Accent -->
+<div class="flex flex-wrap items-center gap-2 mt-2.5">
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1c1d25] border border-[#2b2d39] hover:border-[#3d4052] text-white text-xs transition-all">
+<span>😂</span>
+<span class="font-mono text-[11px] font-bold text-gray-300">3</span>
+</button>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-950/40 border border-violet-500/40 text-violet-200 text-xs">
+<span>🕵️</span>
+<span class="font-mono text-[11px] font-bold text-violet-300">1</span>
+</button>
+<button class="flex items-center px-2 py-1 rounded-lg bg-[#1c1d25] border border-[#2b2d39] hover:border-violet-500/40 text-gray-400 hover:text-white text-xs transition-all" title="Adicionar Reação">
+<span class="material-symbols-outlined text-[14px]">add_reaction</span>
+</button>
+</div>
+</div>
+<div class="absolute right-3 -top-3.5 hidden group-hover:flex items-center bg-[#1e2029] border border-[#2f3240] rounded-xl shadow-lg px-1 py-0.5 gap-0.5 z-10">
+<button class="p-1.5 hover:bg-[#2b2d3a] rounded-lg text-gray-400 hover:text-white"><span class="material-symbols-outlined text-[16px]">add_reaction</span></button>
+<button class="p-1.5 hover:bg-[#2b2d3a] rounded-lg text-gray-400 hover:text-white"><span class="material-symbols-outlined text-[16px]">reply</span></button>
+<button class="p-1.5 hover:bg-[#2b2d3a] rounded-lg text-gray-400 hover:text-white"><span class="material-symbols-outlined text-[16px]">more_horiz</span></button>
+</div>
+</div>
+<!-- Message Item 4: Teste -->
+<div class="group relative flex gap-3 p-2.5 rounded-xl hover:bg-[#16171f] border border-transparent transition-all">
+<div class="relative shrink-0">
+<img alt="Teste" class="w-10 h-10 rounded-xl object-cover ring-1 ring-[#323544]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA11EGd-sPYFxy_2-_jKbfozJw57apW9pQ6jah59ElOo73gZKwacccZTbG2e3ofrXBUg1-uxE2xQ8WwDC2ffExzsNZ097zunmtiHM-cv2YV7pKf-vnTIYEUYPBdT5sew3Yn_wBJ5WQg45DIw9IQHFTB-FUqOQYX0lbOFPuUWdVDoiT_fV0fIty7jYjOQBfeVQnm6pWu79lM4VWlwssKIGhmZbyySpqMxX-XpO_FMURkZjbcH2hoMVIr5w"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-baseline gap-2">
+<span class="font-display font-semibold text-xs text-violet-300 hover:underline cursor-pointer">Teste</span>
+<span class="font-mono text-[11px] text-gray-500">Hoje às 23:07</span>
+</div>
+<div class="text-sm text-gray-200 mt-1 leading-relaxed">
+                Suspeito isso si kkkkkk
+              </div>
+<div class="text-sm text-gray-200 mt-0.5 leading-relaxed">
+                Aí**
+              </div>
+</div>
+</div>
+<!-- Message Item 5: Lucas Consecutive Sequence -->
+<div class="group relative flex gap-3 p-2.5 rounded-xl hover:bg-[#16171f] border border-transparent transition-all">
+<div class="relative shrink-0">
+<img alt="Lucas" class="w-10 h-10 rounded-xl object-cover ring-1 ring-[#323544]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA_RQs5ox6cCFTVV5eNW9KxZe_3AzgrugDgxagr3mWMhPOOMSPXKfFlGDTzStwvRQ3hX7SXFXeEEHZX5hisoGAaWErjzQ31H711QXrN7bkee4AmUVca-kdgllpHGbqTC0kQLz3dYZWQIZVefBAMbPYCDSkX3Ls-u8Z-y7zu11LXkFXjgQL9OaG12XCxuEUNs7_-kGakYHEePBxsdEyOJFK_61VvyJX-oYlSH69ltB2JN-rmORUkgbxhQ"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-baseline gap-2">
+<span class="font-display font-semibold text-xs text-white hover:underline cursor-pointer">Lucas</span>
+<span class="px-1.5 py-0.2 bg-violet-600 text-white font-mono text-[9px] rounded font-semibold">PULSE PRO</span>
+<span class="font-mono text-[11px] text-gray-500">Hoje às 23:07</span>
+</div>
+<div class="text-sm text-gray-200 mt-1 leading-relaxed">Hummmm</div>
+<div class="text-sm text-gray-200 mt-0.5 leading-relaxed">Pq?</div>
+<div class="text-sm text-gray-200 mt-0.5 leading-relaxed">Não posso me chamar de lucas?</div>
+</div>
+</div>
+<!-- Message Item 6: YouTube High-Tech Preview Card (Discord Neutral Media Embed) -->
+<div class="group relative flex gap-3 p-2.5 rounded-xl hover:bg-[#16171f] border border-transparent transition-all">
+<div class="relative shrink-0">
+<img alt="Teste" class="w-10 h-10 rounded-xl object-cover ring-1 ring-[#323544]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_LUNjQCw-9A-uj3_D8hcNTrwxBy-sjUpcFGt6R173GI3YGeoBYQHkt0V3Iqyt7n-fRZg4K-UbxQAv5p2zjR0DsnveZrvFJorQ6nt_cS2PfWnzpSTDsNlC-lrod2PDZXNscss0TbjoHbvoqhEFbC0MvG7ep9L0THbckxH4CpvLZuScMwQ5-yeUEylimLvQKlkkxHrwCAtkJ9eclZgmcjhMKs6Bv5yQWiO19tYYWUPOymiqD6PRrUz5qw"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-baseline gap-2">
+<span class="font-display font-semibold text-xs text-violet-300 hover:underline cursor-pointer">Teste</span>
+<span class="font-mono text-[11px] text-gray-500">Hoje às 23:09</span>
+</div>
+<div class="text-sm text-gray-200 mb-2.5 mt-1">
+                Dá uma olhada nisso aqui cara: <a class="text-violet-400 hover:text-violet-300 hover:underline font-mono text-xs" href="https://youtu.be/4nJ6SzuLmgY" target="_blank">https://youtu.be/4nJ6SzuLmgY?si=59Mdz_XGzwiCZZmm</a>
+</div>
+<!-- Clean Dark Media Embed -->
+<div class="max-w-md rounded-2xl bg-[#171821] border border-[#272935] overflow-hidden shadow-lg group/card hover:border-[#3a3d4f] transition-all">
+<div class="p-4 space-y-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 text-rose-400 font-mono text-xs font-semibold tracking-wider">
+<span class="material-symbols-outlined text-[17px]">smart_display</span>
+<span>YOUTUBE STREAM</span>
+</div>
+<span class="px-2 py-0.5 bg-rose-500/10 border border-rose-500/30 text-rose-300 font-mono text-[10px] rounded-full font-medium">4K • 60FPS</span>
+</div>
+<a class="block font-display font-bold text-sm text-white hover:text-violet-300 transition-colors line-clamp-1" href="#">
+                    Criando um Clone de Chat em Tempo Real com Alta Performance
+                  </a>
+<p class="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+                    Aprenda como orquestrar WebSockets, renderização acelerada por GPU e arquitetura ultra-rápida inspirada nas melhores plataformas.
+                  </p>
+</div>
+<!-- Video Thumbnail Container -->
+<div class="relative w-full h-52 bg-[#101117] group/video cursor-pointer overflow-hidden">
+<img alt="Video Thumbnail" class="w-full h-full object-cover group-hover/video:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnCLx4ANlDu1_f5etfAJABnRkBnV3QzFa78N5xBJMA5XAvsZKLYaTGfTtZjpljGLYq70_oGynFgKegSgJTna3AxxwzxJiZlXtEvRiM6H8zKcrklQtPSrKmUEB51wsreekee5kqSdK1wMDeRdY64q4St_64XvRiqjHe8O4DhRaYMEoZem0PfQiUrxUtC8bfhEndQFL5E7vjehwP2osdKYGCpaIQVmRkOU_WrgXxjw5ZT2eeqpY03YW1cg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-center justify-center">
+<div class="w-14 h-14 rounded-2xl bg-violet-600 flex items-center justify-center text-white shadow-[0_0_20px_rgba(139,92,246,0.6)] group-hover/video:scale-110 transition-transform ring-2 ring-white/20">
+<span class="material-symbols-outlined text-[28px]">play_arrow</span>
+</div>
+</div>
+<span class="absolute bottom-2.5 right-3 px-2 py-0.5 bg-black/85 border border-white/10 rounded-md font-mono text-[11px] text-white font-bold">
+                    18:42
+                  </span>
+</div>
+</div>
+<!-- Reactions -->
+<div class="flex items-center gap-2 mt-2.5">
+<button class="px-2.5 py-1 rounded-lg bg-[#1c1d25] border border-[#2b2d39] hover:border-[#3d4052] text-xs flex items-center gap-1.5 transition-colors">
+<span>⭐</span> <span class="font-mono text-[11px] font-bold text-gray-300">4</span>
+</button>
+<button class="px-2.5 py-1 rounded-lg bg-[#1c1d25] border border-[#2b2d39] hover:border-[#3d4052] text-xs flex items-center gap-1.5 transition-colors">
+<span>🔥</span> <span class="font-mono text-[11px] font-bold text-gray-300">2</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Message Item 7: GitHub Rich Card Preview -->
+<div class="group relative flex gap-3 p-2.5 rounded-xl hover:bg-[#16171f] border border-transparent transition-all">
+<div class="relative shrink-0">
+<img alt="Lucas" class="w-10 h-10 rounded-xl object-cover ring-1 ring-[#323544]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfyTF44LQvwQc6hrMAP5jD_SYzRoWy_NR8GWTioY4aJLDzIyn4kMa63qwJrO0HQ7yiKpQ_zRO99aBEwaU_iLqQ-rCbOVzyKUcG1R1JLY1ln1u4Jm3tncnRZHuZqABUTLEQuPnP7IrB876qRUcwwF5G5QVfbtO4qw7fHVy8wYxmcGHtXt-lQec8vcnvwxEc7wtbm_IcisVNqZGtP_2YjRBD7fP3xmvd4gwUiqLR5aFE_0BrydJZLVARUw"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-baseline gap-2">
+<span class="font-display font-semibold text-xs text-white hover:underline cursor-pointer">Lucas</span>
+<span class="px-1.5 py-0.2 bg-violet-600 text-white font-mono text-[9px] rounded font-semibold">PULSE PRO</span>
+<span class="font-mono text-[11px] text-gray-500">Hoje às 23:11</span>
+</div>
+<div class="text-sm text-gray-200 mb-2.5 mt-1">
+                Tô subindo as correções agora mesmo: <a class="text-violet-400 hover:text-violet-300 hover:underline font-mono text-xs" href="https://github.com" target="_blank">github.com/pulsechat/core</a>
+</div>
+<!-- GitHub Dark Neutral Card -->
+<div class="max-w-lg rounded-2xl bg-[#171821] border border-[#272935] p-4 shadow-lg space-y-3 group/repo hover:border-[#3a3d4f] transition-all">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 min-w-0">
+<div class="w-7 h-7 rounded-lg bg-[#22242f] border border-[#323544] flex items-center justify-center text-violet-400">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+</div>
+<a class="font-display font-bold text-sm text-white hover:text-violet-300 transition-colors truncate" href="#">
+                      pulsechat / core-engine
+                    </a>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-[#22242f] border border-[#323544] text-gray-300 font-mono text-[10px] font-semibold">
+                    Public Repository
+                  </span>
+</div>
+<p class="text-xs text-gray-400 leading-relaxed">
+                  Engine ultrarrápida de sincronização peer-to-peer em TypeScript e WebAssembly com canais de voz criptografados end-to-end.
+                </p>
+<div class="flex items-center gap-4 pt-1 font-mono text-xs text-gray-400 border-t border-[#262834]">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+<span class="text-white">TypeScript 98.4%</span>
+</div>
+<div class="flex items-center gap-1 hover:text-white cursor-pointer">
+<span class="material-symbols-outlined text-[15px] text-amber-400">star</span>
+<span>1.2k</span>
+</div>
+<div class="flex items-center gap-1 hover:text-white cursor-pointer">
+<span class="material-symbols-outlined text-[15px]">fork_right</span>
+<span>184</span>
+</div>
+<div class="ml-auto text-emerald-400 font-semibold text-[11px]">
+                    Atualizado há 14m
+                  </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Dynamic Typing Indicator Bar -->
+<div class="flex items-center gap-2.5 px-6 py-1.5 text-gray-400 font-mono text-xs">
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:0.15s]"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:0.3s]"></span>
+</div>
+<span class="font-display font-semibold text-white">Teste</span>
+<span>está digitando...</span>
+</div>
+<!-- Modern Floating High-Tech Input Dock -->
+<div class="p-4 pt-1">
+<div class="relative flex items-center bg-[#171821] border border-[#272935] rounded-2xl px-3 py-2 focus-within:border-violet-500/60 focus-within:shadow-[0_0_20px_rgba(139,92,246,0.15)] transition-all gap-2">
+<!-- Attachment Button -->
+<button class="w-9 h-9 rounded-xl bg-[#22242e] hover:bg-[#2b2e3b] border border-[#323544] hover:border-violet-500/50 text-gray-300 hover:text-white flex items-center justify-center transition-all shrink-0">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+<!-- Input Text Area -->
+<input class="flex-1 bg-transparent text-white font-sans text-sm placeholder:text-gray-500 focus:outline-none min-w-0" placeholder="Conversar em @Teste" type="text"/>
+<!-- Action Buttons Deck -->
+<div class="flex items-center gap-1 text-gray-400 shrink-0">
+<button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#242632] hover:text-pink-400 transition-colors" title="Enviar Presente Nitro">
+<span class="material-symbols-outlined text-[20px]">card_giftcard</span>
+</button>
+<button class="px-2 h-7 flex items-center justify-center rounded-lg hover:bg-[#242632] hover:text-violet-300 font-display text-xs font-bold tracking-wider transition-colors border border-transparent hover:border-[#323544]" title="Buscar GIF">
+                GIF
+              </button>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#242632] hover:text-violet-300 transition-colors" title="Figurinhas">
+<span class="material-symbols-outlined text-[20px]">sticky_note_2</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#242632] hover:text-amber-300 transition-colors" title="Emojis">
+<span class="material-symbols-outlined text-[20px]">sentiment_satisfied</span>
+</button>
+<!-- Precision Vibrant Purple Send Button -->
+<button class="ml-1 w-9 h-9 rounded-xl bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center shadow-[0_0_12px_rgba(139,92,246,0.5)] active:scale-95 transition-all" title="Enviar Mensagem">
+<span class="material-symbols-outlined text-[19px]">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Right User Profile Panel (Discord Neutral Dark Slate Panel) -->
+<aside class="w-[330px] bg-[#131418] border-l border-[#242630] flex flex-col overflow-y-auto shrink-0 z-30 transition-all duration-300" id="userProfileDrawer">
+<!-- Header Banner (Subdued dark banner) -->
+<div class="relative w-full h-32 bg-[#1b1c25] overflow-hidden">
+<div class="w-full h-full bg-cover bg-center opacity-60" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBgL-3AV6g6HP82cvT5k4OiuZfI9iMYHT7lQXWWSAuZbT617EVFh5iPHRtzLl-xn18v0kFU6Irg6z_9S8-RbTLQDcsKT8ft4gvluPUBmRQPuAeZNk4xJYrv8rTiFVN-FgvF1xU2TMJVQvS_zHscA338exn3E79EKZD4X_auKa8HgstANLgID1q9OH3IIZw7cfc9hIAHmcB_Zqa1wX9Rc3vjrMuenruHpn_5hh2Fi2IuZmRv7hcYAgbMtg')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-[#131418] via-transparent to-transparent"></div>
+<button class="absolute top-2.5 right-2.5 w-7 h-7 rounded-lg bg-black/60 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/80 transition-colors border border-white/10">
+<span class="material-symbols-outlined text-[16px]">more_horiz</span>
+</button>
+</div>
+<!-- Avatar & Core Badges -->
+<div class="px-4 relative -mt-12 pb-5 space-y-3.5">
+<div class="relative inline-block">
+<div class="w-20 h-20 rounded-2xl overflow-hidden ring-4 ring-[#131418] bg-[#22242e]">
+<img alt="Teste Large Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWo3IPBhSXe8HLoy8e_PFCelkNnLBM4MCYIJFae8P45geVm8nt1fUtjt2DUZbNFeDB8wauE5HazBZGRK6Ei3Vgh8I7MNVivKE_OTqHCa24i3e-KjgdAOxs7kOctAaUED0JtYxQ9le2iqQ8R2dZMhTFTfHhgbndEQqhzJ2XeJpjXLjfb5IVB1o3E12By-FgftKY-QuCPph6bx_bAlyocR7LJIlExdQb8MxzUdNBl84astcOwnxKsuhSSA"/>
+</div>
+<span class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full ring-4 ring-[#131418]" title="Online"></span>
+</div>
+<!-- User Details Container -->
+<div class="bg-[#1a1c24] p-3.5 rounded-2xl border border-[#272935] space-y-2 shadow-sm">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-display font-bold text-lg text-white">Teste</h2>
+<p class="font-mono text-xs text-violet-400 font-medium">@eliezer.dev</p>
+</div>
+<div class="flex items-center gap-1 bg-[#232530] border border-[#323544] p-1 rounded-xl">
+<span class="material-symbols-outlined text-[17px] text-violet-400" title="Desenvolvedor">code</span>
+<span class="material-symbols-outlined text-[17px] text-pink-400" title="Nitro Booster">rocket_launch</span>
+<span class="material-symbols-outlined text-[17px] text-sky-400" title="Apoiador Inicial">verified</span>
+</div>
+</div>
+<div class="w-full h-[1px] bg-[#262834] my-2"></div>
+<!-- Custom Status -->
+<div class="text-gray-200 text-xs flex items-center gap-2">
+<span class="text-sm">💻</span>
+<span class="italic text-gray-400 font-sans">Codando novidades no PulseChat...</span>
+</div>
+</div>
+<!-- About Me Card -->
+<div class="bg-[#1a1c24] p-3.5 rounded-2xl border border-[#272935] space-y-2 shadow-sm">
+<h3 class="font-display font-bold text-[11px] uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-violet-400"></span>
+              Sobre Mim
+            </h3>
+<p class="text-xs text-gray-300 leading-relaxed font-sans">
+              Full-stack craftsperson apaixonado por interfaces fluidas, WebSockets, Rust e café especial. Criando ferramentas para empoderar comunidades.
+            </p>
+<div class="pt-2 border-t border-[#262834]">
+<h4 class="font-display font-bold text-[10px] uppercase tracking-wider text-gray-400 mb-0.5">
+                Membro Desde
+              </h4>
+<p class="font-mono text-xs text-white">
+                12 de Março de 2021 (3 anos)
+              </p>
+</div>
+</div>
+<!-- Mutual Servers Cards -->
+<div class="bg-[#1a1c24] p-3.5 rounded-2xl border border-[#272935] space-y-2.5 shadow-sm">
+<div class="flex items-center justify-between font-display font-bold text-[11px] text-gray-400 uppercase tracking-wider">
+<span>Servidores em Comum (3)</span>
+<span class="material-symbols-outlined text-[15px]">chevron_right</span>
+</div>
+<div class="space-y-1.5">
+<div class="flex items-center gap-2.5 p-2 rounded-xl bg-[#20222c] hover:bg-[#262834] border border-[#2c2e3b] hover:border-violet-500/40 cursor-pointer transition-all">
+<div class="w-8 h-8 rounded-lg bg-violet-700 flex items-center justify-center font-display font-bold text-white text-xs">
+                  DEV
+                </div>
+<div class="min-w-0 flex-1">
+<p class="font-medium text-xs text-white truncate">Dev Community BR</p>
+<p class="font-mono text-[10px] text-gray-400">14.2k membros</p>
+</div>
+</div>
+<div class="flex items-center gap-2.5 p-2 rounded-xl bg-[#20222c] hover:bg-[#262834] border border-[#2c2e3b] hover:border-violet-500/40 cursor-pointer transition-all">
+<div class="w-8 h-8 rounded-lg bg-fuchsia-700 flex items-center justify-center font-display font-bold text-white text-xs">
+                  UI
+                </div>
+<div class="min-w-0 flex-1">
+<p class="font-medium text-xs text-white truncate">Design Hub &amp; UX</p>
+<p class="font-mono text-[10px] text-gray-400">5.8k membros</p>
+</div>
+</div>
+<div class="flex items-center gap-2.5 p-2 rounded-xl bg-[#20222c] hover:bg-[#262834] border border-[#2c2e3b] hover:border-violet-500/40 cursor-pointer transition-all">
+<div class="w-8 h-8 rounded-lg bg-[#2b2d3a] border border-[#3b3e4e] flex items-center justify-center text-sm">
+                  🚀
+                </div>
+<div class="min-w-0 flex-1">
+<p class="font-medium text-xs text-white truncate">Squad Rocket HQ</p>
+<p class="font-mono text-[10px] text-gray-400">24 membros</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Mutual Friends -->
+<div class="bg-[#1a1c24] p-3.5 rounded-2xl border border-[#272935] space-y-2 shadow-sm">
+<div class="flex items-center justify-between font-display font-bold text-[11px] text-gray-400 uppercase tracking-wider">
+<span>Amigos em Comum (2)</span>
+<span class="material-symbols-outlined text-[15px]">chevron_right</span>
+</div>
+<div class="flex items-center -space-x-2 py-1">
+<div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-display font-bold text-[10px] ring-2 ring-[#1a1c24]">
+                JS
+              </div>
+<div class="w-7 h-7 rounded-lg bg-violet-600 text-white flex items-center justify-center font-display font-bold text-[10px] ring-2 ring-[#1a1c24]">
+                MA
+              </div>
+<span class="pl-4 font-sans text-xs text-gray-300">Joao Silva, Marcelo</span>
+</div>
+</div>
+<!-- Quick Action: Vibrant Purple Precision Call Button -->
+<div class="flex items-center gap-2 pt-1">
+<button class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-display font-bold text-xs rounded-xl shadow-[0_0_15px_rgba(139,92,246,0.35)] transition-all flex items-center justify-center gap-2 active:scale-95">
+<span class="material-symbols-outlined text-[18px]">call</span>
+              Iniciar Chamada
+            </button>
+<button class="w-10 h-10 bg-[#20222b] hover:bg-[#282a36] border border-[#2f3240] text-gray-200 hover:text-white rounded-xl flex items-center justify-center transition-colors shadow-sm" title="Criar Convite de Grupo">
+<span class="material-symbols-outlined text-[19px]">group_add</span>
+</button>
+</div>
+</div>
+</aside>
+</div>
+</div>
+<script>
+    // Micro-interaction for toggling right user profile side drawer
+    const toggleBtn = document.getElementById('toggleProfileBtn');
+    const profileDrawer = document.getElementById('userProfileDrawer');
+
+    if (toggleBtn && profileDrawer) {
+      toggleBtn.addEventListener('click', () => {
+        profileDrawer.classList.toggle('hidden');
+      });
+    }
+  </script>
+</body></html>

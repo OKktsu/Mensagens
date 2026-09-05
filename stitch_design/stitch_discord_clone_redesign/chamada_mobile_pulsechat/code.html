@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Chamada Mobile - PulseChat</title>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Custom Tailwind Configuration -->
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            surface: {
+              DEFAULT: '#121319',
+              dim: '#121319',
+              bright: '#383940',
+              lowest: '#0d0e14',
+              low: '#1a1b22',
+              card: '#151620'
+            },
+            pulse: {
+              400: '#a78bfa',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              glow: 'rgba(139, 92, 246, 0.4)'
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif']
+          },
+          animation: {
+            'pulse-ring': 'pulse-ring 2.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite',
+            'wave-bar-1': 'wave 1s ease-in-out infinite alternate',
+            'wave-bar-2': 'wave 1.2s ease-in-out 0.2s infinite alternate',
+            'wave-bar-3': 'wave 0.8s ease-in-out 0.4s infinite alternate',
+            'wave-bar-4': 'wave 1.4s ease-in-out 0.1s infinite alternate',
+          },
+          keyframes: {
+            'pulse-ring': {
+              '0%': { transform: 'scale(0.95)', opacity: '0.8' },
+              '50%': { transform: 'scale(1.22)', opacity: '0.2' },
+              '100%': { transform: 'scale(1.45)', opacity: '0' }
+            },
+            'wave': {
+              '0%': { height: '6px' },
+              '100%': { height: '24px' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+<!-- Google Fonts: Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<style data-purpose="custom-glassmorphism">
+    .glass-pill {
+      background: rgba(26, 27, 34, 0.72);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glass-dock {
+      background: rgba(18, 19, 25, 0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(139, 92, 246, 0.18);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 25px -5px rgba(139, 92, 246, 0.15);
+    }
+    .avatar-glow {
+      box-shadow: 0 0 45px -5px rgba(139, 92, 246, 0.55), inset 0 0 15px rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body class="bg-[#0b0c10] text-slate-100 font-sans antialiased select-none overflow-hidden h-screen w-screen flex justify-center items-center">
+<!-- Mobile Device Simulation Frame (iOS format) -->
+<main class="relative w-full max-w-md h-full bg-[#0d0e14] flex flex-col justify-between overflow-hidden shadow-2xl border-x border-white/5">
+<!-- Ambient Purple Atmospheric Lighting Background -->
+<div class="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-purple-700/20 rounded-full blur-[90px]"></div>
+<div class="pointer-events-none absolute top-1/3 -left-20 w-60 h-60 bg-violet-900/15 rounded-full blur-[80px]"></div>
+<div class="pointer-events-none absolute -bottom-20 left-1/2 -translate-x-1/2 w-96 h-96 bg-pulse-600/10 rounded-full blur-[100px]"></div>
+<!-- BEGIN: TopHeader -->
+<!-- Header with status bar offset, encryption badge, duration and top controls -->
+<header class="relative z-20 pt-12 pb-4 px-6 flex flex-col gap-2" data-purpose="call-header">
+<div class="flex items-center justify-between w-full">
+<!-- Minimize / Return Button -->
+<button aria-label="Minimizar chamada" class="glass-pill w-10 h-10 rounded-full flex items-center justify-center text-slate-300 hover:text-white active:scale-95 transition-all">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Center Context Info -->
+<div class="flex flex-col items-center">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-low/90 border border-purple-500/20 mb-1">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+<span class="text-[11px] font-medium tracking-wide text-purple-200">E2E Criptografado • Opus HD</span>
+</div>
+<span class="text-sm font-semibold tracking-wider text-slate-400 font-mono" data-purpose="call-timer">14:28</span>
+</div>
+<!-- Audio Output / Add Participant Quick Action -->
+<div class="flex items-center gap-2">
+<button aria-label="Adicionar participante" class="glass-pill w-10 h-10 rounded-full flex items-center justify-center text-slate-300 hover:text-purple-300 active:scale-95 transition-all">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+</div>
+</header>
+<!-- END: TopHeader -->
+<!-- BEGIN: CentralCallerDisplay -->
+<!-- Active Speaker Spotlight with Avatar, Pulse Visualizer Rings, and Status Details -->
+<section class="relative z-10 flex-1 flex flex-col items-center justify-center px-6" data-purpose="active-caller-section">
+<!-- Concentric Pulsing Audio Waveform Rings -->
+<div class="relative flex items-center justify-center mb-7">
+<!-- Pulse Wave Outer 2 -->
+<div class="absolute w-56 h-56 rounded-full border border-purple-500/20 animate-pulse-ring pointer-events-none"></div>
+<!-- Pulse Wave Outer 1 -->
+<div class="absolute w-44 h-44 rounded-full border-2 border-purple-500/35 animate-pulse-ring [animation-delay:0.7s] pointer-events-none"></div>
+<!-- Static Accent Ring -->
+<div class="absolute w-36 h-36 rounded-full bg-gradient-to-tr from-purple-600/30 to-indigo-500/10 blur-sm pointer-events-none"></div>
+<!-- Main Circular Caller Avatar -->
+<div class="relative z-10 w-32 h-32 rounded-full p-[3px] bg-gradient-to-tr from-purple-500 via-indigo-400 to-purple-700 avatar-glow">
+<img alt="Foto de Eliezer Rocha" class="w-full h-full rounded-full object-cover bg-surface-low" src="https://lh3.googleusercontent.com/aida/AEtjO1Ubjj5sDKSgDchiqtwupXWyifpDpLqK7yGcb_Nk5IkGVUoB5BEKCrybpJ54IrRO9O_YOjLFOFCQIATLGYIMI6dc1CiwwDcwhnUB6pA5k3tA8KPTWGMGOjB158-M6FJiPoH7eBgDjfUrItugHpp2iClpZ0EJbxsTBv4SKHWjV18RSFVcnbevnHQTCBavGXf3pXPZGxSOs1CLI8nSZy4Dj6cqve5p6tsOOWbSJSAp6UYeN0E7Z0DQ4tbnBW0T"/>
+<!-- Speaking Mic Mini Badge -->
+<div class="absolute bottom-0 right-1 bg-purple-600 border-2 border-[#0d0e14] w-7 h-7 rounded-full flex items-center justify-center text-white shadow-md">
+<svg class="w-3.5 h-3.5" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" fill-rule="evenodd"></path>
+</svg>
+</div>
+</div>
+</div>
+<!-- Caller Identification & Role Metadata -->
+<div class="text-center flex flex-col items-center">
+<div class="flex items-center gap-2 mb-1">
+<h1 class="text-2xl font-bold tracking-tight text-white">Eliezer Rocha</h1>
+<span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-md">Core Dev</span>
+</div>
+<p class="text-xs text-slate-400 font-medium tracking-wide mb-3">@eliezer.dev</p>
+<!-- Dynamic Audio Equalizer Bars Visualizer -->
+<div class="flex items-center justify-center gap-1.5 h-6 mb-3 px-3 py-1 rounded-full bg-surface-low/50 border border-white/5" data-purpose="audio-visualizer-bars">
+<span class="w-1 bg-purple-400 rounded-full animate-wave-bar-1"></span>
+<span class="w-1 bg-purple-500 rounded-full animate-wave-bar-3"></span>
+<span class="w-1 bg-violet-400 rounded-full animate-wave-bar-2"></span>
+<span class="w-1 bg-purple-300 rounded-full animate-wave-bar-4"></span>
+<span class="w-1 bg-purple-500 rounded-full animate-wave-bar-1"></span>
+<span class="w-1 bg-indigo-400 rounded-full animate-wave-bar-3"></span>
+<span class="text-[11px] font-semibold text-purple-300 ml-1.5">Falando...</span>
+</div>
+<!-- Connection Quality & Telemetry Badge -->
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-surface/70 border border-white/5 text-[11px] text-slate-400">
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+<span class="text-slate-300 font-medium">Excelente</span>
+</div>
+<span class="text-slate-600">•</span>
+<span class="font-mono text-slate-300">18ms</span>
+<span class="text-slate-600">•</span>
+<span class="text-slate-400">Opus UltraHD</span>
+</div>
+</div>
+<!-- Secondary Participant / Mini Direct Context Pill -->
+<div class="mt-6 flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-pill text-xs text-slate-400 border border-purple-500/10" data-purpose="call-mode-badge">
+<svg class="w-3.5 h-3.5 text-purple-400" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" fill-rule="evenodd"></path>
+</svg>
+<span>Chamada Direta P2P</span>
+</div>
+</section>
+<!-- END: CentralCallerDisplay -->
+<!-- BEGIN: BottomControls -->
+<!-- Ergonomic Floating Control Dock and Quick Actions -->
+<footer class="relative z-20 px-5 pb-9 pt-3 flex flex-col items-center gap-4" data-purpose="floating-call-controls">
+<!-- Primary Floating Action Dock -->
+<div class="w-full glass-dock rounded-3xl p-3.5 flex items-center justify-between gap-1 shadow-2xl">
+<!-- Mute / Unmute Button -->
+<button aria-label="Alternar microfone" class="group flex flex-col items-center justify-center w-12 h-12 rounded-2xl bg-surface-low/80 hover:bg-surface-bright/50 active:scale-90 border border-white/5 transition-all">
+<svg class="w-5 h-5 text-slate-200 group-hover:text-white" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Speaker / Audio Output Selector -->
+<button aria-label="Alto-falante" class="group flex flex-col items-center justify-center w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/40 active:scale-90 transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)]">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Video Camera Toggle -->
+<button aria-label="Ligar vídeo" class="group flex flex-col items-center justify-center w-12 h-12 rounded-2xl bg-surface-low/80 hover:bg-surface-bright/50 active:scale-90 border border-white/5 transition-all">
+<svg class="w-5 h-5 text-slate-300 group-hover:text-white" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Effects / Screen Sharing Drawer -->
+<button aria-label="Efeitos e compartilhamento" class="group flex flex-col items-center justify-center w-12 h-12 rounded-2xl bg-surface-low/80 hover:bg-surface-bright/50 active:scale-90 border border-white/5 transition-all">
+<svg class="w-5 h-5 text-slate-300 group-hover:text-white" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- End Call Button (Distinct High-Contrast Crimson) -->
+<button aria-label="Encerrar chamada" class="flex items-center justify-center w-13 h-13 px-4 py-3 rounded-2xl bg-gradient-to-tr from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 active:scale-90 text-white shadow-lg shadow-red-600/30 transition-all ml-1">
+<svg class="w-6 h-6 transform rotate-[135deg]" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
+</svg>
+</button>
+</div>
+<!-- In-Call Messaging Drawer Handle / Quick Chat Toggle -->
+<button aria-label="Abrir chat na chamada" class="flex items-center gap-2 py-1.5 px-4 rounded-full bg-surface-low/60 hover:bg-surface-low border border-white/5 active:scale-95 transition-all">
+<svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span class="text-xs font-medium text-slate-300">Abrir Chat na Chamada</span>
+<svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- iOS Home Indicator Indicator -->
+<div class="w-32 h-1 bg-white/20 rounded-full mt-1"></div>
+</footer>
+<!-- END: BottomControls -->
+</main>
+</body></html>

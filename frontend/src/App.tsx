@@ -38,6 +38,7 @@ import { ActiveCallModal } from "./components/call/ActiveCallModal";
 import { GroupCallModal } from "./components/call/GroupCallModal";
 import { ImageLightbox } from "./components/chat/ImageLightbox";
 import { PdfViewerModal } from "./components/chat/PdfViewerModal";
+import { GlobalSearchModal } from "./components/search/GlobalSearchModal";
 
 export function App() {
   const {
@@ -55,6 +56,19 @@ export function App() {
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [pdfModalData, setPdfModalData] = useState<{ url: string; fileName?: string } | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Atalho global de teclado Ctrl + K / Cmd + K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const [users, setUsers] = useState<User[]>([]);
 
@@ -894,8 +908,8 @@ export function App() {
         onSelectConversation={handleSelectConversation}
         onLogout={logout}
         onOpenCreateGroup={() => setIsCreateGroupOpen(true)}
+        onOpenSearch={() => setIsSearchOpen(true)}
       />
-
 
       <ChatPanel
         selectedConversation={selectedConversation}
@@ -1010,6 +1024,30 @@ export function App() {
           onClose={() => setPdfModalData(null)}
         />
       )}
+
+      {/* MODAL DE BUSCA GLOBAL (CTRL+K) */}
+      <GlobalSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        token={token}
+        activeConversationId={selectedConversationId}
+        onSelectUser={(user) => {
+          handleSelectUser(user.id);
+        }}
+        onSelectMessage={(conversationId, messageId) => {
+          setSelectedConversationId(conversationId);
+          setTimeout(() => {
+            const el = document.getElementById(`message-${messageId}`);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+              el.classList.add("highlight-pulse");
+              setTimeout(() => {
+                el.classList.remove("highlight-pulse");
+              }, 1500);
+            }
+          }, 350);
+        }}
+      />
     </main>
   );
 }
