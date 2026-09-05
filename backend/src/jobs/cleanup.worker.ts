@@ -35,7 +35,7 @@ export async function runStorageCleanupWorker(retentionDays = 14): Promise<{
     }
 
     // Filtra arquivos mais antigos que o cutoffDate
-    const oldFiles = files.filter((file: { created_at?: string; name: string }) => {
+    const oldFiles = files.filter((file: { created_at?: string | null; name: string }) => {
       if (!file.created_at) return false;
       const fileDate = new Date(file.created_at);
       return fileDate < cutoffDate;
