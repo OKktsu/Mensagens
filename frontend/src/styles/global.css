@@ -1158,6 +1158,198 @@ h1 {
   background: #dc2626;
 }
 
+/* ==========================================================================
+   ESTILOS DE ABAS E HISTÓRICO DE CHAMADAS (Call History & Sidebar Tabs)
+   ========================================================================== */
+
+.sidebar-header-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-tab-item {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sidebar-tab-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+}
+
+.sidebar-tab-item.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.call-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex: 1;
+  padding: 8px 12px;
+  gap: 4px;
+}
+
+.call-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.call-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.call-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.call-item-content strong {
+  font-size: 0.92rem;
+  color: #f8fafc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.call-item-content strong.missed-call-name {
+  color: #f87171;
+}
+
+.call-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.call-direction-icon {
+  font-weight: 900;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.call-direction-icon.outgoing {
+  color: #22c55e;
+}
+
+.call-direction-icon.incoming {
+  color: #22c55e;
+}
+
+.call-direction-icon.missed {
+  color: #ef4444;
+}
+
+.call-type-badge {
+  font-size: 0.78rem;
+}
+
+.call-item-time {
+  color: #94a3b8;
+}
+
+.call-item-duration {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.call-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.call-callback-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #22c55e;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.call-callback-btn:hover {
+  background: #22c55e;
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
+.call-callback-btn.video {
+  color: #38bdf8;
+}
+
+.call-callback-btn.video:hover {
+  background: #38bdf8;
+  color: #0f172a;
+}
+
+.empty-calls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: #64748b;
+  padding: 40px 20px;
+  gap: 8px;
+}
+
+.empty-calls-icon {
+  font-size: 2.5rem;
+  opacity: 0.6;
+  margin-bottom: 4px;
+}
+
+.empty-calls strong {
+  font-size: 1rem;
+  color: #cbd5e1;
+}
+
+.empty-calls p {
+  font-size: 0.85rem;
+  max-width: 240px;
+  margin: 0;
+}
+
+
 
 
 

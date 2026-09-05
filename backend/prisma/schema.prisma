@@ -9,13 +9,15 @@ datasource db {
 }
 
 model User {
-  id           String               @id @default(cuid())
-  name         String
-  email        String               @unique
-  passwordHash String               @map("password_hash")
-  createdAt    DateTime             @default(now()) @map("created_at")
-  memberships  ConversationMember[]
-  messages     Message[]
+  id            String               @id @default(cuid())
+  name          String
+  email         String               @unique
+  passwordHash  String               @map("password_hash")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  memberships   ConversationMember[]
+  messages      Message[]
+  callsMade     Call[]               @relation("CallsMade")
+  callsReceived Call[]               @relation("CallsReceived")
 
   @@map("users")
 }
@@ -27,6 +29,7 @@ model Conversation {
   updatedAt DateTime             @updatedAt @map("updated_at")
   members   ConversationMember[]
   messages  Message[]
+  calls     Call[]
 
   @@map("conversations")
 }
@@ -55,3 +58,22 @@ model Message {
 
   @@map("messages")
 }
+
+model Call {
+  id             String        @id @default(cuid())
+  callerId       String        @map("caller_id")
+  receiverId     String        @map("receiver_id")
+  conversationId String?       @map("conversation_id")
+  type           String        // "audio" | "video"
+  status         String        // "completed" | "missed" | "rejected"
+  duration       Int           @default(0) // segundos
+  startedAt      DateTime      @default(now()) @map("started_at")
+  endedAt        DateTime?     @map("ended_at")
+
+  caller         User          @relation("CallsMade", fields: [callerId], references: [id], onDelete: Cascade)
+  receiver       User          @relation("CallsReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("calls")
+}
+

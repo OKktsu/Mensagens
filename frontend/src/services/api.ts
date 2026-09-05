@@ -64,6 +64,33 @@ export type Message = {
   };
 };
 
+export type CallRecord = {
+  id: string;
+  callerId: string;
+  receiverId: string;
+  conversationId?: string | null;
+  type: "audio" | "video";
+  status: "completed" | "missed" | "rejected";
+  duration: number;
+  startedAt: string;
+  endedAt?: string | null;
+  caller: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  receiver: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  conversation?: {
+    id: string;
+    title?: string | null;
+  } | null;
+};
+
+
 async function request<T>(path: string, options: RequestOptions = {}) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -168,5 +195,31 @@ export function markConversationAsRead(token: string, conversationId: string) {
     token,
   });
 }
+
+export function getCalls(token: string) {
+  return request<{ calls: CallRecord[] }>("/calls", {
+    token,
+  });
+}
+
+export function createCallLog(
+  token: string,
+  data: {
+    receiverId: string;
+    conversationId?: string;
+    type: "audio" | "video";
+    status: "completed" | "missed" | "rejected";
+    duration: number;
+    startedAt?: string;
+    endedAt?: string;
+  },
+) {
+  return request<{ call: CallRecord }>("/calls", {
+    method: "POST",
+    token,
+    body: data,
+  });
+}
+
 
 

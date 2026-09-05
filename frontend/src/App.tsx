@@ -3,11 +3,13 @@ import {
   Conversation,
   Message,
   User,
+  CallRecord,
   createConversation,
   createGroup,
   getConversations,
   getMessages,
   getUsers,
+  getCalls,
   markConversationAsRead,
   sendMessage,
 } from "./services/api";
@@ -18,11 +20,11 @@ import { useWebRTCCall } from "./hooks/useWebRTCCall";
 import { addMessageIfMissing } from "./utils/chat-helpers";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { Sidebar } from "./components/sidebar/Sidebar";
+import { SidebarTab } from "./components/sidebar/SidebarHeader";
 import { ChatPanel } from "./components/chat/ChatPanel";
 import { CreateGroupModal } from "./components/sidebar/CreateGroupModal";
 import { IncomingCallModal } from "./components/call/IncomingCallModal";
 import { ActiveCallModal } from "./components/call/ActiveCallModal";
-
 
 export function App() {
   const {
@@ -36,6 +38,9 @@ export function App() {
     clearError: clearAuthError,
   } = useAuth();
 
+  const [activeTab, setActiveTab] = useState<SidebarTab>("chats");
+  const [calls, setCalls] = useState<CallRecord[]>([]);
+
   const [users, setUsers] = useState<User[]>([]);
   const [userSearchText, setUserSearchText] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -44,6 +49,7 @@ export function App() {
   const [messageText, setMessageText] = useState("");
   const [chatError, setChatError] = useState("");
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+
   
   // Mapa de digitação: { [conversationId]: { [userId]: userName } }
   const [typingMap, setTypingMap] = useState<Record<string, Record<string, string>>>({});
@@ -184,6 +190,21 @@ export function App() {
     onConversationRead: handleConversationRead,
   });
 
+  const loadCalls = useCallback(async (authToken: string) => {
+    try {
+      const response = await getCalls(authToken);
+      setCalls(response.calls);
+    } catch {
+      // Ignora erro
+    }
+  }, []);
+
+  const handleCallLogged = useCallback(() => {
+    if (token) {
+      loadCalls(token);
+    }
+  }, [token, loadCalls]);
+
   const {
     callState,
     callType,
@@ -201,7 +222,7 @@ export function App() {
     endCall,
     toggleMute,
     toggleVideo,
-  } = useWebRTCCall(socket);
+  } = useWebRTCCall(socket, token, handleCallLogged);
 
   const handleStartVoiceCall = useCallback(() => {
     if (!selectedConversation || !currentUser) return;
@@ -225,9 +246,15 @@ export function App() {
     startCall(otherId, otherName, selectedConversation.id, "video");
   }, [selectedConversation, currentUser, startCall]);
 
+  const handleStartVoiceCallDirect = useCallback((targetUserId: string, targetUserName: string, conversationId?: string) => {
+    startCall(targetUserId, targetUserName, conversationId ?? "", "audio");
+  }, [startCall]);
+
+  const handleStartVideoCallDirect = useCallback((targetUserId: string, targetUserName: string, conversationId?: string) => {
+    startCall(targetUserId, targetUserName, conversationId ?? "", "video");
+  }, [startCall]);
 
   // Carrega lista de usuários e conversas iniciais após login
-
   useEffect(() => {
     if (!token) {
       setUsers([]);
@@ -237,6 +264,7 @@ export function App() {
       setTypingMap({});
       setOnlineUserIds(new Set());
       setConversationReads({});
+      setCalls([]);
       return;
     }
 
@@ -245,13 +273,16 @@ export function App() {
     async function loadInitialData() {
       try {
         setChatError("");
-        const [usersResponse, conversationsResponse] = await Promise.all([
+        const [usersResponse, conversationsResponse, callsResponse] = await Promise.all([
           getUsers(authToken),
           getConversations(authToken),
+          getCalls(authToken).catch(() => ({ calls: [] })),
         ]);
 
         setUsers(usersResponse.users);
         setConversations(conversationsResponse.conversations);
+        setCalls(callsResponse.calls);
+
 
         // Preenche o mapa inicial de lastReadAt
         const initialReads: Record<string, Record<string, string>> = {};
@@ -463,10 +494,16 @@ export function App() {
         currentUserId={currentUser.id}
         typingMap={sidebarTypingMap}
         onlineUserIds={onlineUserIds}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        calls={calls}
+        onStartVoiceCall={handleStartVoiceCallDirect}
+        onStartVideoCall={handleStartVideoCallDirect}
         onSelectConversation={handleSelectConversation}
         onLogout={logout}
         onOpenCreateGroup={() => setIsCreateGroupOpen(true)}
       />
+
 
       <ChatPanel
         selectedConversation={selectedConversation}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ChatSocket, CallIncomingPayload } from "../services/socket";
+import { createCallLog } from "../services/api";
 import {
   startOutgoingRingtone,
   stopOutgoingRingtone,
@@ -33,7 +34,11 @@ const ICE_SERVERS: RTCConfiguration = {
   ],
 };
 
-export function useWebRTCCall(socket: ChatSocket | null) {
+export function useWebRTCCall(
+  socket: ChatSocket | null,
+  token: string | null = null,
+  onCallLogged?: () => void,
+) {
   const [callState, setCallState] = useState<CallState>("idle");
   const [activePeer, setActivePeer] = useState<ActivePeer | null>(null);
   const [incomingCall, setIncomingCall] = useState<IncomingCallData | null>(null);
@@ -49,8 +54,12 @@ export function useWebRTCCall(socket: ChatSocket | null) {
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const iceCandidatesQueueRef = useRef<RTCIceCandidateInit[]>([]);
   const durationTimerRef = useRef<number | null>(null);
+  const durationCountRef = useRef<number>(0);
+  const callStartTimeRef = useRef<Date | null>(null);
+  const onCallLoggedRef = useRef(onCallLogged);
+  onCallLoggedRef.current = onCallLogged;
 
-  // Inicializa o elemento de áudio remoto (fallback para áudio puro)
+  // Inicializa o elemento de áudio remoto
   useEffect(() => {
     if (!remoteAudioRef.current) {
       const audio = new Audio();
@@ -63,8 +72,10 @@ export function useWebRTCCall(socket: ChatSocket | null) {
   useEffect(() => {
     if (callState === "connected") {
       setCallDuration(0);
+      durationCountRef.current = 0;
       durationTimerRef.current = window.setInterval(() => {
-        setCallDuration((prev) => prev + 1);
+        durationCountRef.current += 1;
+        setCallDuration(durationCountRef.current);
       }, 1000);
     } else {
       if (durationTimerRef.current !== null) {
@@ -80,6 +91,33 @@ export function useWebRTCCall(socket: ChatSocket | null) {
       }
     };
   }, [callState]);
+
+  // Salvar registro de chamada no banco
+  const recordCallToDatabase = useCallback(
+    (
+      peer: { userId: string; conversationId?: string; callType: CallType },
+      status: "completed" | "missed" | "rejected",
+    ) => {
+      if (!token) return;
+
+      const duration = status === "completed" ? durationCountRef.current : 0;
+      const startedAt = callStartTimeRef.current ? callStartTimeRef.current.toISOString() : new Date().toISOString();
+      const endedAt = new Date().toISOString();
+
+      createCallLog(token, {
+        receiverId: peer.userId,
+        conversationId: peer.conversationId,
+        type: peer.callType,
+        status,
+        duration,
+        startedAt,
+        endedAt,
+      })
+        .then(() => onCallLoggedRef.current?.())
+        .catch(() => {});
+    },
+    [token],
+  );
 
   // Limpeza de streams e conexões WebRTC
   const cleanupCall = useCallback(() => {
@@ -103,6 +141,8 @@ export function useWebRTCCall(socket: ChatSocket | null) {
     }
 
     iceCandidatesQueueRef.current = [];
+    durationCountRef.current = 0;
+    callStartTimeRef.current = null;
     setLocalStream(null);
     setRemoteStream(null);
     setCallState("idle");
@@ -125,7 +165,8 @@ export function useWebRTCCall(socket: ChatSocket | null) {
         setCallError("");
         cleanupCall();
 
-        // 1. Obtém acesso aos dispositivos de mídia
+        callStartTimeRef.current = new Date();
+
         const constraints: MediaStreamConstraints = {
           audio: {
             echoCancellation: true,
@@ -146,16 +187,13 @@ export function useWebRTCCall(socket: ChatSocket | null) {
         localStreamRef.current = stream;
         setLocalStream(stream);
 
-        // 2. Cria PeerConnection
         const pc = new RTCPeerConnection(ICE_SERVERS);
         peerConnectionRef.current = pc;
 
-        // Adiciona faixas de áudio e vídeo
         stream.getTracks().forEach((track) => {
           pc.addTrack(track, stream);
         });
 
-        // Envia candidatos ICE
         pc.onicecandidate = (event) => {
           if (event.candidate) {
             socket.emit("call:ice-candidate", {
@@ -165,7 +203,6 @@ export function useWebRTCCall(socket: ChatSocket | null) {
           }
         };
 
-        // Recebe mídia remota (áudio ou vídeo)
         pc.ontrack = (event) => {
           if (event.streams[0]) {
             setRemoteStream(event.streams[0]);
@@ -190,11 +227,9 @@ export function useWebRTCCall(socket: ChatSocket | null) {
           }
         };
 
-        // 3. Cria Oferta SDP
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
-        // 4. Envia para o outro usuário via Socket
         socket.emit("call:invite", {
           toUserId: targetUserId,
           conversationId,
@@ -232,7 +267,6 @@ export function useWebRTCCall(socket: ChatSocket | null) {
 
       const { fromUserId, fromUserName, conversationId, offer, callType } = incomingCall;
 
-      // 1. Obtém acesso à mídia de acordo com o tipo
       const constraints: MediaStreamConstraints = {
         audio: {
           echoCancellation: true,
@@ -253,7 +287,6 @@ export function useWebRTCCall(socket: ChatSocket | null) {
       localStreamRef.current = stream;
       setLocalStream(stream);
 
-      // 2. Cria PeerConnection
       const pc = new RTCPeerConnection(ICE_SERVERS);
       peerConnectionRef.current = pc;
 
@@ -293,10 +326,8 @@ export function useWebRTCCall(socket: ChatSocket | null) {
         }
       };
 
-      // 3. Define descrição remota (Oferta)
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
-      // Aplica candidatos ICE acumulados
       while (iceCandidatesQueueRef.current.length > 0) {
         const candidate = iceCandidatesQueueRef.current.shift();
         if (candidate) {
@@ -304,7 +335,6 @@ export function useWebRTCCall(socket: ChatSocket | null) {
         }
       }
 
-      // 4. Cria e envia Resposta (Answer)
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
@@ -341,22 +371,37 @@ export function useWebRTCCall(socket: ChatSocket | null) {
       conversationId: incomingCall.conversationId,
     });
 
+    // Registra recusa
+    recordCallToDatabase(
+      {
+        userId: incomingCall.fromUserId,
+        conversationId: incomingCall.conversationId,
+        callType: incomingCall.callType,
+      },
+      "rejected",
+    );
+
     playEndCallTone();
     cleanupCall();
-  }, [socket, incomingCall, cleanupCall]);
+  }, [socket, incomingCall, recordCallToDatabase, cleanupCall]);
 
   // Encerrar chamada ativa
   const endCall = useCallback(() => {
-    if (socket && activePeer) {
-      socket.emit("call:end", {
-        toUserId: activePeer.userId,
-        conversationId: activePeer.conversationId,
-      });
+    if (activePeer) {
+      if (socket) {
+        socket.emit("call:end", {
+          toUserId: activePeer.userId,
+          conversationId: activePeer.conversationId,
+        });
+      }
+
+      const status = callState === "connected" ? "completed" : "missed";
+      recordCallToDatabase(activePeer, status);
     }
 
     playEndCallTone();
     cleanupCall();
-  }, [socket, activePeer, cleanupCall]);
+  }, [socket, activePeer, callState, recordCallToDatabase, cleanupCall]);
 
   // Alternar mudo do microfone
   const toggleMute = useCallback(() => {
@@ -369,7 +414,7 @@ export function useWebRTCCall(socket: ChatSocket | null) {
     }
   }, []);
 
-  // Alternar câmera (ligar/desligar vídeo)
+  // Alternar câmera
   const toggleVideo = useCallback(() => {
     if (localStreamRef.current) {
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
@@ -385,7 +430,6 @@ export function useWebRTCCall(socket: ChatSocket | null) {
     if (!socket) return;
 
     const handleIncoming = (payload: CallIncomingPayload) => {
-      // Se já estiver em uma chamada, rejeita automaticamente
       if (callState !== "idle") {
         socket.emit("call:reject", {
           toUserId: payload.fromUserId,
@@ -394,6 +438,7 @@ export function useWebRTCCall(socket: ChatSocket | null) {
         return;
       }
 
+      callStartTimeRef.current = new Date();
       setIncomingCall({
         fromUserId: payload.fromUserId,
         fromUserName: payload.fromUserName,
@@ -419,7 +464,7 @@ export function useWebRTCCall(socket: ChatSocket | null) {
         try {
           await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
         } catch {
-          // Ignora erro de candidato isolado
+          // Ignora
         }
       } else {
         iceCandidatesQueueRef.current.push(payload.candidate);
@@ -430,6 +475,11 @@ export function useWebRTCCall(socket: ChatSocket | null) {
       stopOutgoingRingtone();
       playEndCallTone();
       setCallError("Chamada recusada.");
+
+      if (activePeer) {
+        recordCallToDatabase(activePeer, "rejected");
+      }
+
       cleanupCall();
     };
 
@@ -437,6 +487,12 @@ export function useWebRTCCall(socket: ChatSocket | null) {
       stopOutgoingRingtone();
       stopIncomingRingtone();
       playEndCallTone();
+
+      if (activePeer) {
+        const status = callState === "connected" ? "completed" : "missed";
+        recordCallToDatabase(activePeer, status);
+      }
+
       cleanupCall();
     };
 
@@ -453,7 +509,7 @@ export function useWebRTCCall(socket: ChatSocket | null) {
       socket.off("call:rejected", handleRejected);
       socket.off("call:ended", handleEnded);
     };
-  }, [socket, callState, cleanupCall]);
+  }, [socket, callState, activePeer, recordCallToDatabase, cleanupCall]);
 
   return {
     callState,

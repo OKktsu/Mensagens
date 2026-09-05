@@ -1,7 +1,8 @@
-import type { User, Conversation } from "../../services/api";
-import { SidebarHeader } from "./SidebarHeader";
+import type { User, Conversation, CallRecord } from "../../services/api";
+import { SidebarHeader, SidebarTab } from "./SidebarHeader";
 import { PeopleSearch } from "./PeopleSearch";
 import { ConversationList } from "./ConversationList";
+import { CallList } from "./CallList";
 
 type SidebarProps = {
   users: User[];
@@ -13,6 +14,11 @@ type SidebarProps = {
   currentUserId: string;
   typingMap?: Record<string, string[]>;
   onlineUserIds?: Set<string>;
+  activeTab: SidebarTab;
+  onTabChange: (tab: SidebarTab) => void;
+  calls: CallRecord[];
+  onStartVoiceCall: (userId: string, userName: string, conversationId?: string) => void;
+  onStartVideoCall: (userId: string, userName: string, conversationId?: string) => void;
   onSelectConversation: (conversationId: string) => void;
   onLogout: () => void;
   onOpenCreateGroup: () => void;
@@ -28,31 +34,54 @@ export function Sidebar({
   currentUserId,
   typingMap,
   onlineUserIds,
+  activeTab,
+  onTabChange,
+  calls,
+  onStartVoiceCall,
+  onStartVideoCall,
   onSelectConversation,
   onLogout,
   onOpenCreateGroup,
 }: SidebarProps) {
   return (
     <aside className="sidebar">
-      <SidebarHeader onLogout={onLogout} onOpenCreateGroup={onOpenCreateGroup} />
-      <PeopleSearch
-        users={users}
-        searchText={userSearchText}
-        onlineUserIds={onlineUserIds}
-        onSearchChange={onSearchChange}
-        onSelectUser={onSelectUser}
+      <SidebarHeader
+        activeTab={activeTab}
+        onTabChange={onTabChange}
+        onLogout={onLogout}
+        onOpenCreateGroup={onOpenCreateGroup}
       />
-      <ConversationList
-        conversations={conversations}
-        selectedConversationId={selectedConversationId}
-        currentUserId={currentUserId}
-        typingMap={typingMap}
-        onlineUserIds={onlineUserIds}
-        onSelectConversation={onSelectConversation}
-      />
+
+      {activeTab === "chats" ? (
+        <>
+          <PeopleSearch
+            users={users}
+            searchText={userSearchText}
+            onlineUserIds={onlineUserIds}
+            onSearchChange={onSearchChange}
+            onSelectUser={onSelectUser}
+          />
+          <ConversationList
+            conversations={conversations}
+            selectedConversationId={selectedConversationId}
+            currentUserId={currentUserId}
+            typingMap={typingMap}
+            onlineUserIds={onlineUserIds}
+            onSelectConversation={onSelectConversation}
+          />
+        </>
+      ) : (
+        <CallList
+          calls={calls}
+          currentUserId={currentUserId}
+          onStartVoiceCall={onStartVoiceCall}
+          onStartVideoCall={onStartVideoCall}
+        />
+      )}
     </aside>
   );
 }
+
 
 
 
