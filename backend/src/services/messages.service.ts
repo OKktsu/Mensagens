@@ -6,6 +6,7 @@ import {
   emitMessageReaction,
   emitMessageUpdated,
 } from "../realtime/socket.js";
+import { createSignedMediaUrl } from "../config/supabase.js";
 import { AppError } from "../utils/app-error.js";
 
 const messageSelect = {
@@ -81,10 +82,45 @@ async function ensureConversationMember(conversationId: string, userId: string) 
   }
 }
 
+async function enrichMessageWithSignedUrls<
+  T extends { fileUrl?: string | null; replyTo?: { fileUrl?: string | null } | null },
+>(message: T): Promise<T> {
+  if (!message) return message;
+  let fileUrl = message.fileUrl;
+  if (
+    fileUrl &&
+    !fileUrl.startsWith("http://") &&
+    !fileUrl.startsWith("https://") &&
+    !fileUrl.startsWith("blob:")
+  ) {
+    fileUrl = await createSignedMediaUrl(fileUrl, 7200);
+  }
+
+  let replyTo = message.replyTo;
+  if (
+    replyTo &&
+    replyTo.fileUrl &&
+    !replyTo.fileUrl.startsWith("http://") &&
+    !replyTo.fileUrl.startsWith("https://") &&
+    !replyTo.fileUrl.startsWith("blob:")
+  ) {
+    replyTo = {
+      ...replyTo,
+      fileUrl: await createSignedMediaUrl(replyTo.fileUrl, 7200),
+    };
+  }
+
+  return {
+    ...message,
+    fileUrl,
+    replyTo,
+  };
+}
+
 export async function listMessages(conversationId: string, userId: string) {
   await ensureConversationMember(conversationId, userId);
 
-  return prisma.message.findMany({
+  const messages = await prisma.message.findMany({
     where: {
       conversationId,
     },
@@ -93,6 +129,8 @@ export async function listMessages(conversationId: string, userId: string) {
     },
     select: messageSelect,
   });
+
+  return Promise.all(messages.map((m) => enrichMessageWithSignedUrls(m)));
 }
 
 type CreateMessageInput = {
@@ -143,7 +181,9 @@ export async function createMessage(
     select: messageSelect,
   });
 
-  emitMessageCreated(message);
+  const enrichedMessage = await enrichMessageWithSignedUrls(message);
+
+  emitMessageCreated(enrichedMessage);
 
   await prisma.conversation.update({
     where: {
@@ -154,7 +194,7 @@ export async function createMessage(
     },
   });
 
-  return message;
+  return enrichedMessage;
 }
 
 export async function updateMessage(

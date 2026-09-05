@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import type { Message } from "../../services/api";
 import { getMediaUrl } from "../../services/api";
 import { formatTime } from "../../utils/chat-helpers";
+import { useCachedMedia } from "../../utils/media-cache";
 import { AudioPlayer } from "./AudioPlayer";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
@@ -52,6 +53,11 @@ export function MessageItem({
   const type = message.type || "text";
   const isDeleted = Boolean(message.isDeleted);
   const isStarred = message.starredBy?.some((s) => s.userId === currentUserId) ?? false;
+
+  // Cache local permanente no IndexedDB (0ms de carregamento após primeira visualização)
+  const rawMediaUrl = message.fileUrl ? getMediaUrl(message.fileUrl) : null;
+  const { mediaUrl: cachedMediaUrl } = useCachedMedia(rawMediaUrl);
+  const effectiveMediaUrl = cachedMediaUrl || rawMediaUrl || "";
 
   // Agrupa reações por emoji: { "👍": { count: 2, hasMine: true }, ... }
   const groupedReactions = useMemo(() => {
@@ -118,13 +124,13 @@ export function MessageItem({
         ) : (
           <>
             {/* RENDERIZAÇÃO DE IMAGEM */}
-            {type === "image" && message.fileUrl && (
+            {type === "image" && effectiveMediaUrl && (
               <div className="message-image-container">
                 <img
-                  src={getMediaUrl(message.fileUrl)}
+                  src={effectiveMediaUrl}
                   alt={message.content || "Foto enviada"}
                   className="message-image-thumb"
-                  onClick={() => onImageClick?.(getMediaUrl(message.fileUrl))}
+                  onClick={() => onImageClick?.(effectiveMediaUrl)}
                   loading="lazy"
                 />
                 {message.content && <p className="message-text image-caption">{message.content}</p>}
@@ -132,15 +138,15 @@ export function MessageItem({
             )}
 
             {/* RENDERIZAÇÃO DE ÁUDIO DE VOZ */}
-            {type === "audio" && message.fileUrl && (
-              <AudioPlayer src={getMediaUrl(message.fileUrl)} duration={message.duration} />
+            {type === "audio" && effectiveMediaUrl && (
+              <AudioPlayer src={effectiveMediaUrl} duration={message.duration} />
             )}
 
             {/* RENDERIZAÇÃO DE ARQUIVO/DOCUMENTO */}
-            {type === "file" && message.fileUrl && (
+            {type === "file" && effectiveMediaUrl && (
               <div className="message-file-wrapper">
                 <a
-                  href={getMediaUrl(message.fileUrl)}
+                  href={effectiveMediaUrl}
                   download={message.fileName || "arquivo"}
                   target="_blank"
                   rel="noopener noreferrer"

@@ -106,8 +106,16 @@ export function MessageInput({
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (file && onSendFile) {
-      onSendFile(file);
+    if (file) {
+      const maxSizeBytes = 25 * 1024 * 1024; // 25 MB
+      if (file.size > maxSizeBytes) {
+        alert("O arquivo selecionado é muito grande. O tamanho máximo permitido é de 25 MB.");
+        event.target.value = "";
+        return;
+      }
+      if (onSendFile) {
+        onSendFile(file);
+      }
     }
     event.target.value = "";
   }
