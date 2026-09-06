@@ -11,6 +11,7 @@ export type AuthUser = {
   name: string;
   email: string;
   createdAt: string;
+  avatarUrl?: string | null;
 };
 
 export type AuthResponse = {
@@ -23,6 +24,7 @@ export type User = {
   name: string;
   email: string;
   createdAt: string;
+  avatarUrl?: string | null;
 };
 
 export type MessageReaction = {
