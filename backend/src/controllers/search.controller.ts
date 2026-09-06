@@ -1,16 +1,19 @@
-import type { Response } from "express";
-import type { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
+import type { Request, Response } from "express";
 import { searchContent, type SearchCategory } from "../services/search.service.js";
+import { AppError } from "../utils/app-error.js";
+
+function getAuthenticatedUserId(request: Request): string {
+  if (!request.userId) {
+    throw new AppError("Usuario nao autenticado.", 401);
+  }
+  return request.userId;
+}
 
 export async function searchHandler(
-  request: AuthenticatedRequest,
+  request: Request,
   response: Response,
 ): Promise<void> {
-  const currentUserId = request.user?.id;
-  if (!currentUserId) {
-    response.status(401).json({ message: "Usuário não autenticado." });
-    return;
-  }
+  const currentUserId = getAuthenticatedUserId(request);
 
   const query = typeof request.query.q === "string" ? request.query.q : "";
   const category = (
@@ -22,3 +25,4 @@ export async function searchHandler(
   const results = await searchContent(currentUserId, query, category, conversationId);
   response.json({ results });
 }
+
