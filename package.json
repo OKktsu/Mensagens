@@ -9,10 +9,10 @@
     "backend"
   ],
   "scripts": {
-    "build": "pnpm --dir frontend build",
-    "dev:frontend": "pnpm --dir frontend dev",
-    "dev:backend": "pnpm --dir backend dev",
-    "build:frontend": "pnpm --dir frontend build",
-    "build:backend": "pnpm --dir backend build"
+    "build": "pnpm --filter @mensagens/frontend run build",
+    "dev:frontend": "pnpm --filter @mensagens/frontend run dev",
+    "dev:backend": "pnpm --filter @mensagens/backend run dev",
+    "build:frontend": "pnpm --filter @mensagens/frontend run build",
+    "build:backend": "pnpm --filter @mensagens/backend run build"
   }
 }
