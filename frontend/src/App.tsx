@@ -994,7 +994,7 @@ export function App() {
             selectedConversation?.members.find((m) => (m.userId || m.user?.id) === activePeer?.userId)?.user?.avatarUrl ||
             users.find((u) => u.id === activePeer?.userId)?.avatarUrl
           }
-          currentUserName={currentUser.name}
+          currentUserName={currentUser?.name ?? "Você"}
           callState={callState}
           callType={callType}
           callDuration={callDuration}
@@ -1029,7 +1029,7 @@ export function App() {
           isVideoOff={isGroupVideoOff}
           isScreenSharing={isGroupScreenSharing}
           isDeafened={isGroupDeafened}
-          currentUserName={currentUser.name}
+          currentUserName={currentUser?.name ?? "Você"}
           localStream={groupLocalStream}
           remoteParticipants={groupRemoteParticipants}
           onToggleMute={toggleGroupMute}

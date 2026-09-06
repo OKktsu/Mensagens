@@ -256,36 +256,31 @@ export function ActiveCallModal({
                 <span className="font-bold text-white text-xs">{peerName}</span>
               </div>
             </div>
-                ref={setRemoteVideoNode}
-                autoPlay
-                playsInline
-                className="pulse-call-video-element"
-              />
-              <div className="pulse-call-video-tag">
-                <span className="font-bold text-white text-sm">{peerName}</span>
-                <span className="video-tag-role">Ao Vivo</span>
-              </div>
-            </div>
 
-            <div className={`pulse-call-pip-video ${!hasLocalVideo ? "video-off" : ""}`}>
+            {/* Tile 2: Você */}
+            <div className="pulse-call-remote-video-frame">
               {hasLocalVideo ? (
                 <video
                   ref={setLocalVideoNode}
                   autoPlay
                   playsInline
                   muted
-                  className="pulse-call-video-element"
+                  className="pulse-call-video-element local-preview"
                 />
               ) : (
-                <div className="pip-fallback-avatar">
-                  <Avatar name={currentUserName} size="normal" />
-                  <span className="text-[10px] text-slate-400 mt-1">Câmera Desligada</span>
+                <div className="pulse-call-remote-avatar-card">
+                  <div className="pulse-call-avatar-resonance small">
+                    <div className="pulse-call-speaker-avatar small">
+                      <Avatar name={currentUserName} size="large" />
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-white text-sm">{currentUserName} (Você)</h3>
                 </div>
               )}
-              <div className="pip-name-tag">
-                <span>Você</span>
+              <div className="pulse-call-peer-tag">
+                <span className="font-bold text-white text-xs">{currentUserName} (Você)</span>
                 {isMuted && (
-                  <span className="material-symbols-outlined text-[12px] text-rose-400">mic_off</span>
+                  <span className="material-symbols-outlined text-[13px] text-rose-400 ml-1">mic_off</span>
                 )}
               </div>
             </div>
