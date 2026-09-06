@@ -131,6 +131,7 @@ export function ChatPanel({
 
       <MessageList
         messages={messages}
+        conversation={selectedConversation}
         currentUserId={currentUserId}
         recipientLastReadAt={recipientLastReadAt}
         pinnedMessageId={selectedConversation?.pinnedMessageId}

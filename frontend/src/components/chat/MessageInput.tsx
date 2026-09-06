@@ -228,7 +228,7 @@ export function MessageInput({
           }}
         />
       ) : (
-        <form className="message-form" onSubmit={handleSubmit}>
+        <form className="stitch-input-dock" onSubmit={handleSubmit}>
           {/* INPUT OCULTO DE ARQUIVOS */}
           {!editingMessage && (
             <input
@@ -241,29 +241,17 @@ export function MessageInput({
             />
           )}
 
-          {/* BOTÃO DE EMOJIS */}
-          <button
-            type="button"
-            className={`input-action-btn emoji-trigger ${isEmojiOpen ? "active" : ""}`}
-            onClick={() => setIsEmojiOpen((prev) => !prev)}
-            disabled={disabled}
-            title="Inserir emoji"
-            aria-label="Emojis"
-          >
-            😀
-          </button>
-
           {/* BOTÃO DE ANEXO (desabilitado em edição) */}
           {!editingMessage && (
             <button
               type="button"
-              className="input-action-btn attach-trigger"
+              className="stitch-input-attach-btn"
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled}
               title="Anexar foto ou arquivo"
               aria-label="Anexar arquivo"
             >
-              📎
+              <span className="material-symbols-outlined text-[20px]">add</span>
             </button>
           )}
 
@@ -271,52 +259,80 @@ export function MessageInput({
           <input
             ref={inputRef}
             type="text"
-            placeholder={editingMessage ? "Edite sua mensagem..." : "Escreva uma mensagem"}
+            className="stitch-input-field"
+            placeholder={
+              editingMessage
+                ? "Edite sua mensagem..."
+                : "Escreva uma mensagem ou envie anexos..."
+            }
             aria-label="Mensagem"
             value={messageText}
             disabled={disabled}
             onChange={(event) => handleInputChange(event.target.value)}
           />
 
-          {/* BOTÕES DE ENVIO OU SALVAMENTO */}
-          {editingMessage ? (
-            <div className="edit-actions-buttons">
-              <button
-                type="button"
-                className="edit-cancel-btn"
-                onClick={onCancelEdit}
-                title="Cancelar"
-              >
-                ✕
-              </button>
-              <button
-                type="submit"
-                className="edit-save-btn"
-                disabled={disabled || !hasText}
-                title="Salvar alteração"
-              >
-                ✓
-              </button>
-            </div>
-          ) : hasText ? (
-            <button type="submit" className="send-btn" disabled={disabled} title="Enviar mensagem">
-              <span>🚀</span>
-            </button>
-          ) : (
+          {/* DECK DE AÇÕES À DIREITA */}
+          <div className="stitch-input-deck">
+            {/* BOTÃO DE EMOJIS */}
             <button
               type="button"
-              className="mic-btn"
+              className={`stitch-deck-btn ${isEmojiOpen ? "active" : ""}`}
+              onClick={() => setIsEmojiOpen((prev) => !prev)}
               disabled={disabled}
-              onClick={() => setIsRecording(true)}
-              title="Gravar mensagem de voz"
-              aria-label="Gravar áudio"
+              title="Inserir emoji"
+              aria-label="Emojis"
             >
-              <span>🎙️</span>
+              <span className="material-symbols-outlined text-[20px]">
+                sentiment_satisfied
+              </span>
             </button>
-          )}
+
+            {/* BOTÕES DE ENVIO OU GRAVAÇÃO OU SALVAMENTO */}
+            {editingMessage ? (
+              <div className="stitch-edit-actions">
+                <button
+                  type="button"
+                  className="stitch-edit-btn cancel"
+                  onClick={onCancelEdit}
+                  title="Cancelar edição"
+                >
+                  <span className="material-symbols-outlined text-[17px]">close</span>
+                </button>
+                <button
+                  type="submit"
+                  className="stitch-edit-btn save"
+                  disabled={disabled || !hasText}
+                  title="Salvar alteração"
+                >
+                  <span className="material-symbols-outlined text-[17px]">check</span>
+                </button>
+              </div>
+            ) : hasText ? (
+              <button
+                type="submit"
+                className="stitch-send-btn"
+                disabled={disabled}
+                title="Enviar mensagem"
+              >
+                <span className="material-symbols-outlined text-[19px]">send</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="stitch-mic-btn"
+                disabled={disabled}
+                onClick={() => setIsRecording(true)}
+                title="Gravar áudio de voz"
+                aria-label="Gravar áudio"
+              >
+                <span className="material-symbols-outlined text-[20px]">mic</span>
+              </button>
+            )}
+          </div>
         </form>
       )}
     </div>
   );
 }
+
 

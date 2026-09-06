@@ -104,16 +104,23 @@ export async function createSignedMediaUrl(
   expiresInSeconds = 7200,
 ): Promise<string> {
   if (!path) return "";
-  
-  // Se já for uma URL externa ou assinada completa, retorna direto
-  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:")) {
-    return path;
+
+  let cleanPath = path;
+
+  // Se for uma URL do Supabase Storage antiga/expirada, extrai o filePath para gerar uma nova assinatura
+  const supabaseMatch = cleanPath.match(/(?:chat-uploads|\/storage\/v1\/object\/(?:sign|public)\/[^/]+)\/(.+?)(?:\?|$)/);
+  if (supabaseMatch && supabaseMatch[1]) {
+    cleanPath = decodeURIComponent(supabaseMatch[1]);
+  } else if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://") || cleanPath.startsWith("blob:")) {
+    // Se for link externo de outro domínio, retorna direto
+    return cleanPath;
   }
 
   // Remove qualquer prefixo residual como '/uploads/' ou 'chat-uploads/'
-  const cleanPath = path
+  cleanPath = cleanPath
     .replace(/^\/uploads\//, "")
-    .replace(/^chat-uploads\//, "");
+    .replace(/^chat-uploads\//, "")
+    .split("?")[0];
 
   try {
     const supabase = getSupabaseClient();

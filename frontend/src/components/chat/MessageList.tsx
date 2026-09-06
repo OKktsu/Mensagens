@@ -1,10 +1,11 @@
 import { useEffect, useRef, Fragment } from "react";
-import type { Message } from "../../services/api";
+import type { Message, Conversation } from "../../services/api";
 import { MessageItem } from "./MessageItem";
-import { formatDateDivider, isSameDay } from "../../utils/chat-helpers";
+import { formatDateDivider, isSameDay, getConversationTitle, getConversationInitial } from "../../utils/chat-helpers";
 
 type MessageListProps = {
   messages: Message[];
+  conversation?: Conversation | null;
   currentUserId: string;
   recipientLastReadAt?: string | null;
   pinnedMessageId?: string | null;
@@ -22,6 +23,7 @@ type MessageListProps = {
 
 export function MessageList({
   messages,
+  conversation,
   currentUserId,
   recipientLastReadAt,
   pinnedMessageId,
@@ -55,9 +57,31 @@ export function MessageList({
   };
 
   const recipientReadDate = recipientLastReadAt ? new Date(recipientLastReadAt).getTime() : 0;
+  const isGroup = Boolean(conversation?.title || (conversation && conversation.members.length > 2));
+  const convTitle = conversation ? getConversationTitle(conversation, currentUserId) : "";
+  const convInitial = conversation ? getConversationInitial(conversation, currentUserId) : "";
 
   return (
-    <div className="message-list">
+    <div className="stitch-message-stream-viewport" role="log" aria-label="Histórico de mensagens">
+      {/* Welcome Card de Início da Conversa estilo Stitch */}
+      {conversation && (
+        <div className="stitch-welcome-card">
+          <div className="stitch-welcome-avatar-wrap">
+            <span className="stitch-welcome-avatar-letter">{convInitial}</span>
+          </div>
+          <h1 className="stitch-welcome-title">{convTitle}</h1>
+          <p className="stitch-welcome-handle">
+            {isGroup ? `${conversation.members.length} membros no squad` : `@${convTitle.toLowerCase().replace(/\s+/g, ".")}`}
+          </p>
+          <p className="stitch-welcome-desc">
+            {isGroup
+              ? `Este é o início do canal #${convTitle}. Compartilhe arquivos, debata ideias e colabore em tempo real.`
+              : `Este é o início do seu histórico de mensagens diretas com ${convTitle}. Troque ideias, arquivos e áudios com segurança.`}
+          </p>
+        </div>
+      )}
+
+      {/* Lista de Mensagens */}
       {messages.map((message, index) => {
         const isMine = message.sender.id === currentUserId;
         const msgTime = new Date(message.createdAt).getTime();
@@ -71,8 +95,12 @@ export function MessageList({
         return (
           <Fragment key={message.id}>
             {showDateDivider && (
-              <div className="date-divider">
-                <span>{formatDateDivider(message.createdAt)}</span>
+              <div className="stitch-date-divider">
+                <div className="stitch-date-divider-line" />
+                <span className="stitch-date-divider-label">
+                  {formatDateDivider(message.createdAt)}
+                </span>
+                <div className="stitch-date-divider-line" />
               </div>
             )}
             <MessageItem
@@ -100,6 +128,7 @@ export function MessageList({
     </div>
   );
 }
+
 
 
 

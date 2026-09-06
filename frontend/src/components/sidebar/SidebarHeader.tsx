@@ -27,44 +27,7 @@ export function SidebarHeader({
 
   return (
     <header className="sidebar-header-wrapper">
-      {/* 1. Header: Brand & Workspace Selector + Customizer */}
-      <div className="sidebar-header">
-        <div className="brand-group" onClick={() => onTabChange("all")} role="button" tabIndex={0}>
-          <div className="brand-logo-squircle">
-            <span className="material-symbols-outlined text-white text-[20px]">electric_bolt</span>
-          </div>
-          <div className="brand-text">
-            <div className="brand-title-row">
-              <span className="brand-name">PulseHub</span>
-              <span className="brand-badge">v2.4</span>
-            </div>
-            <p className="brand-subtitle">Workspace • Dev & Comunidade</p>
-          </div>
-        </div>
-
-        <div className="header-actions">
-          <button
-            type="button"
-            className="header-icon-btn"
-            onClick={onOpenSettings}
-            title="Personalizar Widgets & Layout"
-            aria-label="Personalizar Hub"
-          >
-            <span className="material-symbols-outlined text-[16px]">tune</span>
-          </button>
-          <button
-            type="button"
-            className="header-icon-btn action-add"
-            onClick={onOpenCreateGroup}
-            title="Iniciar nova conversa ou grupo"
-            aria-label="Nova Conversa"
-          >
-            <span className="material-symbols-outlined text-[16px]">add</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Quick Search Field (⌘K / Ctrl+K) */}
+      {/* 1. Quick Search Field (⌘K / Ctrl+K) */}
       <div
         className="sidebar-quick-search"
         onClick={onOpenSearch}

@@ -1,4 +1,4 @@
-﻿type PinnedMessageBannerProps = {
+type PinnedMessageBannerProps = {
   pinnedMessage: {
     id: string;
     content: string;
@@ -26,30 +26,38 @@ export function PinnedMessageBanner({
   };
 
   return (
-    <aside className="pinned-message-banner" aria-label="Mensagem fixada">
+    <aside className="stitch-pinned-banner" aria-label="Mensagem fixada">
       <div
-        className="pinned-banner-content"
+        className="stitch-pinned-content"
         onClick={() => onJumpToMessage(pinnedMessage.id)}
         role="button"
         tabIndex={0}
         title="Ir para a mensagem fixada"
       >
-        <div className="pinned-icon">📌</div>
-        <div className="pinned-info">
-          <strong className="pinned-sender">{pinnedMessage.sender.name}</strong>
-          <span className="pinned-snippet">{getPreviewText()}</span>
-        </div>
+        <span className="material-symbols-outlined stitch-pinned-icon">push_pin</span>
+        <span className="stitch-pinned-label">Mensagem fixada:</span>
+        <span className="stitch-pinned-snippet">"{getPreviewText()}"</span>
       </div>
 
-      <button
-        type="button"
-        className="pinned-unpin-btn"
-        onClick={onUnpin}
-        title="Desafixar mensagem"
-        aria-label="Desafixar mensagem"
-      >
-        ✕
-      </button>
+      <div className="stitch-pinned-actions">
+        <button
+          type="button"
+          className="stitch-pinned-jump-link"
+          onClick={() => onJumpToMessage(pinnedMessage.id)}
+        >
+          Ver mensagem
+        </button>
+        <button
+          type="button"
+          className="stitch-pinned-close-btn"
+          onClick={onUnpin}
+          title="Desafixar mensagem"
+          aria-label="Desafixar"
+        >
+          <span className="material-symbols-outlined text-[16px]">close</span>
+        </button>
+      </div>
     </aside>
   );
 }
+

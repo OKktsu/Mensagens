@@ -165,11 +165,26 @@ export async function createMessage(
 
   await ensureConversationMember(conversationId, senderId);
 
+  let storedFileUrl = fileUrl ?? null;
+  if (storedFileUrl) {
+    const supabaseMatch = storedFileUrl.match(
+      /(?:chat-uploads|\/storage\/v1\/object\/(?:sign|public)\/[^/]+)\/(.+?)(?:\?|$)/,
+    );
+    if (supabaseMatch && supabaseMatch[1]) {
+      storedFileUrl = decodeURIComponent(supabaseMatch[1]);
+    } else if (!storedFileUrl.startsWith("http://") && !storedFileUrl.startsWith("https://")) {
+      storedFileUrl = storedFileUrl
+        .replace(/^\/uploads\//, "")
+        .replace(/^chat-uploads\//, "")
+        .split("?")[0];
+    }
+  }
+
   const message = await prisma.message.create({
     data: {
       content,
       type,
-      fileUrl: fileUrl ?? null,
+      fileUrl: storedFileUrl,
       fileName: fileName ?? null,
       fileSize: fileSize ? Math.floor(fileSize) : null,
       duration: duration ? Math.floor(duration) : null,
