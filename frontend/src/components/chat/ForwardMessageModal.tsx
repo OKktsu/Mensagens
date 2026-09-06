@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import type { Conversation, Message, User } from "../../services/api";
+import { Avatar } from "../common/Avatar";
 
 type ForwardMessageModalProps = {
   isOpen: boolean;
@@ -166,13 +167,7 @@ export function ForwardMessageModal({
                       checked={isSelected}
                       onChange={() => toggleConv(conv.id)}
                     />
-                    <div className="avatar small flex items-center justify-center">
-                      {isGroup ? (
-                        <span className="material-symbols-outlined text-[16px] text-purple-400">group</span>
-                      ) : (
-                        title[0]?.toUpperCase()
-                      )}
-                    </div>
+                    <Avatar name={title} isGroup={isGroup} size="small" />
                     <div className="modal-user-info">
                       <strong>{title}</strong>
                       <small>{isGroup ? `${conv.members.length} participantes` : "Conversa direta"}</small>
@@ -195,7 +190,7 @@ export function ForwardMessageModal({
                       checked={isSelected}
                       onChange={() => toggleUser(user.id)}
                     />
-                    <div className="avatar small">{user.name[0]?.toUpperCase()}</div>
+                    <Avatar name={user.name} size="small" />
                     <div className="modal-user-info">
                       <strong>{user.name}</strong>
                       <small>{user.email}</small>

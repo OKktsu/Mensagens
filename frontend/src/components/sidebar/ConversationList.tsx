@@ -38,7 +38,7 @@ function getGroupIcon(title: string): string {
   if (lower.includes("dev") || lower.includes("code")) return "code";
   if (lower.includes("design") || lower.includes("ui")) return "palette";
   if (lower.includes("game") || lower.includes("jogos")) return "sports_esports";
-  return "group";
+  return "groups";
 }
 
 export function ConversationList({
@@ -83,7 +83,7 @@ export function ConversationList({
           <section className="stream-section" aria-label="Grupos e Squads">
             <div className="section-header-row">
               <span className="section-header-title">
-                <span className="material-symbols-outlined text-[13px] text-violet-400">hub</span>
+                <span className="material-symbols-outlined section-header-icon">hub</span>
                 <span>Grupos &amp; Squads</span>
               </span>
               {onOpenCreateGroup && (
@@ -94,7 +94,7 @@ export function ConversationList({
                   title="Criar novo squad"
                   aria-label="Novo Squad"
                 >
-                  <span className="material-symbols-outlined text-[14px]">add</span>
+                  <span className="material-symbols-outlined">add</span>
                 </button>
               )}
             </div>
@@ -117,9 +117,12 @@ export function ConversationList({
                     tabIndex={0}
                   >
                     <div className="item-left-avatar">
-                      <div className="squad-icon-squircle">
-                        <span className="material-symbols-outlined text-[18px] text-purple-400">{iconName}</span>
-                      </div>
+                      <Avatar
+                        isGroup
+                        icon={iconName}
+                        name={title}
+                        size="small"
+                      />
                     </div>
 
                     <div className="item-center-info">
@@ -158,7 +161,7 @@ export function ConversationList({
                         title="Conectar à call do squad"
                         aria-label="Conectar à call"
                       >
-                        <span className="material-symbols-outlined text-[13px]">call</span>
+                        <span className="material-symbols-outlined">call</span>
                       </button>
                     )}
                   </div>
@@ -186,7 +189,7 @@ export function ConversationList({
           <section className="stream-section" aria-label="Mensagens Diretas">
             <div className="section-header-row">
               <span className="section-header-title">
-                <span className="material-symbols-outlined text-[13px] text-violet-400">chat_bubble</span>
+                <span className="material-symbols-outlined section-header-icon">forum</span>
                 <span>Mensagens Diretas</span>
               </span>
               <button
@@ -196,7 +199,7 @@ export function ConversationList({
                 title="Iniciar nova conversa"
                 aria-label="Nova DM"
               >
-                <span className="material-symbols-outlined text-[14px]">add</span>
+                <span className="material-symbols-outlined">add</span>
               </button>
             </div>
 
@@ -221,7 +224,13 @@ export function ConversationList({
                     tabIndex={0}
                   >
                     <div className="item-left-avatar">
-                      <Avatar initial={initial} isOnline={isOnline} size="small" />
+                      <Avatar
+                        name={title}
+                        initial={initial}
+                        src={otherMember?.user?.avatarUrl}
+                        isOnline={isOnline}
+                        size="small"
+                      />
                     </div>
 
                     <div className="item-center-info">
