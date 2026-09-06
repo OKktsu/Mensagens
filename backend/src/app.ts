@@ -22,11 +22,18 @@ export function createApp() {
           callback(null, true);
           return;
         }
-
-        callback(new Error("Origem nao permitida pelo CORS."));
+        if (origin.includes("vercel.app") || origin.includes("localhost") || origin.includes("127.0.0.1")) {
+          callback(null, true);
+          return;
+        }
+        callback(null, true);
       },
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
     }),
   );
+  app.options("*", cors());
   app.use(express.json());
 
   // Servidor de arquivos estáticos para uploads (imagens, áudios, documentos)
