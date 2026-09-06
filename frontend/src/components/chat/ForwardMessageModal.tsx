@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import type { Conversation, Message, User } from "../../services/api";
 
 type ForwardMessageModalProps = {
@@ -90,11 +90,32 @@ export function ForwardMessageModal({
     }
   };
 
-  const getPreviewText = () => {
-    if (messageToForward.type === "image") return "📷 Foto";
-    if (messageToForward.type === "audio") return "🎙️ Mensagem de voz";
-    if (messageToForward.type === "file") return `📄 ${messageToForward.fileName || "Arquivo"}`;
-    return messageToForward.content || "";
+  const getPreviewContent = () => {
+    if (messageToForward.type === "image") {
+      return (
+        <span className="flex items-center gap-1">
+          <span className="material-symbols-outlined text-[14px]">image</span>
+          <span>Foto</span>
+        </span>
+      );
+    }
+    if (messageToForward.type === "audio") {
+      return (
+        <span className="flex items-center gap-1">
+          <span className="material-symbols-outlined text-[14px]">mic</span>
+          <span>Mensagem de voz</span>
+        </span>
+      );
+    }
+    if (messageToForward.type === "file") {
+      return (
+        <span className="flex items-center gap-1">
+          <span className="material-symbols-outlined text-[14px]">description</span>
+          <span>{messageToForward.fileName || "Arquivo"}</span>
+        </span>
+      );
+    }
+    return <span>{messageToForward.content || ""}</span>;
   };
 
   return (
@@ -102,8 +123,8 @@ export function ForwardMessageModal({
       <div className="modal-content forward-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Encaminhar mensagem</h2>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Fechar">
-            ✕
+          <button type="button" className="icon-button flex items-center justify-center" onClick={onClose} aria-label="Fechar">
+            <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
 
@@ -112,7 +133,7 @@ export function ForwardMessageModal({
           <span className="forward-preview-label">Mensagem selecionada:</span>
           <div className="forward-preview-card">
             <strong>{messageToForward.sender.name}</strong>
-            <p>{getPreviewText()}</p>
+            <p>{getPreviewContent()}</p>
           </div>
         </div>
 
@@ -145,7 +166,13 @@ export function ForwardMessageModal({
                       checked={isSelected}
                       onChange={() => toggleConv(conv.id)}
                     />
-                    <div className="avatar small">{isGroup ? "👥" : title[0]?.toUpperCase()}</div>
+                    <div className="avatar small flex items-center justify-center">
+                      {isGroup ? (
+                        <span className="material-symbols-outlined text-[16px] text-purple-400">group</span>
+                      ) : (
+                        title[0]?.toUpperCase()
+                      )}
+                    </div>
                     <div className="modal-user-info">
                       <strong>{title}</strong>
                       <small>{isGroup ? `${conv.members.length} participantes` : "Conversa direta"}</small>

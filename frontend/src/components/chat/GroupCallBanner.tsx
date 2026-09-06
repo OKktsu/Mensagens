@@ -15,9 +15,13 @@ export function GroupCallBanner({
 
   return (
     <div className="group-call-banner" role="alert">
-      <div className="banner-left">
+      <div className="banner-left flex items-center gap-3">
         <span className="banner-pulse-dot" />
-        <span className="banner-icon">{isVideo ? "📹" : "📞"}</span>
+        <span className="banner-icon flex items-center justify-center">
+          <span className="material-symbols-outlined text-[18px] text-purple-400">
+            {isVideo ? "videocam" : "call"}
+          </span>
+        </span>
         <div className="banner-text">
           <strong>Chamada de {isVideo ? "vídeo" : "voz"} em andamento</strong>
           <span>

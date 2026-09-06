@@ -17,12 +17,12 @@ type GlobalSearchModalProps = {
 };
 
 const CATEGORIES: Array<{ id: SearchCategory; label: string; icon: string }> = [
-  { id: "all", label: "Tudo", icon: "⚡" },
-  { id: "messages", label: "Mensagens", icon: "💬" },
-  { id: "users", label: "Pessoas", icon: "👤" },
-  { id: "media", label: "Mídias", icon: "🖼️" },
-  { id: "links", label: "Links", icon: "🔗" },
-  { id: "files", label: "Arquivos", icon: "📄" },
+  { id: "all", label: "Tudo", icon: "bolt" },
+  { id: "messages", label: "Mensagens", icon: "chat" },
+  { id: "users", label: "Pessoas", icon: "person" },
+  { id: "media", label: "Mídias", icon: "photo_library" },
+  { id: "links", label: "Links", icon: "link" },
+  { id: "files", label: "Arquivos", icon: "description" },
 ];
 
 function highlightText(text: string, query: string) {
@@ -179,7 +179,9 @@ export function GlobalSearchModal({
       <div className="search-modal-container" onClick={(e) => e.stopPropagation()}>
         {/* BARRA DE BUSCA PRINCIPAL */}
         <div className="search-input-box">
-          <span className="search-input-icon">🔍</span>
+          <span className="search-input-icon flex items-center justify-center">
+            <span className="material-symbols-outlined text-[18px]">search</span>
+          </span>
           <input
             ref={inputRef}
             type="text"
@@ -192,11 +194,11 @@ export function GlobalSearchModal({
           {query && !loading && (
             <button
               type="button"
-              className="search-clear-btn"
+              className="search-clear-btn flex items-center justify-center"
               onClick={() => setQuery("")}
               title="Limpar busca"
             >
-              ✕
+              <span className="material-symbols-outlined text-[16px]">close</span>
             </button>
           )}
           <span className="search-kbd-badge">ESC</span>
@@ -212,7 +214,7 @@ export function GlobalSearchModal({
                 className={`search-tab-pill ${category === cat.id ? "active" : ""}`}
                 onClick={() => setCategory(cat.id)}
               >
-                <span className="tab-icon">{cat.icon}</span>
+                <span className="material-symbols-outlined text-[15px]">{cat.icon}</span>
                 <span className="tab-label">{cat.label}</span>
               </button>
             ))}
@@ -235,7 +237,7 @@ export function GlobalSearchModal({
         <div className="search-results-viewport">
           {!query.trim() && (
             <div className="search-empty-state">
-              <span className="empty-icon">⚡</span>
+              <span className="material-symbols-outlined text-4xl text-purple-400 mb-2">bolt</span>
               <p className="empty-title">Busca Rápida</p>
               <p className="empty-desc">
                 Digite qualquer palavra, nome ou link para encontrar instantaneamente em todas as suas conversas.
@@ -245,7 +247,7 @@ export function GlobalSearchModal({
 
           {query.trim() && !loading && totalItems.length === 0 && (
             <div className="search-empty-state">
-              <span className="empty-icon">🤷‍♂️</span>
+              <span className="material-symbols-outlined text-4xl text-zinc-600 mb-2">search_off</span>
               <p className="empty-title">Nenhum resultado encontrado</p>
               <p className="empty-desc">
                 Não encontramos correspondências para "<strong>{query}</strong>". Tente termos mais curtos.
@@ -257,7 +259,10 @@ export function GlobalSearchModal({
           {users.length > 0 && (
             <div className="search-section">
               <div className="search-section-header">
-                <span className="section-title">👤 Pessoas ({users.length})</span>
+                <span className="section-title flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[16px] text-purple-400">person</span>
+                  <span>Pessoas ({users.length})</span>
+                </span>
               </div>
               <div className="search-section-items">
                 {users.map((user, i) => {
@@ -279,7 +284,10 @@ export function GlobalSearchModal({
                         <strong className="user-name">{highlightText(user.name, query)}</strong>
                         <span className="user-email">{highlightText(user.email, query)}</span>
                       </div>
-                      <span className="action-hint">Abrir DM ➔</span>
+                      <span className="action-hint flex items-center gap-1">
+                        <span>Abrir DM</span>
+                        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                      </span>
                     </div>
                   );
                 })}
@@ -291,7 +299,10 @@ export function GlobalSearchModal({
           {messages.length > 0 && (
             <div className="search-section">
               <div className="search-section-header">
-                <span className="section-title">💬 Mensagens ({messages.length})</span>
+                <span className="section-title flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[16px] text-purple-400">chat</span>
+                  <span>Mensagens ({messages.length})</span>
+                </span>
               </div>
               <div className="search-section-items">
                 {messages.map((msg, i) => {
@@ -315,9 +326,17 @@ export function GlobalSearchModal({
                       </div>
 
                       <div className="msg-result-snippet">
-                        {msg.type === "image" && <span className="media-badge">📷 Foto</span>}
+                        {msg.type === "image" && (
+                          <span className="media-badge flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px]">image</span>
+                            <span>Foto</span>
+                          </span>
+                        )}
                         {msg.type === "file" && (
-                          <span className="media-badge">📄 {msg.fileName || "Arquivo"}</span>
+                          <span className="media-badge flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px]">description</span>
+                            <span>{msg.fileName || "Arquivo"}</span>
+                          </span>
                         )}
                         <p className="snippet-text">{highlightText(msg.content, query)}</p>
                       </div>

@@ -99,9 +99,9 @@ export function MessageItem({
   }, [message.reactions, currentUserId]);
 
   const getQuotedPreviewText = (replyTo: NonNullable<Message["replyTo"]>) => {
-    if (replyTo.type === "image") return "📷 Foto";
-    if (replyTo.type === "audio") return "🎙️ Áudio";
-    if (replyTo.type === "file") return `📄 ${replyTo.fileName || "Arquivo"}`;
+    if (replyTo.type === "image") return "Foto anexada";
+    if (replyTo.type === "audio") return "Mensagem de voz";
+    if (replyTo.type === "file") return replyTo.fileName || "Documento anexado";
     return replyTo.content || "";
   };
 
@@ -215,7 +215,11 @@ export function MessageItem({
                   }
                 }}
               >
-                <div className="stitch-file-icon">{isPdf ? "📕" : "📄"}</div>
+                <div className="stitch-file-icon">
+                  <span className={`material-symbols-outlined text-[20px] ${isPdf ? "text-rose-400" : "text-violet-400"}`}>
+                    {isPdf ? "picture_as_pdf" : "description"}
+                  </span>
+                </div>
                 <div className="stitch-file-meta">
                   <strong className="stitch-file-name">
                     {message.fileName || "Documento"}

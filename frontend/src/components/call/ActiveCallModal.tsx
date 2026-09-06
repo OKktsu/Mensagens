@@ -107,7 +107,7 @@ export function ActiveCallModal({
                 title={isMuted ? "Desmutar microfone" : "Mutar microfone"}
                 aria-label={isMuted ? "Desmutar" : "Mutar"}
               >
-                <span>{isMuted ? "🔇" : "🎙️"}</span>
+                <span className="material-symbols-outlined text-[20px]">{isMuted ? "mic_off" : "mic"}</span>
                 <small>{isMuted ? "Mudo" : "Microfone"}</small>
               </button>
 
@@ -118,7 +118,7 @@ export function ActiveCallModal({
                 title={isVideoOff ? "Ligar câmera" : "Desligar câmera"}
                 aria-label={isVideoOff ? "Ligar câmera" : "Desligar câmera"}
               >
-                <span>{isVideoOff ? "🚫" : "📹"}</span>
+                <span className="material-symbols-outlined text-[20px]">{isVideoOff ? "videocam_off" : "videocam"}</span>
                 <small>{isVideoOff ? "Sem Câmera" : "Câmera"}</small>
               </button>
 
@@ -129,7 +129,7 @@ export function ActiveCallModal({
                 title="Encerrar chamada"
                 aria-label="Encerrar chamada"
               >
-                <span>📞</span>
+                <span className="material-symbols-outlined text-[20px]">call_end</span>
                 <small>Desligar</small>
               </button>
             </div>
@@ -170,7 +170,7 @@ export function ActiveCallModal({
                 aria-label={isMuted ? "Desmutar microfone" : "Mutar microfone"}
                 title={isMuted ? "Desmutar" : "Mutar"}
               >
-                <span className="call-icon">{isMuted ? "🔇" : "🎙️"}</span>
+                <span className="call-icon material-symbols-outlined text-[20px]">{isMuted ? "mic_off" : "mic"}</span>
                 <span>{isMuted ? "Mudo" : "Mutar"}</span>
               </button>
 
@@ -182,7 +182,7 @@ export function ActiveCallModal({
                   aria-label={isVideoOff ? "Ligar câmera" : "Desligar câmera"}
                   title={isVideoOff ? "Ligar câmera" : "Desligar câmera"}
                 >
-                  <span className="call-icon">{isVideoOff ? "🚫" : "📹"}</span>
+                  <span className="call-icon material-symbols-outlined text-[20px]">{isVideoOff ? "videocam_off" : "videocam"}</span>
                   <span>{isVideoOff ? "Câmera off" : "Câmera"}</span>
                 </button>
               )}
@@ -196,7 +196,7 @@ export function ActiveCallModal({
             aria-label="Encerrar chamada"
             title="Desligar"
           >
-            <span className="call-icon">📞</span>
+            <span className="call-icon material-symbols-outlined text-[20px]">call_end</span>
             <span>Desligar</span>
           </button>
         </div>

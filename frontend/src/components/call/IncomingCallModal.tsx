@@ -32,7 +32,7 @@ export function IncomingCallModal({
             aria-label="Recusar chamada"
             title="Recusar"
           >
-            <span className="call-icon">✕</span>
+            <span className="call-icon material-symbols-outlined text-[20px]">call_end</span>
             <span>Recusar</span>
           </button>
 
@@ -43,7 +43,7 @@ export function IncomingCallModal({
             aria-label="Atender chamada"
             title="Atender"
           >
-            <span className="call-icon">{isVideo ? "📹" : "📞"}</span>
+            <span className="call-icon material-symbols-outlined text-[20px]">{isVideo ? "videocam" : "call"}</span>
             <span>Atender</span>
           </button>
         </div>

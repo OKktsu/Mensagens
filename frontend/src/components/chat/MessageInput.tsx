@@ -149,9 +149,9 @@ export function MessageInput({
   const hasText = Boolean(messageText.trim());
 
   const getReplySnippet = (msg: Message) => {
-    if (msg.type === "image") return "📷 Foto";
-    if (msg.type === "audio") return "🎙️ Mensagem de voz";
-    if (msg.type === "file") return `📄 ${msg.fileName || "Arquivo"}`;
+    if (msg.type === "image") return "Foto anexada";
+    if (msg.type === "audio") return "Mensagem de voz";
+    if (msg.type === "file") return msg.fileName || "Documento anexado";
     return msg.content || "";
   };
 
@@ -161,8 +161,8 @@ export function MessageInput({
       {detectedUrl && !replyingToMessage && !editingMessage && (
         <div className="input-link-detect-banner">
           <div className="link-detect-bar" />
-          <div className="link-detect-info">
-            <span className="link-detect-icon">🔗</span>
+          <div className="link-detect-info flex items-center gap-2">
+            <span className="material-symbols-outlined text-[16px] text-violet-400">link</span>
             <span className="link-detect-text">
               Link detectado: <strong>{(() => { try { return new URL(detectedUrl).hostname; } catch { return detectedUrl; } })()}</strong> — card de pré-visualização será anexado
             </span>
@@ -175,18 +175,19 @@ export function MessageInput({
         <div className="input-reply-banner">
           <div className="reply-banner-bar" />
           <div className="reply-banner-info">
-            <strong className="reply-banner-sender">
-              Respondendo a {replyingToMessage.sender.name}
+            <strong className="reply-banner-sender flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px] text-violet-400">reply</span>
+              <span>Respondendo a {replyingToMessage.sender.name}</span>
             </strong>
             <p className="reply-banner-text">{getReplySnippet(replyingToMessage)}</p>
           </div>
           <button
             type="button"
-            className="reply-banner-close"
+            className="reply-banner-close flex items-center justify-center"
             onClick={onCancelReply}
             title="Cancelar resposta"
           >
-            ✕
+            <span className="material-symbols-outlined text-[16px]">close</span>
           </button>
         </div>
       )}
@@ -196,16 +197,19 @@ export function MessageInput({
         <div className="input-edit-banner">
           <div className="edit-banner-bar" />
           <div className="edit-banner-info">
-            <strong className="edit-banner-title">✏️ Editando mensagem</strong>
+            <strong className="edit-banner-title flex items-center gap-1 text-violet-400">
+              <span className="material-symbols-outlined text-[14px]">edit</span>
+              <span>Editando mensagem</span>
+            </strong>
             <p className="edit-banner-text">{editingMessage.content}</p>
           </div>
           <button
             type="button"
-            className="edit-banner-close"
+            className="edit-banner-close flex items-center justify-center"
             onClick={onCancelEdit}
             title="Cancelar edição"
           >
-            ✕
+            <span className="material-symbols-outlined text-[16px]">close</span>
           </button>
         </div>
       )}

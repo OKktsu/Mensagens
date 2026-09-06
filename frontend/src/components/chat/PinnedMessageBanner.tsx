@@ -19,9 +19,9 @@ export function PinnedMessageBanner({
   onUnpin,
 }: PinnedMessageBannerProps) {
   const getPreviewText = () => {
-    if (pinnedMessage.type === "image") return "📷 Foto";
-    if (pinnedMessage.type === "audio") return "🎙️ Mensagem de voz";
-    if (pinnedMessage.type === "file") return `📄 ${pinnedMessage.fileName || "Arquivo"}`;
+    if (pinnedMessage.type === "image") return "Foto anexada";
+    if (pinnedMessage.type === "audio") return "Mensagem de voz";
+    if (pinnedMessage.type === "file") return pinnedMessage.fileName || "Documento anexado";
     return pinnedMessage.content || "Mensagem fixada";
   };
 

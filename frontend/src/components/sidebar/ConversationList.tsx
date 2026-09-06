@@ -31,14 +31,14 @@ function getUserRoleBadge(name: string): string {
   return "AMIGO";
 }
 
-// Gera um emoji temático para grupos
-function getGroupEmoji(title: string): string {
+// Gera um ícone temático para grupos
+function getGroupIcon(title: string): string {
   const lower = title.toLowerCase();
-  if (lower.includes("rocket") || lower.includes("hq")) return "🚀";
-  if (lower.includes("dev") || lower.includes("code")) return "⚡";
-  if (lower.includes("design") || lower.includes("ui")) return "🎨";
-  if (lower.includes("game") || lower.includes("jogos")) return "🎮";
-  return "👥";
+  if (lower.includes("rocket") || lower.includes("hq")) return "rocket_launch";
+  if (lower.includes("dev") || lower.includes("code")) return "code";
+  if (lower.includes("design") || lower.includes("ui")) return "palette";
+  if (lower.includes("game") || lower.includes("jogos")) return "sports_esports";
+  return "group";
 }
 
 export function ConversationList({
@@ -58,72 +58,159 @@ export function ConversationList({
     const squadsList: Conversation[] = [];
     const dmsList: Conversation[] = [];
 
-    for (const conv of conversations) {
-      const isGroup = Boolean(conv.title || conv.members.length > 2);
-      if (isGroup) {
+    conversations.forEach((conv) => {
+      if (conv.isGroup) {
         squadsList.push(conv);
       } else {
         dmsList.push(conv);
       }
-    }
+    });
 
     return { squads: squadsList, dms: dmsList };
   }, [conversations]);
 
-  const showSquads = filterTab === "all" || filterTab === "chats" || filterTab === "squads";
-  const showDms = filterTab === "all" || filterTab === "chats" || filterTab === "dms";
+  const showSquads = filterTab === "all" || filterTab === "squads";
+  const showDms = filterTab === "all" || filterTab === "dms";
 
   return (
-    <div className="conversation-stream-viewport" role="region" aria-label="Lista de canais e mensagens">
-      <div className="conversation-stream-inner">
-        {/* ==========================================================================
-            SEÇÃO 1: GRUPOS & SQUADS
-           ========================================================================== */}
-        {showSquads && (
-          <section className="stream-section" aria-label="Grupos e Squads">
-            <div className="section-header-row">
-              <span className="section-header-title">
-                <span className="material-symbols-outlined text-[13px] text-violet-400">hub</span>
-                <span>Grupos &amp; Squads</span>
-              </span>
+    <div className="stream-scroll-container">
+      {/* SEÇÃO 1: SQUADS / GRUPOS */}
+      {showSquads && squads.length > 0 && (
+        <section className="stream-section">
+          <div className="stream-section-header">
+            <div className="stream-section-title-wrap">
+              <span className="stream-section-title">SQUADS</span>
+              <span className="stream-section-count">{squads.length}</span>
+            </div>
+            {onOpenCreateGroup && (
               <button
                 type="button"
-                className="section-add-btn"
+                className="stream-section-add-btn"
                 onClick={onOpenCreateGroup}
-                title="Criar novo squad"
-                aria-label="Novo Squad"
+                title="Criar novo Squad"
+                aria-label="Criar novo Squad"
               >
                 <span className="material-symbols-outlined text-[14px]">add</span>
               </button>
-            </div>
+            )}
+          </div>
 
-            <div className="stream-items-list">
-              {squads.map((conversation) => {
-                const isSelected = conversation.id === selectedConversationId;
-                const title = getConversationTitle(conversation, currentUserId);
-                const lastMessage = conversation.messages[0];
-                const emoji = getGroupEmoji(title);
-                const typers = typingMap?.[conversation.id] ?? [];
-                const isTyping = typers.length > 0;
+          <div className="stream-items-list">
+            {squads.map((conversation) => {
+              const isSelected = conversation.id === selectedConversationId;
+              const title = getConversationTitle(conversation, currentUserId);
+              const lastMessage = conversation.messages[0];
+              const iconName = getGroupIcon(title);
+              const typers = typingMap?.[conversation.id] ?? [];
+              const isTyping = typers.length > 0;
 
-                return (
-                  <div
-                    key={conversation.id}
-                    className={`stream-item-card squad-card ${isSelected ? "is-active" : ""}`}
-                    onClick={() => onSelectConversation(conversation.id)}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <div className="item-left-avatar">
-                      <div className="squad-icon-squircle">
-                        <span>{emoji}</span>
-                      </div>
+              return (
+                <div
+                  key={conversation.id}
+                  className={`stream-item-card squad-card ${isSelected ? "is-active" : ""}`}
+                  onClick={() => onSelectConversation(conversation.id)}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="item-left-avatar">
+                    <div className="squad-icon-squircle">
+                      <span className="material-symbols-outlined text-[18px] text-purple-400">{iconName}</span>
+                    </div>
+                  </div>
+
+                  <div className="item-center-info">
+                    <div className="item-header-line">
+                      <span className="item-title">{title}</span>
+                      <span className="item-time-stamp">{formatTime(conversation.updatedAt)}</span>
                     </div>
 
-                    <div className="item-center-info">
-                      <div className="item-header-line">
+                    <div className="item-subtitle-line">
+                      {isTyping ? (
+                        <div className="typing-pulse-row">
+                          <span className="typing-dot" />
+                          <span className="typing-label">alguém digitando...</span>
+                        </div>
+                      ) : (
+                        <span className="item-snippet">
+                          {lastMessage?.content || `${conversation.members.length} membros`}
+                        </span>
+                      )}
+
+                      {Boolean(conversation.unreadCount && conversation.unreadCount > 0) && (
+                        <span className="item-unread-pill">{conversation.unreadCount}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Botão de chamada rápida ao passar o mouse */}
+                  {onStartVoiceCall && (
+                    <button
+                      type="button"
+                      className="squad-quick-call-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onStartVoiceCall("", title, conversation.id);
+                      }}
+                      title="Conectar à call do squad"
+                      aria-label="Conectar à call"
+                    >
+                      <span className="material-symbols-outlined text-[13px]">call</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* SEÇÃO 2: MENSAGENS DIRETAS (DMS) */}
+      {showDms && (
+        <section className="stream-section" aria-label="Mensagens Diretas">
+          <div className="section-header-row">
+            <span className="section-header-title">
+              <span className="material-symbols-outlined text-[13px] text-violet-400">chat_bubble</span>
+              <span>Mensagens Diretas</span>
+            </span>
+            <button
+              type="button"
+              className="section-add-btn"
+              onClick={onOpenNewDm || onOpenCreateGroup}
+              title="Iniciar nova conversa"
+              aria-label="Nova DM"
+            >
+              <span className="material-symbols-outlined text-[14px]">add</span>
+            </button>
+          </div>
+
+          <div className="stream-items-list">
+            {dms.map((conversation) => {
+              const isSelected = conversation.id === selectedConversationId;
+              const title = getConversationTitle(conversation, currentUserId);
+              const initial = getConversationInitial(conversation, currentUserId);
+              const otherMember = conversation.members.find((m) => m.user.id !== currentUserId);
+              const isOnline = otherMember ? Boolean(onlineUserIds?.has(otherMember.user.id)) : false;
+              const lastMessage = conversation.messages[0];
+              const typers = typingMap?.[conversation.id] ?? [];
+              const isTyping = typers.length > 0;
+              const roleBadge = getUserRoleBadge(title);
+
+              return (
+                <div
+                  key={conversation.id}
+                  className={`stream-item-card dm-card ${isSelected ? "is-active" : ""}`}
+                  onClick={() => onSelectConversation(conversation.id)}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="item-left-avatar">
+                    <Avatar initial={initial} isOnline={isOnline} size="small" />
+                  </div>
+
+                  <div className="item-center-info">
+                    <div className="item-header-line">
+                      <div className="item-title-with-badge">
                         <span className="item-title">{title}</span>
-                        <span className="item-time-stamp">{formatTime(conversation.updatedAt)}</span>
                       </div>
 
                       <div className="item-subtitle-line">

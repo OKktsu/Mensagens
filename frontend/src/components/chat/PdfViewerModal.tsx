@@ -24,7 +24,9 @@ export function PdfViewerModal({ pdfUrl, fileName, onClose }: PdfViewerModalProp
         {/* CABEÇALHO DO MODAL */}
         <header className="pdf-modal-header">
           <div className="pdf-modal-title-box">
-            <span className="pdf-modal-icon">📄</span>
+            <span className="pdf-modal-icon flex items-center justify-center">
+              <span className="material-symbols-outlined text-rose-400 text-[20px]">picture_as_pdf</span>
+            </span>
             <div className="pdf-modal-text-group">
               <strong className="pdf-modal-filename">{fileName || "Documento PDF"}</strong>
               <span className="pdf-modal-subtitle">Visualização no Chat</span>
@@ -35,29 +37,31 @@ export function PdfViewerModal({ pdfUrl, fileName, onClose }: PdfViewerModalProp
             <a
               href={pdfUrl}
               download={fileName || "documento.pdf"}
-              className="pdf-btn pdf-btn-download"
+              className="pdf-btn pdf-btn-download flex items-center gap-1.5"
               title="Baixar PDF no dispositivo"
             >
-              <span>⬇ Baixar</span>
+              <span className="material-symbols-outlined text-[16px]">download</span>
+              <span>Baixar</span>
             </a>
 
             <a
               href={pdfUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="pdf-btn pdf-btn-external"
+              className="pdf-btn pdf-btn-external flex items-center gap-1.5"
               title="Abrir em nova aba"
             >
-              <span>↗ Nova aba</span>
+              <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+              <span>Nova aba</span>
             </a>
 
             <button
               type="button"
-              className="pdf-btn pdf-btn-close"
+              className="pdf-btn pdf-btn-close flex items-center justify-center"
               onClick={onClose}
               title="Fechar visualização (Esc)"
             >
-              ✕
+              <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
           </div>
         </header>

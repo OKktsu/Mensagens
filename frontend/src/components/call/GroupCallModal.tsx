@@ -97,8 +97,9 @@ export function GroupCallModal({
         <div className="group-call-header">
           <div className="group-call-title-info">
             <h2>{conversationTitle || "Chamada em Grupo"}</h2>
-            <span className="group-call-badge">
-              {isVideo ? "📹 Vídeo" : "📞 Voz"} • {totalParticipants} participantes
+            <span className="group-call-badge flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px]">{isVideo ? "videocam" : "call"}</span>
+              <span>{isVideo ? "Vídeo" : "Voz"} • {totalParticipants} participantes</span>
             </span>
           </div>
 
@@ -127,7 +128,11 @@ export function GroupCallModal({
 
             <div className="tile-name-tag">
               <span>{currentUserName} (Você)</span>
-              {isMuted && <span className="tag-muted">🔇</span>}
+              {isMuted && (
+                <span className="tag-muted material-symbols-outlined text-[13px] text-rose-400">
+                  mic_off
+                </span>
+              )}
             </div>
           </div>
 
@@ -146,7 +151,7 @@ export function GroupCallModal({
               onClick={onToggleMute}
               title={isMuted ? "Desmutar microfone" : "Mutar microfone"}
             >
-              <span>{isMuted ? "🔇" : "🎙️"}</span>
+              <span className="material-symbols-outlined text-[20px]">{isMuted ? "mic_off" : "mic"}</span>
               <small>{isMuted ? "Mudo" : "Microfone"}</small>
             </button>
 
@@ -157,7 +162,7 @@ export function GroupCallModal({
                 onClick={onToggleVideo}
                 title={isVideoOff ? "Ligar câmera" : "Desligar câmera"}
               >
-                <span>{isVideoOff ? "🚫" : "📹"}</span>
+                <span className="material-symbols-outlined text-[20px]">{isVideoOff ? "videocam_off" : "videocam"}</span>
                 <small>{isVideoOff ? "Sem Câmera" : "Câmera"}</small>
               </button>
             )}
@@ -168,7 +173,7 @@ export function GroupCallModal({
               onClick={onLeaveCall}
               title="Sair da chamada"
             >
-              <span>📞</span>
+              <span className="material-symbols-outlined text-[20px]">call_end</span>
               <small>Sair</small>
             </button>
           </div>

@@ -26,7 +26,7 @@ export function CallList({
   if (calls.length === 0) {
     return (
       <div className="empty-calls">
-        <span className="empty-calls-icon">📞</span>
+        <span className="material-symbols-outlined text-4xl text-zinc-600 mb-2">call_log</span>
         <strong>Nenhuma chamada recente</strong>
         <p>Inicie uma chamada de voz ou vídeo com seus contatos.</p>
       </div>
@@ -54,7 +54,7 @@ export function CallList({
 
               <div className="call-item-meta">
                 <span
-                  className={`call-direction-icon ${
+                  className={`call-direction-icon flex items-center ${
                     isOutgoing
                       ? "outgoing"
                       : isMissed
@@ -63,10 +63,16 @@ export function CallList({
                   }`}
                   title={isOutgoing ? "Efetuada" : isMissed ? "Perdida" : "Recebida"}
                 >
-                  {isOutgoing ? "↗" : "↙"}
+                  <span className="material-symbols-outlined text-[14px]">
+                    {isMissed ? "call_missed" : isOutgoing ? "call_made" : "call_received"}
+                  </span>
                 </span>
 
-                <span className="call-type-badge">{isVideo ? "📹" : "📞"}</span>
+                <span className="call-type-badge flex items-center text-zinc-400">
+                  <span className="material-symbols-outlined text-[13px]">
+                    {isVideo ? "videocam" : "call"}
+                  </span>
+                </span>
 
                 <span className="call-item-time">{dateText}</span>
 
@@ -82,7 +88,7 @@ export function CallList({
                 title="Ligar de volta por voz"
                 aria-label="Ligar por voz"
               >
-                📞
+                <span className="material-symbols-outlined text-[16px]">call</span>
               </button>
 
               <button
@@ -92,7 +98,7 @@ export function CallList({
                 title="Ligar de volta por vídeo"
                 aria-label="Ligar por vídeo"
               >
-                📹
+                <span className="material-symbols-outlined text-[16px]">videocam</span>
               </button>
             </div>
           </div>

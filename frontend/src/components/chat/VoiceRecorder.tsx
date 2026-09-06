@@ -142,22 +142,22 @@ export function VoiceRecorder({ isRecording, onCancel, onSendVoiceNote }: VoiceR
       <div className="voice-recorder-actions">
         <button
           type="button"
-          className="voice-cancel-btn"
+          className="voice-cancel-btn flex items-center justify-center"
           onClick={handleCancelRecording}
           title="Cancelar gravação"
           aria-label="Cancelar"
         >
-          <span>🗑️</span>
+          <span className="material-symbols-outlined text-[18px]">delete</span>
         </button>
 
         <button
           type="button"
-          className="voice-send-btn"
+          className="voice-send-btn flex items-center justify-center"
           onClick={handleStopAndSend}
           title="Enviar áudio gravado"
           aria-label="Enviar áudio"
         >
-          <span>🚀</span>
+          <span className="material-symbols-outlined text-[18px]">send</span>
         </button>
       </div>
     </div>
