@@ -68,16 +68,13 @@ export type Message = {
   updatedAt?: string;
   conversationId?: string;
   senderId?: string;
-  sender: {
-    id: string;
-    name: string;
-    email: string;
-  };
+  sender: User;
 };
 
 export type Conversation = {
   id: string;
   title?: string | null;
+  isGroup?: boolean;
   pinnedMessageId?: string | null;
   pinnedMessage?: {
     id: string;
@@ -95,11 +92,7 @@ export type Conversation = {
   members: Array<{
     userId?: string;
     lastReadAt?: string;
-    user: {
-      id: string;
-      name: string;
-      email: string;
-    };
+    user: User;
   }>;
   messages: Array<{
     id: string;
@@ -123,16 +116,8 @@ export type CallRecord = {
   duration: number;
   startedAt: string;
   endedAt?: string | null;
-  caller: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  receiver: {
-    id: string;
-    name: string;
-    email: string;
-  };
+  caller: User;
+  receiver: User;
   conversation?: {
     id: string;
     title?: string | null;
