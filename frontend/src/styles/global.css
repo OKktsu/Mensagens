@@ -6130,3 +6130,60 @@ button:disabled, input:disabled {
   box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6);
   transform: translateY(-2px);
 }
+
+/* Live Camera Preview and Calling Overlay */
+.pulse-call-remote-video-frame.preview-mode {
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.pulse-call-video-element.local-preview {
+  transform: scaleX(-1);
+  filter: brightness(0.95);
+}
+
+.pulse-calling-overlay-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(18, 19, 25, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: 24px;
+  padding: 24px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(139, 92, 246, 0.3);
+  animation: zoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 15;
+}
+
+.pulse-calling-avatar-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-call-grid-stage {
+  flex: 1;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 16px;
+  align-items: center;
+  min-height: 0;
+  max-height: 65vh;
+}
+
+.pulse-call-avatar-resonance.small {
+  margin-bottom: 8px;
+}
+
+.pulse-call-glow-ring.small {
+  width: 90px;
+  height: 90px;
+}

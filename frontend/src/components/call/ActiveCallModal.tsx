@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Avatar } from "../common/Avatar";
 import type { CallState, CallType } from "../../hooks/useWebRTCCall";
 
@@ -48,10 +48,32 @@ export function ActiveCallModal({
   onEndCall,
 }: ActiveCallModalProps) {
   const isConnected = callState === "connected";
-  const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const isCalling = callState === "calling";
   const [layoutMode, setLayoutMode] = useState<"speaker" | "grid">("speaker");
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  const setLocalVideoNode = useCallback(
+    (node: HTMLVideoElement | null) => {
+      localVideoRef.current = node;
+      if (node && localStream) {
+        node.srcObject = localStream;
+      }
+    },
+    [localStream]
+  );
+
+  const setRemoteVideoNode = useCallback(
+    (node: HTMLVideoElement | null) => {
+      remoteVideoRef.current = node;
+      if (node && remoteStream) {
+        node.srcObject = remoteStream;
+      }
+    },
+    [remoteStream]
+  );
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -78,6 +100,8 @@ export function ActiveCallModal({
       localStream.getVideoTracks()[0].enabled
   );
 
+  const isVideoCall = callType === "video";
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
@@ -95,7 +119,6 @@ export function ActiveCallModal({
     >
       {/* 1. TOP NAVIGATION BAR */}
       <header className="pulse-call-header">
-        {/* Left: Brand & Room Breadcrumbs */}
         <div className="pulse-call-header-left">
           <div className="pulse-call-brand">
             <div className="pulse-call-logo-box">
@@ -113,7 +136,7 @@ export function ActiveCallModal({
             <span className="breadcrumb-slash">/</span>
             <div className="breadcrumb-active-room">
               <span className="material-symbols-outlined text-[15px] text-[#a78bfa]">
-                {callType === "video" ? "videocam" : "call"}
+                {isVideoCall ? "videocam" : "call"}
               </span>
               <span>{peerName}</span>
             </div>
@@ -124,7 +147,6 @@ export function ActiveCallModal({
           </nav>
         </div>
 
-        {/* Center: Live Status & Quality Badge */}
         <div className="pulse-call-header-center">
           <div className="pulse-call-live-pill">
             <span className="live-dot-wrapper">
@@ -144,7 +166,6 @@ export function ActiveCallModal({
           </div>
         </div>
 
-        {/* Right: View Controls & Fullscreen */}
         <div className="pulse-call-header-right">
           <div className="pulse-call-layout-toggle">
             <button
@@ -180,27 +201,75 @@ export function ActiveCallModal({
 
       {/* 2. MAIN STAGE AREA */}
       <main className="pulse-call-main-stage">
-        {/* Caso haja vídeo remoto ou modo grade com vídeo */}
-        {hasRemoteVideo ? (
+        {layoutMode === "grid" ? (
+          <div className="pulse-call-grid-stage">
+            <div className="pulse-grid-tile local">
+              {hasLocalVideo ? (
+                <video
+                  ref={setLocalVideoNode}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="pulse-grid-video"
+                />
+              ) : (
+                <div className="pulse-grid-avatar-fallback">
+                  <Avatar name={currentUserName} size="large" />
+                  <p className="text-xs font-semibold text-slate-300 mt-2">{currentUserName} (Você)</p>
+                </div>
+              )}
+              <div className="pulse-grid-tag">
+                <span className="font-bold text-white text-xs">{currentUserName} (Você)</span>
+                {isMuted && (
+                  <span className="material-symbols-outlined text-[13px] text-rose-400 ml-1">mic_off</span>
+                )}
+              </div>
+            </div>
+
+            <div className="pulse-grid-tile">
+              {hasRemoteVideo ? (
+                <video
+                  ref={setRemoteVideoNode}
+                  autoPlay
+                  playsInline
+                  className="pulse-grid-video"
+                />
+              ) : (
+                <div className="pulse-grid-avatar-fallback">
+                  <div className="pulse-call-avatar-resonance small">
+                    <div className="pulse-call-glow-ring ring-1 small" />
+                    <Avatar name={peerName} src={peerAvatarUrl} size="large" />
+                  </div>
+                  <p className="text-sm font-bold text-white mt-2">{peerName}</p>
+                  <span className="text-[11px] text-[#a78bfa] font-mono mt-1">
+                    {isCalling ? "Aguardando resposta..." : "Apenas Áudio"}
+                  </span>
+                </div>
+              )}
+              <div className="pulse-grid-tag">
+                <span className="font-bold text-white text-xs">{peerName}</span>
+              </div>
+            </div>
+          </div>
+        ) : hasRemoteVideo ? (
           <div className="pulse-call-video-stage">
             <div className="pulse-call-remote-video-frame">
               <video
-                ref={remoteVideoRef}
+                ref={setRemoteVideoNode}
                 autoPlay
                 playsInline
                 className="pulse-call-video-element"
               />
               <div className="pulse-call-video-tag">
                 <span className="font-bold text-white text-sm">{peerName}</span>
-                <span className="video-tag-role">Interlocutor</span>
+                <span className="video-tag-role">Ao Vivo</span>
               </div>
             </div>
 
-            {/* Picture-in-Picture Local */}
             <div className={`pulse-call-pip-video ${!hasLocalVideo ? "video-off" : ""}`}>
               {hasLocalVideo ? (
                 <video
-                  ref={localVideoRef}
+                  ref={setLocalVideoNode}
                   autoPlay
                   playsInline
                   muted
@@ -220,8 +289,39 @@ export function ActiveCallModal({
               </div>
             </div>
           </div>
+        ) : isVideoCall && hasLocalVideo ? (
+          <div className="pulse-call-video-stage">
+            <div className="pulse-call-remote-video-frame preview-mode">
+              <video
+                ref={setLocalVideoNode}
+                autoPlay
+                playsInline
+                muted
+                className="pulse-call-video-element local-preview"
+              />
+
+              <div className="pulse-calling-overlay-card">
+                <div className="pulse-calling-avatar-box">
+                  <div className="pulse-call-glow-ring ring-1" />
+                  <Avatar name={peerName} src={peerAvatarUrl} size="large" />
+                </div>
+                <div className="text-center">
+                  <h2 className="text-xl font-extrabold text-white tracking-tight">{peerName}</h2>
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="text-xs font-mono font-semibold text-emerald-300 uppercase">
+                      {isCalling ? "Chamando..." : "Conectado • Aguardando Vídeo"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pulse-call-video-tag">
+                <span className="font-bold text-white text-xs">Sua Câmera (Prévia ao Vivo)</span>
+              </div>
+            </div>
+          </div>
         ) : (
-          /* MODO ÁUDIO OU VÍDEO SEM TRANSMISSÃO REMOTA (ESTILO STITCH OBSIDIAN) */
           <div className="pulse-call-voice-stage">
             <div className="pulse-call-avatar-resonance">
               <div className="pulse-call-glow-ring ring-1" />
@@ -237,23 +337,21 @@ export function ActiveCallModal({
                 <div className="pulse-call-status-badge">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="text-[10px] font-mono text-emerald-300 font-bold uppercase">
-                    {isConnected ? "Conectado" : "Chamando"}
+                    {isConnected ? "Conectado" : "Chamando..."}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Speaker Identity & Dynamic EQ Waveform */}
             <div className="pulse-call-speaker-meta">
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-extrabold text-white tracking-tight">{peerName}</h1>
                 <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-[#8b5cf6]/20 text-[#c084fc] border border-[#8b5cf6]/30">
-                  {callType === "video" ? "Vídeo HD" : "Voz HQ"}
+                  {isVideoCall ? "Vídeo HD" : "Voz HQ"}
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-mono">@{peerName.toLowerCase().replace(/\s+/g, ".")}</p>
 
-              {/* Dynamic Audio Visualizer EQ Waveform */}
               <div className="pulse-call-eq-container">
                 <span className="eq-bar bar-1" />
                 <span className="eq-bar bar-2" />
@@ -264,7 +362,6 @@ export function ActiveCallModal({
                 <span className="eq-bar bar-7" />
               </div>
 
-              {/* Microphone Hardware Badge */}
               <div className="pulse-call-hardware-badge">
                 <span className="material-symbols-outlined text-[14px] text-slate-400">mic</span>
                 <span className="font-mono text-[11px] text-slate-400">
@@ -278,7 +375,6 @@ export function ActiveCallModal({
         {/* 3. SECONDARY PARTICIPANT STRIP */}
         <div className="pulse-call-participant-strip">
           <div className="participant-strip-scroll">
-            {/* Card Você */}
             <div className="pulse-participant-card self">
               <div className="participant-card-top">
                 <div className="flex items-center gap-2.5">
@@ -305,21 +401,22 @@ export function ActiveCallModal({
               </div>
             </div>
 
-            {/* Card Interlocutor */}
             <div className="pulse-participant-card">
               <div className="participant-card-top">
                 <div className="flex items-center gap-2.5">
                   <Avatar name={peerName} src={peerAvatarUrl} size="small" />
                   <div className="overflow-hidden">
                     <p className="text-xs font-bold text-slate-100 truncate">{peerName}</p>
-                    <p className="text-[10px] text-slate-400 truncate">Membro</p>
+                    <p className="text-[10px] text-slate-400 truncate">
+                      {isCalling ? "Chamando..." : "Conectado"}
+                    </p>
                   </div>
                 </div>
               </div>
               <div className="participant-card-bottom">
                 <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                  <span className={`w-1.5 h-1.5 rounded-full ${hasRemoteVideo ? "bg-emerald-400" : "bg-slate-500"}`} />
-                  {hasRemoteVideo ? "Câmera Ligada" : "Apenas Áudio"}
+                  <span className={`w-1.5 h-1.5 rounded-full ${hasRemoteVideo ? "bg-emerald-400" : isCalling ? "bg-amber-400" : "bg-slate-500"}`} />
+                  {hasRemoteVideo ? "Câmera Ligada" : isCalling ? "Aguardando..." : "Apenas Áudio"}
                 </span>
                 <span className="text-emerald-400 font-mono text-[10px]">HD</span>
               </div>
@@ -330,7 +427,6 @@ export function ActiveCallModal({
 
       {/* 4. BOTTOM PERSISTENT GLASS DOCK */}
       <footer className="pulse-call-footer">
-        {/* Audio Device Left Badge */}
         <div className="pulse-call-footer-side left">
           <div className="pulse-call-device-pill">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -338,9 +434,7 @@ export function ActiveCallModal({
           </div>
         </div>
 
-        {/* Center Floating Glass Dock */}
         <div className="pulse-glass-dock">
-          {/* Mute Button */}
           <button
             type="button"
             className={`dock-action-btn ${isMuted ? "muted" : ""}`}
@@ -353,7 +447,6 @@ export function ActiveCallModal({
             <span className="dock-btn-label">{isMuted ? "Mudo" : "Mutar"}</span>
           </button>
 
-          {/* Camera Button */}
           <button
             type="button"
             className={`dock-action-btn ${isVideoOff ? "off" : ""}`}
@@ -366,7 +459,6 @@ export function ActiveCallModal({
             <span className="dock-btn-label">{isVideoOff ? "Sem Vídeo" : "Câmera"}</span>
           </button>
 
-          {/* Screen Share Button */}
           {onToggleScreenShare && (
             <button
               type="button"
@@ -383,7 +475,6 @@ export function ActiveCallModal({
             </button>
           )}
 
-          {/* Deafen Button */}
           {onToggleDeafen && (
             <button
               type="button"
@@ -400,7 +491,6 @@ export function ActiveCallModal({
 
           <div className="dock-divider" />
 
-          {/* End Call / Leave Button */}
           <button
             type="button"
             className="dock-hangup-btn"
@@ -414,7 +504,6 @@ export function ActiveCallModal({
           </button>
         </div>
 
-        {/* Diagnostic Stream Health Monitor (Right) */}
         <div className="pulse-call-footer-side right">
           <div className="pulse-call-health-pill">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
