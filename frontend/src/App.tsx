@@ -334,6 +334,8 @@ export function App() {
     incomingCall,
     isMuted,
     isVideoOff,
+    isScreenSharing,
+    isDeafened,
     callDuration,
     callError,
     localStream,
@@ -344,6 +346,8 @@ export function App() {
     endCall,
     toggleMute,
     toggleVideo,
+    toggleScreenShare,
+    toggleDeafen,
   } = useWebRTCCall(socket, token, handleCallLogged);
 
   const {
@@ -352,6 +356,8 @@ export function App() {
     callType: groupCallType,
     isMuted: isGroupMuted,
     isVideoOff: isGroupVideoOff,
+    isScreenSharing: isGroupScreenSharing,
+    isDeafened: isGroupDeafened,
     callDuration: groupCallDuration,
     localStream: groupLocalStream,
     remoteParticipants: groupRemoteParticipants,
@@ -360,6 +366,8 @@ export function App() {
     leaveGroupCall,
     toggleMute: toggleGroupMute,
     toggleVideo: toggleGroupVideo,
+    toggleScreenShare: toggleGroupScreenShare,
+    toggleDeafen: toggleGroupDeafen,
   } = useGroupWebRTCCall(socket, token, currentUser?.id, handleCallLogged);
 
   const handleStartVoiceCall = useCallback(() => {
@@ -983,15 +991,24 @@ export function App() {
       {(callState === "calling" || callState === "connected") && (
         <ActiveCallModal
           peerName={activePeer?.userName ?? (callType === "video" ? "Chamada de Vídeo" : "Chamada de Voz")}
+          peerAvatarUrl={
+            selectedConversation?.members.find((m) => (m.userId || m.user?.id) === activePeer?.userId)?.user?.avatarUrl ||
+            users.find((u) => u.id === activePeer?.userId)?.avatarUrl
+          }
+          currentUserName={currentUser.name}
           callState={callState}
           callType={callType}
           callDuration={callDuration}
           isMuted={isMuted}
           isVideoOff={isVideoOff}
+          isScreenSharing={isScreenSharing}
+          isDeafened={isDeafened}
           localStream={localStream}
           remoteStream={remoteStream}
           onToggleMute={toggleMute}
           onToggleVideo={toggleVideo}
+          onToggleScreenShare={toggleScreenShare}
+          onToggleDeafen={toggleDeafen}
           onEndCall={endCall}
         />
       )}
@@ -1005,11 +1022,15 @@ export function App() {
           callDuration={groupCallDuration}
           isMuted={isGroupMuted}
           isVideoOff={isGroupVideoOff}
+          isScreenSharing={isGroupScreenSharing}
+          isDeafened={isGroupDeafened}
           currentUserName={currentUser.name}
           localStream={groupLocalStream}
           remoteParticipants={groupRemoteParticipants}
           onToggleMute={toggleGroupMute}
           onToggleVideo={toggleGroupVideo}
+          onToggleScreenShare={toggleGroupScreenShare}
+          onToggleDeafen={toggleGroupDeafen}
           onLeaveCall={leaveGroupCall}
         />
       )}

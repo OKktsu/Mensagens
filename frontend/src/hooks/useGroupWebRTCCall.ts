@@ -17,10 +17,28 @@ const ICE_SERVERS: RTCConfiguration = {
   ],
 };
 
+function describeMediaError(err: unknown): string {
+  if (!(err instanceof Error)) {
+    return "Não foi possível acessar os dispositivos de áudio ou vídeo.";
+  }
+  if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+    return "Permissão de microfone ou câmera negada. Clique no ícone de cadeado na barra de endereços para permitir o acesso.";
+  }
+  if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+    return "Nenhum microfone ou câmera foi encontrado no seu computador.";
+  }
+  if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+    return "A câmera ou o microfone já está em uso por outro aplicativo (ex: Discord, Zoom ou outra aba).";
+  }
+  return err.message || "Não foi possível acessar seus dispositivos de áudio/vídeo.";
+}
+
 export type RemoteGroupParticipant = {
   userId: string;
   userName: string;
   stream: MediaStream | null;
+  isMuted?: boolean;
+  isVideoOff?: boolean;
 };
 
 export type GroupCallBannerInfo = {
@@ -41,13 +59,17 @@ export function useGroupWebRTCCall(
   const [callType, setCallType] = useState<"audio" | "video">("video");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isDeafened, setIsDeafened] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [callError, setCallError] = useState("");
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteParticipants, setRemoteParticipants] = useState<RemoteGroupParticipant[]>([]);
   const [groupCallBanners, setGroupCallBanners] = useState<Record<string, GroupCallBannerInfo>>({});
 
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const localStreamRef = useRef<MediaStream | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
   const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const durationTimerRef = useRef<number | null>(null);
   const durationCountRef = useRef<number>(0);
@@ -81,6 +103,11 @@ export function useGroupWebRTCCall(
 
   // Limpeza de streams e conexões WebRTC Mesh
   const cleanupGroupCall = useCallback(() => {
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((track) => track.stop());
+      screenStreamRef.current = null;
+    }
+
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => track.stop());
       localStreamRef.current = null;
@@ -100,6 +127,8 @@ export function useGroupWebRTCCall(
     setRemoteParticipants([]);
     setIsMuted(false);
     setIsVideoOff(false);
+    setIsScreenSharing(false);
+    setIsDeafened(false);
     durationCountRef.current = 0;
     callStartTimeRef.current = null;
   }, []);
@@ -109,7 +138,6 @@ export function useGroupWebRTCCall(
     (targetUserId: string, targetUserName: string, convId: string): RTCPeerConnection => {
       const pc = new RTCPeerConnection(ICE_SERVERS);
 
-      // Adiciona faixas de áudio e vídeo locais à conexão
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => {
           pc.addTrack(track, localStreamRef.current!);
@@ -156,20 +184,40 @@ export function useGroupWebRTCCall(
       if (!socket) return;
 
       try {
+        setCallError("");
         cleanupGroupCall();
         callStartTimeRef.current = new Date();
 
-        const constraints: MediaStreamConstraints = {
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-          video:
-            type === "video"
-              ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" }
-              : false,
-        };
+        let stream: MediaStream | null = null;
+        let isVidActive = false;
 
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const baseAudio: MediaTrackConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+
+        if (type === "video") {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: baseAudio,
+              video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+            });
+            isVidActive = true;
+          } catch {
+            try {
+              stream = await navigator.mediaDevices.getUserMedia({ audio: baseAudio, video: true });
+              isVidActive = true;
+            } catch {
+              // Fallback para apenas áudio
+              stream = await navigator.mediaDevices.getUserMedia({ audio: baseAudio });
+              isVidActive = false;
+            }
+          }
+        } else {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: baseAudio });
+          isVidActive = false;
+        }
+
         localStreamRef.current = stream;
         setLocalStream(stream);
+        setIsVideoOff(!isVidActive);
         setActiveConversationId(conversationId);
         setCallType(type);
         setIsInGroupCall(true);
@@ -180,6 +228,7 @@ export function useGroupWebRTCCall(
         });
       } catch (err) {
         console.error("Erro ao obter mídia para chamada em grupo:", err);
+        setCallError(describeMediaError(err));
         cleanupGroupCall();
       }
     },
@@ -191,7 +240,6 @@ export function useGroupWebRTCCall(
     if (socket && activeConversationId) {
       socket.emit("group-call:leave", { conversationId: activeConversationId });
 
-      // Registra no banco histórico de chamada
       if (token && currentUserId) {
         createCallLog(token, {
           receiverId: currentUserId,
@@ -222,16 +270,96 @@ export function useGroupWebRTCCall(
     }
   }, []);
 
+  // Alternar Deafen
+  const toggleDeafen = useCallback(() => {
+    setIsDeafened((prev) => !prev);
+  }, []);
+
   // Alternar câmera
-  const toggleVideo = useCallback(() => {
+  const toggleVideo = useCallback(async () => {
     if (localStreamRef.current) {
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setIsVideoOff(!videoTrack.enabled);
+      } else {
+        try {
+          const videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+          });
+          const newVideoTrack = videoStream.getVideoTracks()[0];
+          if (newVideoTrack) {
+            localStreamRef.current.addTrack(newVideoTrack);
+            for (const [, pc] of peersRef.current) {
+              const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+              if (videoSender) {
+                videoSender.replaceTrack(newVideoTrack);
+              } else {
+                pc.addTrack(newVideoTrack, localStreamRef.current);
+              }
+            }
+            setIsVideoOff(false);
+            setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+          }
+        } catch (camErr) {
+          console.error("Não foi possível ligar a câmera:", camErr);
+        }
       }
     }
   }, []);
+
+  // Alternar tela
+  const toggleScreenShare = useCallback(async () => {
+    if (isScreenSharing) {
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((track) => track.stop());
+        screenStreamRef.current = null;
+      }
+      const localVideoTrack = localStreamRef.current?.getVideoTracks()[0] || null;
+      for (const [, pc] of peersRef.current) {
+        const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+        if (videoSender) {
+          videoSender.replaceTrack(localVideoTrack);
+        }
+      }
+      setIsScreenSharing(false);
+    } else {
+      try {
+        if (!navigator.mediaDevices?.getDisplayMedia) return;
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+        screenStreamRef.current = displayStream;
+        const screenVideoTrack = displayStream.getVideoTracks()[0];
+        if (screenVideoTrack) {
+          screenVideoTrack.onended = () => {
+            if (screenStreamRef.current) {
+              screenStreamRef.current.getTracks().forEach((track) => track.stop());
+              screenStreamRef.current = null;
+            }
+            const localVideoTrack = localStreamRef.current?.getVideoTracks()[0] || null;
+            for (const [, pc] of peersRef.current) {
+              const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+              if (videoSender) {
+                videoSender.replaceTrack(localVideoTrack);
+              }
+            }
+            setIsScreenSharing(false);
+          };
+
+          for (const [, pc] of peersRef.current) {
+            const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+            if (videoSender) {
+              videoSender.replaceTrack(screenVideoTrack);
+            } else {
+              pc.addTrack(screenVideoTrack, displayStream);
+            }
+          }
+          setIsScreenSharing(true);
+        }
+      } catch (screenErr) {
+        console.warn("Falha no compartilhamento de tela:", screenErr);
+      }
+    }
+  }, [isScreenSharing]);
 
   // Processa candidatos ICE pendentes
   const drainPendingCandidates = async (userId: string, pc: RTCPeerConnection) => {
@@ -252,7 +380,6 @@ export function useGroupWebRTCCall(
   useEffect(() => {
     if (!socket) return;
 
-    // 1. Ao entrar, recebe lista de participantes já conectados e envia Oferta para cada um
     const handleJoined = async (payload: GroupCallJoinedPayload) => {
       const { conversationId, participants } = payload;
 
@@ -273,7 +400,6 @@ export function useGroupWebRTCCall(
       }
     };
 
-    // 2. Novo participante entrou no grupo
     const handleUserJoined = (payload: GroupCallUserJoinedPayload) => {
       setRemoteParticipants((prev) => {
         if (prev.some((p) => p.userId === payload.userId)) return prev;
@@ -281,7 +407,6 @@ export function useGroupWebRTCCall(
       });
     };
 
-    // 3. Recebe sinal WebRTC (Offer, Answer, Candidate)
     const handleSignal = async (payload: GroupCallSignalPayload) => {
       const { fromUserId, fromUserName, conversationId, signal } = payload;
 
@@ -314,7 +439,7 @@ export function useGroupWebRTCCall(
           try {
             await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
           } catch {
-            // Ignora erro
+            // Ignora
           }
         } else {
           if (!pendingCandidatesRef.current.has(fromUserId)) {
@@ -325,7 +450,6 @@ export function useGroupWebRTCCall(
       }
     };
 
-    // 4. Participante saiu da chamada
     const handleUserLeft = (payload: GroupCallUserLeftPayload) => {
       const pc = peersRef.current.get(payload.userId);
       if (pc) {
@@ -335,7 +459,6 @@ export function useGroupWebRTCCall(
       setRemoteParticipants((prev) => prev.filter((p) => p.userId !== payload.userId));
     };
 
-    // 5. Status da chamada no grupo (para exibir o banner aos demais membros)
     const handleStatus = (payload: GroupCallStatusPayload) => {
       setGroupCallBanners((prev) => ({
         ...prev,
@@ -369,7 +492,10 @@ export function useGroupWebRTCCall(
     callType,
     isMuted,
     isVideoOff,
+    isScreenSharing,
+    isDeafened,
     callDuration,
+    callError,
     localStream,
     remoteParticipants,
     groupCallBanners,
@@ -377,5 +503,7 @@ export function useGroupWebRTCCall(
     leaveGroupCall,
     toggleMute,
     toggleVideo,
+    toggleScreenShare,
+    toggleDeafen,
   };
 }

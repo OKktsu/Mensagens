@@ -34,6 +34,93 @@ const ICE_SERVERS: RTCConfiguration = {
   ],
 };
 
+function describeMediaError(err: unknown): string {
+  if (!(err instanceof Error)) {
+    return "Não foi possível acessar os dispositivos de áudio ou vídeo.";
+  }
+  if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+    return "Permissão de microfone ou câmera negada. Clique no ícone de cadeado na barra de endereços para permitir o acesso.";
+  }
+  if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+    return "Nenhum microfone ou câmera foi encontrado no seu computador.";
+  }
+  if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+    return "A câmera ou o microfone já está em uso por outro aplicativo (ex: Discord, Zoom ou outra aba).";
+  }
+  if (err.name === "OverconstrainedError") {
+    return "A configuração de câmera solicitada não é suportada pelo seu dispositivo.";
+  }
+  if (err.name === "SecurityError") {
+    return "Acesso à mídia bloqueado por políticas de segurança do navegador (requer HTTPS ou localhost).";
+  }
+  return err.message || "Não foi possível iniciar os dispositivos de mídia.";
+}
+
+async function safeAcquireMediaStream(callType: CallType): Promise<{
+  stream: MediaStream;
+  isVideoActive: boolean;
+  warning?: string;
+}> {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (typeof window !== "undefined" && window.isSecureContext === false) {
+      throw new Error("O navegador exige conexão segura (HTTPS ou localhost) para acessar câmera e microfone.");
+    }
+    throw new Error("Seu navegador não suporta captura de áudio/vídeo WebRTC.");
+  }
+
+  const baseAudioConstraint: MediaTrackConstraints = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  };
+
+  if (callType === "video") {
+    // 1. Tenta áudio + vídeo com resolução padrão (sem forçar facingMode para compatibilidade em desktops)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: baseAudioConstraint,
+        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+      });
+      return { stream, isVideoActive: true };
+    } catch (idealErr) {
+      console.warn("Falha ao obter vídeo com resolução ideal, tentando vídeo básico:", idealErr);
+      // 2. Tenta áudio + vídeo básico sem restrições de resolução
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: baseAudioConstraint,
+          video: true,
+        });
+        return { stream, isVideoActive: true };
+      } catch (basicErr) {
+        console.warn("Falha ao obter vídeo, tentando fallback para apenas áudio:", basicErr);
+        // 3. Fallback: se câmera não existe ou falhou, tenta pelo menos áudio para não interromper a chamada
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: baseAudioConstraint,
+          });
+          return {
+            stream: audioStream,
+            isVideoActive: false,
+            warning: "Câmera não detectada ou ocupada. A chamada foi iniciada apenas com áudio.",
+          };
+        } catch (audioErr) {
+          throw new Error(describeMediaError(basicErr || idealErr || audioErr));
+        }
+      }
+    }
+  }
+
+  // Apenas áudio
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: baseAudioConstraint,
+    });
+    return { stream, isVideoActive: false };
+  } catch (err) {
+    throw new Error(describeMediaError(err));
+  }
+}
+
 export function useWebRTCCall(
   socket: ChatSocket | null,
   token: string | null = null,
@@ -44,6 +131,8 @@ export function useWebRTCCall(
   const [incomingCall, setIncomingCall] = useState<IncomingCallData | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isDeafened, setIsDeafened] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [callError, setCallError] = useState("");
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -51,6 +140,7 @@ export function useWebRTCCall(
 
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const iceCandidatesQueueRef = useRef<RTCIceCandidateInit[]>([]);
   const durationTimerRef = useRef<number | null>(null);
@@ -124,6 +214,11 @@ export function useWebRTCCall(
     stopOutgoingRingtone();
     stopIncomingRingtone();
 
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((track) => track.stop());
+      screenStreamRef.current = null;
+    }
+
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => track.stop());
       localStreamRef.current = null;
@@ -150,6 +245,8 @@ export function useWebRTCCall(
     setIncomingCall(null);
     setIsMuted(false);
     setIsVideoOff(false);
+    setIsScreenSharing(false);
+    setIsDeafened(false);
   }, []);
 
   // Iniciar chamada (Voz ou Vídeo)
@@ -167,25 +264,14 @@ export function useWebRTCCall(
 
         callStartTimeRef.current = new Date();
 
-        const constraints: MediaStreamConstraints = {
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-          video:
-            callType === "video"
-              ? {
-                  width: { ideal: 1280 },
-                  height: { ideal: 720 },
-                  facingMode: "user",
-                }
-              : false,
-        };
-
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const { stream, isVideoActive, warning } = await safeAcquireMediaStream(callType);
         localStreamRef.current = stream;
         setLocalStream(stream);
+        setIsVideoOff(!isVideoActive);
+
+        if (warning) {
+          console.warn(warning);
+        }
 
         const pc = new RTCPeerConnection(ICE_SERVERS);
         peerConnectionRef.current = pc;
@@ -246,11 +332,8 @@ export function useWebRTCCall(
         setCallState("calling");
         startOutgoingRingtone();
       } catch (err) {
-        setCallError(
-          err instanceof Error && err.name === "NotAllowedError"
-            ? "Permissão de microfone/câmera negada no navegador."
-            : "Não foi possível iniciar a chamada.",
-        );
+        console.error("Erro ao iniciar chamada:", err);
+        setCallError(err instanceof Error ? err.message : describeMediaError(err));
         cleanupCall();
       }
     },
@@ -267,25 +350,14 @@ export function useWebRTCCall(
 
       const { fromUserId, fromUserName, conversationId, offer, callType } = incomingCall;
 
-      const constraints: MediaStreamConstraints = {
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-        video:
-          callType === "video"
-            ? {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                facingMode: "user",
-              }
-            : false,
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const { stream, isVideoActive, warning } = await safeAcquireMediaStream(callType);
       localStreamRef.current = stream;
       setLocalStream(stream);
+      setIsVideoOff(!isVideoActive);
+
+      if (warning) {
+        console.warn(warning);
+      }
 
       const pc = new RTCPeerConnection(ICE_SERVERS);
       peerConnectionRef.current = pc;
@@ -353,11 +425,8 @@ export function useWebRTCCall(
       setIncomingCall(null);
       setCallState("connected");
     } catch (err) {
-      setCallError(
-        err instanceof Error && err.name === "NotAllowedError"
-          ? "Permissão de microfone/câmera negada."
-          : "Não foi possível atender a chamada.",
-      );
+      console.error("Erro ao atender chamada:", err);
+      setCallError(err instanceof Error ? err.message : describeMediaError(err));
       cleanupCall();
     }
   }, [socket, incomingCall, cleanupCall]);
@@ -371,7 +440,6 @@ export function useWebRTCCall(
       conversationId: incomingCall.conversationId,
     });
 
-    // Registra recusa
     recordCallToDatabase(
       {
         userId: incomingCall.fromUserId,
@@ -414,16 +482,108 @@ export function useWebRTCCall(
     }
   }, []);
 
+  // Alternar desativar áudio (Deafen)
+  const toggleDeafen = useCallback(() => {
+    setIsDeafened((prev) => {
+      const next = !prev;
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.muted = next;
+      }
+      return next;
+    });
+  }, []);
+
   // Alternar câmera
-  const toggleVideo = useCallback(() => {
+  const toggleVideo = useCallback(async () => {
     if (localStreamRef.current) {
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setIsVideoOff(!videoTrack.enabled);
+      } else {
+        try {
+          const videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+          });
+          const newVideoTrack = videoStream.getVideoTracks()[0];
+          if (newVideoTrack) {
+            localStreamRef.current.addTrack(newVideoTrack);
+            const pc = peerConnectionRef.current;
+            if (pc) {
+              const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+              if (videoSender) {
+                await videoSender.replaceTrack(newVideoTrack);
+              } else {
+                pc.addTrack(newVideoTrack, localStreamRef.current);
+              }
+            }
+            setIsVideoOff(false);
+            setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+          }
+        } catch (camErr) {
+          console.error("Não foi possível ligar a câmera:", camErr);
+          setCallError("Não foi possível acessar a câmera.");
+        }
       }
     }
   }, []);
+
+  // Alternar Compartilhamento de Tela
+  const toggleScreenShare = useCallback(async () => {
+    const pc = peerConnectionRef.current;
+    if (!pc) return;
+
+    if (isScreenSharing) {
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((track) => track.stop());
+        screenStreamRef.current = null;
+      }
+      const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+      const localVideoTrack = localStreamRef.current?.getVideoTracks()[0] || null;
+      if (videoSender) {
+        await videoSender.replaceTrack(localVideoTrack);
+      }
+      setIsScreenSharing(false);
+    } else {
+      try {
+        if (!navigator.mediaDevices?.getDisplayMedia) {
+          setCallError("Compartilhamento de tela não suportado neste navegador.");
+          return;
+        }
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true,
+        });
+        screenStreamRef.current = displayStream;
+
+        const screenVideoTrack = displayStream.getVideoTracks()[0];
+        if (screenVideoTrack) {
+          screenVideoTrack.onended = () => {
+            if (screenStreamRef.current) {
+              screenStreamRef.current.getTracks().forEach((track) => track.stop());
+              screenStreamRef.current = null;
+            }
+            const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+            const localVideoTrack = localStreamRef.current?.getVideoTracks()[0] || null;
+            if (videoSender) {
+              videoSender.replaceTrack(localVideoTrack);
+            }
+            setIsScreenSharing(false);
+          };
+
+          const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+          if (videoSender) {
+            await videoSender.replaceTrack(screenVideoTrack);
+          } else {
+            pc.addTrack(screenVideoTrack, displayStream);
+          }
+          setIsScreenSharing(true);
+        }
+      } catch (screenErr) {
+        console.warn("Compartilhamento de tela cancelado ou falhou:", screenErr);
+      }
+    }
+  }, [isScreenSharing]);
 
   // Listeners dos eventos de sinalização do Socket.IO
   useEffect(() => {
@@ -518,15 +678,20 @@ export function useWebRTCCall(
     incomingCall,
     isMuted,
     isVideoOff,
+    isScreenSharing,
+    isDeafened,
     callDuration,
     callError,
     localStream,
     remoteStream,
+    screenStream: screenStreamRef.current,
     startCall,
     acceptCall,
     rejectCall,
     endCall,
     toggleMute,
     toggleVideo,
+    toggleScreenShare,
+    toggleDeafen,
   };
 }
