@@ -97,39 +97,24 @@ button:disabled, input:disabled {
    1. AUTH SCREEN (LOGIN & REGISTER)
    ========================================================================== */
 
-.auth-shell {
-  display: grid;
-  min-height: 100vh;
-  place-items: center;
-  padding: 24px;
-  background: radial-gradient(circle at 50% 20%, rgba(139, 92, 246, 0.15), var(--bg-canvas) 80%);
+.bg-mesh-layer {
+  background: 
+    radial-gradient(circle at 18% 22%, rgba(139, 92, 246, 0.16) 0%, transparent 45%),
+    radial-gradient(circle at 82% 78%, rgba(99, 102, 241, 0.14) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.08) 0%, transparent 60%);
 }
 
-.auth-panel {
-  width: min(440px, 100%);
-  padding: 36px 32px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-radius: 20px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(139, 92, 246, 0.15);
-  backdrop-filter: blur(20px);
-  animation: zoomIn 0.25s ease-out;
+.glass-card-border {
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.18), 0 24px 60px -12px rgba(0, 0, 0, 0.75), 0 0 45px -10px rgba(124, 58, 237, 0.22);
 }
 
-.auth-panel h1 {
-  margin: 0 0 8px;
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  text-align: center;
-  letter-spacing: -0.02em;
+@keyframes pulseRing {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.1); opacity: 0.4; }
 }
 
-.auth-panel .auth-subtitle {
-  margin: 0 0 24px;
-  font-size: 0.88rem;
-  color: var(--text-muted);
-  text-align: center;
+.pulse-ring-anim {
+  animation: pulseRing 3.2s ease-in-out infinite;
 }
 
 .auth-form {
