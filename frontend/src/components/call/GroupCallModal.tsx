@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Avatar } from "../common/Avatar";
 import type { RemoteGroupParticipant } from "../../hooks/useGroupWebRTCCall";
 
@@ -105,8 +106,23 @@ export function GroupCallModal({
     }
   };
 
-  return (
-    <div className="pulse-call-screen" role="dialog" aria-modal="true" aria-label="Chamada em Grupo">
+  const modalContent = (
+    <div
+      className="pulse-call-screen"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100vw",
+        height: "100vh",
+        zIndex: 99999,
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Chamada em Grupo"
+    >
       {/* 1. TOP NAVIGATION BAR */}
       <header className="pulse-call-header">
         <div className="pulse-call-header-left">
@@ -317,4 +333,8 @@ export function GroupCallModal({
       </footer>
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }

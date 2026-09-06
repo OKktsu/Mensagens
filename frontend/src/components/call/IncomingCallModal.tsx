@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { Avatar } from "../common/Avatar";
 
 type IncomingCallModalProps = {
@@ -17,9 +18,19 @@ export function IncomingCallModal({
 }: IncomingCallModalProps) {
   const isVideo = callType === "video";
 
-  return (
+  const modalContent = (
     <div
       className="pulse-incoming-overlay"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100vw",
+        height: "100vh",
+        zIndex: 99999,
+      }}
       role="dialog"
       aria-modal="true"
       aria-label="Chamada recebida"
@@ -75,4 +86,8 @@ export function IncomingCallModal({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }

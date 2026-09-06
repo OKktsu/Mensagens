@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Avatar } from "../common/Avatar";
 import type { CallState, CallType } from "../../hooks/useWebRTCCall";
 
@@ -114,9 +115,19 @@ export function ActiveCallModal({
     }
   };
 
-  return (
+  const modalContent = (
     <div
       className="pulse-call-screen"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100vw",
+        height: "100vh",
+        zIndex: 99999,
+      }}
       role="dialog"
       aria-modal="true"
       aria-label="Chamada PulseChat"
@@ -200,65 +211,51 @@ export function ActiveCallModal({
               {isFullscreen ? "fullscreen_exit" : "fullscreen"}
             </span>
           </button>
+
+          <button
+            type="button"
+            className="pulse-call-icon-btn"
+            title="Configurações da Sala"
+          >
+            <span className="material-symbols-outlined text-[18px]">settings</span>
+          </button>
         </div>
       </header>
 
-      {/* 2. MAIN STAGE AREA */}
-      <main className="pulse-call-main-stage">
+      {/* 2. PALCO PRINCIPAL (MAIN STAGE) */}
+      <main className="pulse-call-stage">
+        {/* MODO GRADE (GRID) */}
         {layoutMode === "grid" ? (
           <div className="pulse-call-grid-stage">
-            <div className="pulse-grid-tile local">
-              {hasLocalVideo ? (
-                <video
-                  ref={setLocalVideoNode}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="pulse-grid-video"
-                />
-              ) : (
-                <div className="pulse-grid-avatar-fallback">
-                  <Avatar name={currentUserName} size="large" />
-                  <p className="text-xs font-semibold text-slate-300 mt-2">{currentUserName} (Você)</p>
-                </div>
-              )}
-              <div className="pulse-grid-tag">
-                <span className="font-bold text-white text-xs">{currentUserName} (Você)</span>
-                {isMuted && (
-                  <span className="material-symbols-outlined text-[13px] text-rose-400 ml-1">mic_off</span>
-                )}
-              </div>
-            </div>
-
-            <div className="pulse-grid-tile">
+            {/* Tile 1: Contato */}
+            <div className="pulse-call-remote-video-frame">
               {hasRemoteVideo ? (
                 <video
                   ref={setRemoteVideoNode}
                   autoPlay
                   playsInline
-                  className="pulse-grid-video"
+                  className="pulse-call-video-element"
                 />
               ) : (
-                <div className="pulse-grid-avatar-fallback">
+                <div className="pulse-call-remote-avatar-card">
                   <div className="pulse-call-avatar-resonance small">
                     <div className="pulse-call-glow-ring ring-1 small" />
-                    <Avatar name={peerName} src={peerAvatarUrl} size="large" />
+                    <div className="pulse-call-glow-ring ring-2 small" />
+                    <div className="pulse-call-speaker-avatar small">
+                      <Avatar name={peerName} src={peerAvatarUrl} size="large" />
+                      <div className="speaker-talking-pill">
+                        <span className="talking-dot" />
+                        <span className="talking-label">{isCalling ? "Chamando" : "Conectado"}</span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm font-bold text-white mt-2">{peerName}</p>
-                  <span className="text-[11px] text-[#a78bfa] font-mono mt-1">
-                    {isCalling ? "Aguardando resposta..." : "Apenas Áudio"}
-                  </span>
+                  <h3 className="font-bold text-white text-sm">{peerName}</h3>
                 </div>
               )}
-              <div className="pulse-grid-tag">
+              <div className="pulse-call-peer-tag">
                 <span className="font-bold text-white text-xs">{peerName}</span>
               </div>
             </div>
-          </div>
-        ) : hasRemoteVideo ? (
-          <div className="pulse-call-video-stage">
-            <div className="pulse-call-remote-video-frame">
-              <video
                 ref={setRemoteVideoNode}
                 autoPlay
                 playsInline
@@ -550,4 +547,8 @@ export function ActiveCallModal({
       )}
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }
