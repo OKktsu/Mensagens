@@ -1,13 +1,13 @@
 type AvatarProps = {
   name?: string;
   initial?: string;
-  size?: "normal" | "small";
+  size?: "normal" | "small" | "medium" | "large";
   isOnline?: boolean;
 };
 
 export function Avatar({ name, initial, size = "normal", isOnline }: AvatarProps) {
   const displayInitial = initial ?? (name ? name.charAt(0).toUpperCase() : "?");
-  const className = size === "small" ? "avatar small" : "avatar";
+  const className = `avatar ${size}`;
 
   return (
     <div className="avatar-wrapper">
