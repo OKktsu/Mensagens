@@ -4545,3 +4545,568 @@ button:disabled, input:disabled {
 .stitch-quick-emoji-btn:hover {
   transform: scale(1.2);
 }
+
+
+
+/* ==========================================================================
+   1. AUTH SCREEN (LOGIN & REGISTER - STITCH CYBERPUNK)
+   ========================================================================== */
+
+.pulse-auth-root {
+  min-height: 100vh;
+  background: #090a0f;
+  color: #e2e8f0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.pulse-auth-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.pulse-auth-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.35;
+  filter: blur(1px);
+  mix-blend-mode: screen;
+  transform: scale(1.05);
+}
+
+.pulse-auth-bg-mesh {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 18% 22%, rgba(139, 92, 246, 0.18) 0%, transparent 45%),
+    radial-gradient(circle at 82% 78%, rgba(99, 102, 241, 0.16) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.10) 0%, transparent 60%);
+}
+
+.pulse-auth-bg-vignette {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, #090a0f, rgba(9, 10, 15, 0.75) 50%, rgba(9, 10, 15, 0.6) 100%);
+}
+
+.pulse-auth-header {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pulse-auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pulse-auth-logo-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
+  padding: 1.5px;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pulse-auth-logo:hover .pulse-auth-logo-badge {
+  transform: scale(1.05);
+  box-shadow: 0 6px 22px rgba(139, 92, 246, 0.55);
+}
+
+.pulse-auth-logo-inner {
+  width: 100%;
+  height: 100%;
+  background: #11121b;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-auth-logo-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.pulse-auth-logo-title span {
+  background: linear-gradient(90deg, #a78bfa, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pulse-auth-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #a1a1aa;
+  background: rgba(24, 24, 27, 0.75);
+  border: 1px solid rgba(39, 39, 42, 0.8);
+  backdrop-filter: blur(12px);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.pulse-auth-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
+  animation: pulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.pulse-auth-main {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.pulse-auth-card {
+  width: 100%;
+  max-width: 890px;
+  background: rgba(20, 21, 31, 0.92);
+  border: 1px solid #232536;
+  border-radius: 24px;
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.18), 0 24px 60px -12px rgba(0, 0, 0, 0.75), 0 0 45px -10px rgba(124, 58, 237, 0.22);
+  backdrop-filter: blur(20px);
+  padding: 36px 42px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pulse-auth-card-topline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.6), transparent);
+}
+
+.pulse-auth-card-grid {
+  display: grid;
+  grid-template-columns: 1.18fr 1px 0.82fr;
+  gap: 36px;
+  align-items: center;
+}
+
+@media (max-width: 800px) {
+  .pulse-auth-card-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .pulse-auth-divider {
+    display: none;
+  }
+  .pulse-auth-card {
+    padding: 24px 20px;
+  }
+  .pulse-auth-qr-section {
+    border-top: 1px solid #27272a;
+    padding-top: 24px;
+  }
+}
+
+.pulse-auth-divider {
+  height: 100%;
+  min-height: 380px;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, #27272a 30%, #27272a 70%, transparent);
+}
+
+.pulse-auth-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+}
+
+.pulse-auth-desc {
+  font-size: 14px;
+  color: #a1a1aa;
+  margin: 0 0 22px;
+  line-height: 1.5;
+}
+
+.pulse-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pulse-auth-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.pulse-auth-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a1a1aa;
+  margin-bottom: 6px;
+}
+
+.pulse-auth-label span.req {
+  color: #a78bfa;
+}
+
+.pulse-auth-label .forgot-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a78bfa;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.pulse-auth-label .forgot-link:hover {
+  color: #c4b5fd;
+}
+
+.pulse-auth-input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.pulse-auth-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: #0e0f16;
+  border: 1px solid #27272a;
+  color: #f4f4f5;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.pulse-auth-input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+
+.pulse-auth-input.has-eye {
+  padding-right: 42px;
+}
+
+.pulse-auth-eye-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #71717a;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.pulse-auth-eye-btn:hover {
+  color: #d4d4d8;
+}
+
+.pulse-auth-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 6px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  color: #a1a1aa;
+}
+
+.pulse-auth-checkbox-row input {
+  accent-color: #7c3aed;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.pulse-auth-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  color: #fda4af;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.pulse-auth-submit-btn {
+  width: 100%;
+  height: 46px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #7c3aed, #6366f1);
+  border: none;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(124, 58, 237, 0.35);
+  transition: all 0.2s ease;
+  margin-top: 6px;
+}
+
+.pulse-auth-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(90deg, #8b5cf6, #818cf8);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(139, 92, 246, 0.5);
+}
+
+.pulse-auth-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pulse-auth-switch-text {
+  margin-top: 14px;
+  font-size: 13px;
+  color: #a1a1aa;
+}
+
+.pulse-auth-switch-link {
+  color: #a78bfa;
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin-left: 4px;
+  padding: 0;
+}
+
+.pulse-auth-switch-link:hover {
+  color: #c4b5fd;
+}
+
+/* Coluna Direita: QR Code */
+.pulse-auth-qr-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.pulse-auth-qr-container {
+  position: relative;
+  padding: 12px;
+  background: #0a0b10;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+}
+
+.pulse-auth-qr-glow {
+  position: absolute;
+  inset: -4px;
+  background: linear-gradient(90deg, #7c3aed, #6366f1);
+  border-radius: 22px;
+  filter: blur(12px);
+  opacity: 0.25;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.pulse-auth-qr-container:hover .pulse-auth-qr-glow {
+  opacity: 0.45;
+}
+
+.pulse-auth-qr-plate {
+  position: relative;
+  width: 176px;
+  height: 176px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.pulse-auth-qr-center-badge {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  background: #090a0f;
+  border-radius: 12px;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.pulse-auth-qr-center-inner {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: #7c3aed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulseRing 3.2s ease-in-out infinite;
+}
+
+@keyframes pulseRing {
+  0%, 100% { transform: scale(1); opacity: 0.95; }
+  50% { transform: scale(1.1); opacity: 0.4; }
+}
+
+.pulse-auth-qr-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 16px 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.pulse-auth-qr-desc {
+  font-size: 12px;
+  color: #a1a1aa;
+  max-width: 210px;
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+
+.pulse-auth-security-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: rgba(76, 29, 149, 0.25);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  font-size: 11px;
+  font-weight: 500;
+  color: #c4b5fd;
+  margin-bottom: 16px;
+}
+
+.pulse-auth-quick-access {
+  width: 100%;
+  padding-top: 14px;
+  border-top: 1px solid rgba(39, 39, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pulse-auth-quick-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #71717a;
+  font-weight: 600;
+}
+
+.pulse-auth-quick-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #18181b;
+  border: 1px solid rgba(63, 63, 70, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d4d4d8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pulse-auth-quick-btn:hover {
+  background: #27272a;
+  color: #ffffff;
+  border-color: #71717a;
+}
+
+.pulse-auth-footer {
+  position: relative;
+  z-index: 10;
+  padding: 18px 24px;
+  text-align: center;
+  font-size: 12px;
+  color: #71717a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pulse-auth-footer span.link {
+  color: #71717a;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.pulse-auth-footer span.link:hover {
+  color: #d4d4d8;
+}
+
+.pulse-auth-footer span.dot {
+  color: #3f3f46;
+}
+
+.pulse-auth-footer span.ver {
+  color: #52525b;
+}
