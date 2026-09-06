@@ -13,6 +13,8 @@ type ActiveCallModalProps = {
   isVideoOff: boolean;
   isScreenSharing?: boolean;
   isDeafened?: boolean;
+  errorMessage?: string;
+  onRetry?: () => void;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   onToggleMute: () => void;
@@ -39,6 +41,8 @@ export function ActiveCallModal({
   isVideoOff,
   isScreenSharing = false,
   isDeafened = false,
+  errorMessage,
+  onRetry,
   localStream,
   remoteStream,
   onToggleMute,
@@ -513,6 +517,37 @@ export function ActiveCallModal({
           </div>
         </div>
       </footer>
+
+      {/* OVERLAY DE AVISO DE PERMISSÃO / DISPOSITIVO */}
+      {errorMessage && (
+        <div className="pulse-permission-overlay" role="alert">
+          <div className="pulse-permission-card">
+            <div className="pulse-permission-icon-wrap">
+              <span className="material-symbols-outlined text-[32px] text-amber-400">lock_reset</span>
+            </div>
+            <h3 className="text-base font-bold text-white mb-1">Acesso a Câmera / Microfone</h3>
+            <p className="text-xs text-slate-300 leading-relaxed mb-4">{errorMessage}</p>
+            <div className="flex items-center gap-3">
+              {onRetry && (
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs font-bold transition-all shadow-lg shadow-[#7c3aed]/30"
+                  onClick={onRetry}
+                >
+                  Tentar Novamente
+                </button>
+              )}
+              <button
+                type="button"
+                className="px-4 py-2 rounded-xl bg-[#1f212e] hover:bg-[#2a2d3d] text-slate-200 text-xs font-semibold transition-all border border-[#2a2d3d]"
+                onClick={onEndCall}
+              >
+                Fechar Chamada
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

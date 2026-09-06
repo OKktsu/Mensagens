@@ -372,33 +372,31 @@ export function App() {
 
   const handleStartVoiceCall = useCallback(() => {
     if (!selectedConversation || !currentUser) return;
-    const isGroup = Boolean(selectedConversation.title || selectedConversation.members.length > 2);
-    if (isGroup) {
-      joinGroupCall(selectedConversation.id, "audio");
-      return;
-    }
     const otherMember = selectedConversation.members.find(
       (m) => (m.userId || m.user?.id) !== currentUser.id,
     );
-    if (!otherMember) return;
+    const isGroup = selectedConversation.members.length > 2;
+    if (isGroup || !otherMember) {
+      joinGroupCall(selectedConversation.id, "audio");
+      return;
+    }
     const otherId = otherMember.userId || otherMember.user.id;
-    const otherName = otherMember.user.name;
+    const otherName = otherMember.user?.name || "Contato";
     startCall(otherId, otherName, selectedConversation.id, "audio");
   }, [selectedConversation, currentUser, joinGroupCall, startCall]);
 
   const handleStartVideoCall = useCallback(() => {
     if (!selectedConversation || !currentUser) return;
-    const isGroup = Boolean(selectedConversation.title || selectedConversation.members.length > 2);
-    if (isGroup) {
-      joinGroupCall(selectedConversation.id, "video");
-      return;
-    }
     const otherMember = selectedConversation.members.find(
       (m) => (m.userId || m.user?.id) !== currentUser.id,
     );
-    if (!otherMember) return;
+    const isGroup = selectedConversation.members.length > 2;
+    if (isGroup || !otherMember) {
+      joinGroupCall(selectedConversation.id, "video");
+      return;
+    }
     const otherId = otherMember.userId || otherMember.user.id;
-    const otherName = otherMember.user.name;
+    const otherName = otherMember.user?.name || "Contato";
     startCall(otherId, otherName, selectedConversation.id, "video");
   }, [selectedConversation, currentUser, joinGroupCall, startCall]);
 
@@ -1004,6 +1002,12 @@ export function App() {
           isVideoOff={isVideoOff}
           isScreenSharing={isScreenSharing}
           isDeafened={isDeafened}
+          errorMessage={callError ?? undefined}
+          onRetry={() => {
+            if (activePeer) {
+              startCall(activePeer.userId, activePeer.userName, activePeer.conversationId, callType);
+            }
+          }}
           localStream={localStream}
           remoteStream={remoteStream}
           onToggleMute={toggleMute}

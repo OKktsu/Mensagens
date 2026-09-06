@@ -56,6 +56,28 @@ function describeMediaError(err: unknown): string {
   return err.message || "Não foi possível iniciar os dispositivos de mídia.";
 }
 
+function createSilentAudioStream(): MediaStream {
+  try {
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) {
+      return new MediaStream();
+    }
+    const ctx = new AudioCtx();
+    const dst = ctx.createMediaStreamDestination();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+    osc.connect(gain);
+    gain.connect(dst);
+    osc.start();
+    return dst.stream;
+  } catch {
+    return new MediaStream();
+  }
+}
+
 async function safeAcquireMediaStream(callType: CallType): Promise<{
   stream: MediaStream;
   isVideoActive: boolean;
@@ -75,14 +97,14 @@ async function safeAcquireMediaStream(callType: CallType): Promise<{
   };
 
   if (callType === "video") {
-    // 1. Tenta áudio + vídeo com resolução padrão (sem forçar facingMode para compatibilidade em desktops)
+    // 1. Tenta áudio + vídeo com resolução padrão
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: baseAudioConstraint,
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
       });
       return { stream, isVideoActive: true };
-    } catch (idealErr) {
+    } catch (idealErr: any) {
       console.warn("Falha ao obter vídeo com resolução ideal, tentando vídeo básico:", idealErr);
       // 2. Tenta áudio + vídeo básico sem restrições de resolução
       try {
@@ -91,9 +113,9 @@ async function safeAcquireMediaStream(callType: CallType): Promise<{
           video: true,
         });
         return { stream, isVideoActive: true };
-      } catch (basicErr) {
+      } catch (basicErr: any) {
         console.warn("Falha ao obter vídeo, tentando fallback para apenas áudio:", basicErr);
-        // 3. Fallback: se câmera não existe ou falhou, tenta pelo menos áudio para não interromper a chamada
+        // 3. Fallback: se câmera não existe ou falhou, tenta pelo menos áudio
         try {
           const audioStream = await navigator.mediaDevices.getUserMedia({
             audio: baseAudioConstraint,
@@ -103,7 +125,19 @@ async function safeAcquireMediaStream(callType: CallType): Promise<{
             isVideoActive: false,
             warning: "Câmera não detectada ou ocupada. A chamada foi iniciada apenas com áudio.",
           };
-        } catch (audioErr) {
+        } catch (audioErr: any) {
+          if (audioErr?.name === "NotFoundError" || audioErr?.name === "DevicesNotFoundError") {
+            try {
+              const silentStream = createSilentAudioStream();
+              return {
+                stream: silentStream,
+                isVideoActive: false,
+                warning: "Nenhum microfone ou câmera detectado. Você poderá ouvir e participar da chamada.",
+              };
+            } catch {
+              // fallback failed
+            }
+          }
           throw new Error(describeMediaError(basicErr || idealErr || audioErr));
         }
       }
@@ -116,10 +150,23 @@ async function safeAcquireMediaStream(callType: CallType): Promise<{
       audio: baseAudioConstraint,
     });
     return { stream, isVideoActive: false };
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.name === "NotFoundError" || err?.name === "DevicesNotFoundError") {
+      try {
+        const silentStream = createSilentAudioStream();
+        return {
+          stream: silentStream,
+          isVideoActive: false,
+          warning: "Nenhum microfone detectado. Você poderá ouvir a chamada.",
+        };
+      } catch {
+        // fallback failed
+      }
+    }
     throw new Error(describeMediaError(err));
   }
 }
+
 
 export function useWebRTCCall(
   socket: ChatSocket | null,
@@ -335,8 +382,8 @@ export function useWebRTCCall(
         });
       } catch (err) {
         console.error("Erro ao iniciar chamada:", err);
+        stopOutgoingRingtone();
         setCallError(err instanceof Error ? err.message : describeMediaError(err));
-        cleanupCall();
       }
     },
     [socket, cleanupCall],
@@ -429,7 +476,16 @@ export function useWebRTCCall(
     } catch (err) {
       console.error("Erro ao atender chamada:", err);
       setCallError(err instanceof Error ? err.message : describeMediaError(err));
-      cleanupCall();
+      if (incomingCall) {
+        setActivePeer({
+          userId: incomingCall.fromUserId,
+          userName: incomingCall.fromUserName,
+          conversationId: incomingCall.conversationId,
+          callType: incomingCall.callType,
+        });
+        setCallState("connected");
+        setIncomingCall(null);
+      }
     }
   }, [socket, incomingCall, cleanupCall]);
 
