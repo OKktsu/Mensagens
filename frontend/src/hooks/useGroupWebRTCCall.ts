@@ -178,7 +178,7 @@ export function useGroupWebRTCCall(
     [socket],
   );
 
-  // Iniciar ou entrar em uma chamada de grupo
+    // Iniciar ou entrar em uma chamada de grupo
   const joinGroupCall = useCallback(
     async (conversationId: string, type: "audio" | "video" = "video") => {
       if (!socket) return;
@@ -187,6 +187,11 @@ export function useGroupWebRTCCall(
         setCallError("");
         cleanupGroupCall();
         callStartTimeRef.current = new Date();
+
+        // 1. ABRE A TELA DE CHAMADA EM GRUPO INSTANTANEAMENTE
+        setActiveConversationId(conversationId);
+        setCallType(type);
+        setIsInGroupCall(true);
 
         let stream: MediaStream | null = null;
         let isVidActive = false;
@@ -205,7 +210,6 @@ export function useGroupWebRTCCall(
               stream = await navigator.mediaDevices.getUserMedia({ audio: baseAudio, video: true });
               isVidActive = true;
             } catch {
-              // Fallback para apenas áudio
               stream = await navigator.mediaDevices.getUserMedia({ audio: baseAudio });
               isVidActive = false;
             }
@@ -218,9 +222,6 @@ export function useGroupWebRTCCall(
         localStreamRef.current = stream;
         setLocalStream(stream);
         setIsVideoOff(!isVidActive);
-        setActiveConversationId(conversationId);
-        setCallType(type);
-        setIsInGroupCall(true);
 
         socket.emit("group-call:join", {
           conversationId,

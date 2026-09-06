@@ -249,7 +249,7 @@ export function useWebRTCCall(
     setIsDeafened(false);
   }, []);
 
-  // Iniciar chamada (Voz ou Vídeo)
+    // Iniciar chamada (Voz ou Vídeo)
   const startCall = useCallback(
     async (
       targetUserId: string,
@@ -264,6 +264,17 @@ export function useWebRTCCall(
 
         callStartTimeRef.current = new Date();
 
+        // 1. ABRE A TELA DE CHAMADA INSTANTANEAMENTE
+        setActivePeer({
+          userId: targetUserId,
+          userName: targetUserName,
+          conversationId,
+          callType,
+        });
+        setCallState("calling");
+        startOutgoingRingtone();
+
+        // 2. Obtem media stream
         const { stream, isVideoActive, warning } = await safeAcquireMediaStream(callType);
         localStreamRef.current = stream;
         setLocalStream(stream);
@@ -322,15 +333,6 @@ export function useWebRTCCall(
           offer,
           callType,
         });
-
-        setActivePeer({
-          userId: targetUserId,
-          userName: targetUserName,
-          conversationId,
-          callType,
-        });
-        setCallState("calling");
-        startOutgoingRingtone();
       } catch (err) {
         console.error("Erro ao iniciar chamada:", err);
         setCallError(err instanceof Error ? err.message : describeMediaError(err));

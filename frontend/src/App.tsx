@@ -982,6 +982,7 @@ export function App() {
       {incomingCall && callState === "incoming" && (
         <IncomingCallModal
           callerName={incomingCall.fromUserName}
+          callerAvatarUrl={users.find((u) => u.id === incomingCall.fromUserId)?.avatarUrl}
           callType={incomingCall.callType}
           onAccept={acceptCall}
           onReject={rejectCall}
