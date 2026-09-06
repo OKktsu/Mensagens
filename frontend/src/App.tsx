@@ -918,76 +918,7 @@ export function App() {
         onOpenSearch={() => setIsSearchOpen(true)}
       />
 
-      <ChatPanel
-        selectedConversation={selectedConversation}
-        currentUserId={currentUser.id}
-        currentUserName={currentUser.name}
-        error={callError || chatError || socketError}
-        messages={messages}
-        messageText={messageText}
-        typingText={activeTypingText}
-        isOnline={isRecipientOnline}
-        recipientLastReadAt={activeRecipientLastReadAt}
-        replyingToMessage={replyingToMessage}
-        onCancelReply={handleCancelReply}
-        editingMessage={editingMessage}
-        onCancelEdit={handleCancelEdit}
-        onSaveEdit={handleSaveEdit}
-        onReply={handleStartReply}
-        onForward={handleStartForward}
-        onEdit={handleStartEdit}
-        onDelete={handleDeleteMessage}
-        onReaction={handleReaction}
-        onToggleStar={handleToggleStar}
-        onPin={handlePin}
-        onUnpin={handleUnpin}
-        activeGroupCallBanner={selectedConversationId ? groupCallBanners[selectedConversationId] : undefined}
-        onJoinGroupCall={() => {
-          if (selectedConversationId) {
-            joinGroupCall(selectedConversationId, groupCallBanners[selectedConversationId]?.callType ?? "video");
-          }
-        }}
-        onStartVoiceCall={handleStartVoiceCall}
-        onStartVideoCall={handleStartVideoCall}
-        onSendFile={handleSendFile}
-        onSendVoiceNote={handleSendVoiceNote}
-        token={token}
-        onImageClick={setLightboxImage}
-        onPdfClick={(url, fileName) => setPdfModalData({ url, fileName })}
-        onMessageChange={setMessageText}
-        onSendMessage={handleSendMessage}
-        onTypingStart={handleTypingStart}
-        onTypingStop={handleTypingStop}
-      />
-
-      <CreateGroupModal
-        isOpen={isCreateGroupOpen}
-        onClose={() => setIsCreateGroupOpen(false)}
-        users={users}
-        onCreateGroup={handleCreateGroup}
-      />
-
-      <ForwardMessageModal
-        isOpen={Boolean(messageToForward)}
-        onClose={() => setMessageToForward(null)}
-        messageToForward={messageToForward}
-        conversations={conversations}
-        users={users}
-        currentUserId={currentUser.id}
-        onForward={handleForwardMessage}
-      />
-
-      {incomingCall && callState === "incoming" && (
-        <IncomingCallModal
-          callerName={incomingCall.fromUserName}
-          callerAvatarUrl={users.find((u) => u.id === incomingCall.fromUserId)?.avatarUrl}
-          callType={incomingCall.callType}
-          onAccept={acceptCall}
-          onReject={rejectCall}
-        />
-      )}
-
-      {(callState === "calling" || callState === "connected") && (
+      {(callState === "calling" || callState === "connected") ? (
         <ActiveCallModal
           peerName={activePeer?.userName ?? (callType === "video" ? "Chamada de Vídeo" : "Chamada de Voz")}
           peerAvatarUrl={
@@ -1016,9 +947,7 @@ export function App() {
           onToggleDeafen={toggleDeafen}
           onEndCall={endCall}
         />
-      )}
-
-      {isInGroupCall && (
+      ) : isInGroupCall ? (
         <GroupCallModal
           conversationTitle={
             conversations.find((c) => c.id === groupCallConvId)?.title || "Chamada em Grupo"
@@ -1037,6 +966,75 @@ export function App() {
           onToggleScreenShare={toggleGroupScreenShare}
           onToggleDeafen={toggleGroupDeafen}
           onLeaveCall={leaveGroupCall}
+        />
+      ) : (
+        <ChatPanel
+          selectedConversation={selectedConversation}
+          currentUserId={currentUser.id}
+          currentUserName={currentUser.name}
+          error={callError || chatError || socketError}
+          messages={messages}
+          messageText={messageText}
+          typingText={activeTypingText}
+          isOnline={isRecipientOnline}
+          recipientLastReadAt={activeRecipientLastReadAt}
+          replyingToMessage={replyingToMessage}
+          onCancelReply={handleCancelReply}
+          editingMessage={editingMessage}
+          onCancelEdit={handleCancelEdit}
+          onSaveEdit={handleSaveEdit}
+          onReply={handleStartReply}
+          onForward={handleStartForward}
+          onEdit={handleStartEdit}
+          onDelete={handleDeleteMessage}
+          onReaction={handleReaction}
+          onToggleStar={handleToggleStar}
+          onPin={handlePin}
+          onUnpin={handleUnpin}
+          activeGroupCallBanner={selectedConversationId ? groupCallBanners[selectedConversationId] : undefined}
+          onJoinGroupCall={() => {
+            if (selectedConversationId) {
+              joinGroupCall(selectedConversationId, groupCallBanners[selectedConversationId]?.callType ?? "video");
+            }
+          }}
+          onStartVoiceCall={handleStartVoiceCall}
+          onStartVideoCall={handleStartVideoCall}
+          onSendFile={handleSendFile}
+          onSendVoiceNote={handleSendVoiceNote}
+          token={token}
+          onImageClick={setLightboxImage}
+          onPdfClick={(url, fileName) => setPdfModalData({ url, fileName })}
+          onMessageChange={setMessageText}
+          onSendMessage={handleSendMessage}
+          onTypingStart={handleTypingStart}
+          onTypingStop={handleTypingStop}
+        />
+      )}
+
+      <CreateGroupModal
+        isOpen={isCreateGroupOpen}
+        onClose={() => setIsCreateGroupOpen(false)}
+        users={users}
+        onCreateGroup={handleCreateGroup}
+      />
+
+      <ForwardMessageModal
+        isOpen={Boolean(messageToForward)}
+        onClose={() => setMessageToForward(null)}
+        messageToForward={messageToForward}
+        conversations={conversations}
+        users={users}
+        currentUserId={currentUser.id}
+        onForward={handleForwardMessage}
+      />
+
+      {incomingCall && callState === "incoming" && (
+        <IncomingCallModal
+          callerName={incomingCall.fromUserName}
+          callerAvatarUrl={users.find((u) => u.id === incomingCall.fromUserId)?.avatarUrl}
+          callType={incomingCall.callType}
+          onAccept={acceptCall}
+          onReject={rejectCall}
         />
       )}
 

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { createPortal } from "react-dom";
 import { Avatar } from "../common/Avatar";
 import type { CallState, CallType } from "../../hooks/useWebRTCCall";
 
@@ -57,6 +56,7 @@ export function ActiveCallModal({
   const [layoutMode, setLayoutMode] = useState<"speaker" | "grid">("speaker");
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -109,27 +109,33 @@ export function ActiveCallModal({
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      if (containerRef.current) {
+        containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      }
     } else {
       document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
     }
   };
 
-  const modalContent = (
+  return (
     <div
+      ref={containerRef}
       className="pulse-call-screen"
       style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: "100vw",
-        height: "100vh",
-        zIndex: 99999,
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        minWidth: 0,
+        minHeight: 0,
+        flex: 1,
+        backgroundColor: "#0b0c10",
+        color: "#e2e8f0",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        overflow: "hidden",
       }}
-      role="dialog"
-      aria-modal="true"
+      role="region"
       aria-label="Chamada PulseChat"
     >
       {/* 1. TOP NAVIGATION BAR */}
@@ -542,8 +548,4 @@ export function ActiveCallModal({
       )}
     </div>
   );
-
-  return typeof document !== "undefined"
-    ? createPortal(modalContent, document.body)
-    : modalContent;
 }
