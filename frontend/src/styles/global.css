@@ -4049,3 +4049,453 @@ button:disabled, input:disabled {
   cursor: pointer;
   font-size: 14px;
 }
+
+
+/* ==========================================================================
+   STITCH DISCORD-STYLE UNIFIED MESSAGE STREAM (100% NO BALLOONS)
+   ========================================================================== */
+
+/* Container Principal do Stream de Mensagens */
+.stitch-message-stream-viewport {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background-color: #0f1013;
+}
+
+/* Linha de Mensagem Discord (Esquerda unificada) */
+.stitch-message-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.stitch-message-row:hover {
+  background-color: #16171f;
+  border-color: #242633;
+}
+
+/* Coluna do Avatar Squircle */
+.stitch-msg-avatar-col {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.stitch-msg-squircle-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #232530;
+  border: 1px solid #323544;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #e5e7eb;
+  transition: transform 0.15s ease;
+}
+
+.stitch-message-row:hover .stitch-msg-squircle-avatar {
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+/* Coluna de Conteúdo */
+.stitch-msg-content-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Linha de Cabeçalho: Autor + Badges + Hora + Checks */
+.stitch-msg-meta-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  line-height: 1.2;
+}
+
+.stitch-msg-author {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.stitch-msg-author.is-me {
+  color: #ffffff;
+}
+
+.stitch-msg-author.is-partner {
+  color: #c4b5fd;
+}
+
+.stitch-msg-author:hover {
+  text-decoration: underline;
+}
+
+.stitch-msg-role-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #242632;
+  border: 1px solid #353849;
+  color: #d1d5db;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stitch-msg-role-tag.pro {
+  background: #7c3aed;
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(124, 58, 237, 0.35);
+}
+
+.stitch-msg-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.stitch-msg-check {
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.stitch-msg-check.read {
+  color: #34d399;
+}
+
+.stitch-msg-check.delivered {
+  color: #6b7280;
+}
+
+.stitch-msg-edited-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.stitch-msg-star {
+  font-size: 12px;
+}
+
+/* Encaminhada */
+.stitch-msg-forwarded {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #9ca3af;
+  font-style: italic;
+  margin: 2px 0 4px 0;
+}
+
+/* Citação / Resposta */
+.stitch-msg-reply-quote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #171822;
+  border-left: 3px solid #8b5cf6;
+  border-radius: 6px;
+  padding: 4px 10px;
+  margin: 4px 0 6px 0;
+  max-width: 500px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.stitch-msg-reply-quote:hover {
+  background: #20222f;
+}
+
+.stitch-quote-author {
+  font-size: 11px;
+  color: #a78bfa;
+  font-weight: 600;
+}
+
+.stitch-quote-text {
+  font-size: 12px;
+  color: #9ca3af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Corpo da Mensagem */
+.stitch-msg-body {
+  margin-top: 3px;
+}
+
+.stitch-msg-text {
+  font-size: 14px;
+  color: #e5e7eb;
+  line-height: 1.55;
+  margin: 0;
+  word-break: break-word;
+}
+
+.stitch-inline-link {
+  color: #a78bfa;
+  text-decoration: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+
+.stitch-inline-link:hover {
+  text-decoration: underline;
+  color: #c4b5fd;
+}
+
+.stitch-msg-deleted {
+  color: #6b7280;
+  font-style: italic;
+  font-size: 13px;
+  margin: 3px 0 0 0;
+}
+
+/* Imagens */
+.stitch-msg-image-wrap {
+  margin: 6px 0;
+  max-width: 440px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #282a36;
+  background: #171821;
+}
+
+.stitch-msg-image-thumb {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.stitch-msg-image-thumb:hover {
+  transform: scale(1.02);
+}
+
+/* Arquivo */
+.stitch-msg-file-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #171821;
+  border: 1px solid #272935;
+  margin: 6px 0;
+  max-width: 460px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.stitch-msg-file-card:hover {
+  border-color: rgba(139, 92, 246, 0.5);
+  background: #1e202b;
+}
+
+.stitch-file-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #22242f;
+  border: 1px solid #323544;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.stitch-file-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stitch-file-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stitch-file-size {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #9ca3af;
+}
+
+.stitch-file-dl-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  text-decoration: none;
+}
+
+.stitch-file-dl-btn:hover {
+  background: #2b2d3a;
+  color: #ffffff;
+}
+
+/* Reações Chips */
+.stitch-msg-reactions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.stitch-reaction-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: #1c1d25;
+  border: 1px solid #2b2d39;
+  color: #ffffff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.stitch-reaction-chip:hover {
+  border-color: #3d4052;
+  background: #232530;
+}
+
+.stitch-reaction-chip.reacted {
+  background: rgba(124, 58, 237, 0.25);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #c4b5fd;
+}
+
+.stitch-reaction-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stitch-reaction-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 7px;
+  border-radius: 8px;
+  background: #1c1d25;
+  border: 1px solid #2b2d39;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.stitch-reaction-add-btn:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #ffffff;
+}
+
+/* Floating Hover Toolbar */
+.stitch-msg-hover-toolbar {
+  position: absolute;
+  right: 12px;
+  top: -14px;
+  display: none;
+  align-items: center;
+  background: #1e2029;
+  border: 1px solid #2f3240;
+  border-radius: 10px;
+  padding: 2px 4px;
+  gap: 2px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  z-index: 20;
+}
+
+.stitch-message-row:hover .stitch-msg-hover-toolbar {
+  display: flex;
+}
+
+.stitch-hover-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.stitch-hover-btn:hover {
+  background: #2b2d3a;
+  color: #ffffff;
+}
+
+.stitch-hover-btn.is-active {
+  color: #a78bfa;
+}
+
+.stitch-hover-btn.is-starred {
+  color: #fbbf24;
+}
+
+.stitch-hover-btn.danger:hover {
+  background: rgba(244, 63, 94, 0.2);
+  color: #fb7185;
+}
+
+.stitch-hover-quick-emojis {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
+  border-right: 1px solid #363848;
+  margin-right: 2px;
+}
+
+.stitch-quick-emoji-btn {
+  background: transparent;
+  border: none;
+  padding: 2px 3px;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: transform 0.12s ease;
+}
+
+.stitch-quick-emoji-btn:hover {
+  transform: scale(1.2);
+}
