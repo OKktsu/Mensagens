@@ -1,82 +1,116 @@
-export type SidebarTab = "chats" | "calls";
+export type SidebarTab = "all" | "chats" | "dms" | "squads" | "calls";
 
 type SidebarHeaderProps = {
   activeTab: SidebarTab;
   onTabChange: (tab: SidebarTab) => void;
-  onLogout: () => void;
+  onLogout?: () => void;
   onOpenCreateGroup: () => void;
   onOpenSearch?: () => void;
+  onOpenSettings?: () => void;
+  dmCount?: number;
+  squadCount?: number;
 };
 
 export function SidebarHeader({
   activeTab,
   onTabChange,
-  onLogout,
   onOpenCreateGroup,
   onOpenSearch,
+  onOpenSettings,
+  dmCount = 0,
+  squadCount = 0,
 }: SidebarHeaderProps) {
+  const isDmsActive = activeTab === "dms";
+  const isSquadsActive = activeTab === "squads";
+  const isCallsActive = activeTab === "calls";
+  const isAllActive = activeTab === "all" || activeTab === "chats";
+
   return (
     <header className="sidebar-header-wrapper">
+      {/* 1. Header: Brand & Workspace Selector + Customizer */}
       <div className="sidebar-header">
-        <div className="brand-group">
+        <div className="brand-group" onClick={() => onTabChange("all")} role="button" tabIndex={0}>
           <div className="brand-logo-squircle">
-            <span className="brand-icon">⚡</span>
+            <span className="material-symbols-outlined text-white text-[20px]">electric_bolt</span>
           </div>
           <div className="brand-text">
             <div className="brand-title-row">
               <span className="brand-name">PulseHub</span>
               <span className="brand-badge">v2.4</span>
             </div>
-            <span className="brand-subtitle">Workspace • Tempo Real</span>
+            <p className="brand-subtitle">Workspace • Dev & Comunidade</p>
           </div>
         </div>
 
         <div className="header-actions">
-          {activeTab === "chats" && (
-            <button
-              className="ghost-button group-button"
-              type="button"
-              onClick={onOpenCreateGroup}
-              title="Criar novo grupo / squad"
-            >
-              + Grupo
-            </button>
-          )}
-          <button className="ghost-button logout-button" type="button" onClick={onLogout} title="Desconectar">
-            Sair
+          <button
+            type="button"
+            className="header-icon-btn"
+            onClick={onOpenSettings}
+            title="Personalizar Widgets & Layout"
+            aria-label="Personalizar Hub"
+          >
+            <span className="material-symbols-outlined text-[16px]">tune</span>
+          </button>
+          <button
+            type="button"
+            className="header-icon-btn action-add"
+            onClick={onOpenCreateGroup}
+            title="Iniciar nova conversa ou grupo"
+            aria-label="Nova Conversa"
+          >
+            <span className="material-symbols-outlined text-[16px]">add</span>
           </button>
         </div>
       </div>
 
-      {/* BARRA DE BUSCA RÁPIDA (CTRL+K) */}
+      {/* 2. Quick Search Field (⌘K / Ctrl+K) */}
       <div
         className="sidebar-quick-search"
         onClick={onOpenSearch}
         role="button"
         tabIndex={0}
-        title="Abrir busca global (Ctrl + K)"
+        title="Buscar DMs, Squads ou mensagens (Ctrl + K)"
       >
-        <span className="quick-search-icon">🔍</span>
-        <span className="quick-search-placeholder">Buscar mensagens ou pessoas...</span>
-        <span className="quick-search-kbd">Ctrl+K</span>
+        <div className="quick-search-left">
+          <span className="material-symbols-outlined text-[15px] text-gray-500">search</span>
+          <span className="quick-search-placeholder">Buscar DMs, Squads ou mensagens...</span>
+        </div>
+        <span className="quick-search-kbd">⌘K</span>
       </div>
 
-      <nav className="sidebar-tabs" aria-label="Navegação lateral">
+      {/* 3. Dual-Mode Segmented Navigation Pill Header */}
+      <nav className="sidebar-tabs" aria-label="Filtros de navegação">
         <button
           type="button"
-          className={`sidebar-tab-item ${activeTab === "chats" ? "active" : ""}`}
-          onClick={() => onTabChange("chats")}
+          className={`sidebar-tab-item ${isDmsActive || isAllActive ? "active" : ""}`}
+          onClick={() => onTabChange(isDmsActive ? "all" : "dms")}
+          title="Mensagens Diretas"
         >
-          <span className="tab-icon">💬</span>
-          <span>Conversas</span>
+          <span className="material-symbols-outlined text-[14px]">forum</span>
+          <span>DMs</span>
+          {dmCount > 0 && <span className="tab-badge">{dmCount}</span>}
         </button>
+
         <button
           type="button"
-          className={`sidebar-tab-item ${activeTab === "calls" ? "active" : ""}`}
-          onClick={() => onTabChange("calls")}
+          className={`sidebar-tab-item ${isSquadsActive ? "active" : ""}`}
+          onClick={() => onTabChange("squads")}
+          title="Grupos & Squads"
         >
-          <span className="tab-icon">📞</span>
-          <span>Chamadas</span>
+          <span className="material-symbols-outlined text-[14px]">groups</span>
+          <span>Squads</span>
+          {squadCount > 0 && <span className="tab-badge subtle">{squadCount}</span>}
+        </button>
+
+        <button
+          type="button"
+          className={`sidebar-tab-item icon-only ${isCallsActive ? "active" : ""}`}
+          onClick={() => onTabChange("calls")}
+          title="Histórico de Chamadas"
+          aria-label="Chamadas"
+        >
+          <span className="material-symbols-outlined text-[14px]">call</span>
         </button>
       </nav>
     </header>

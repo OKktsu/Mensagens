@@ -898,6 +898,7 @@ export function App() {
         conversations={conversations}
         selectedConversationId={selectedConversationId}
         currentUserId={currentUser.id}
+        currentUser={currentUser}
         typingMap={sidebarTypingMap}
         onlineUserIds={onlineUserIds}
         activeTab={activeTab}
