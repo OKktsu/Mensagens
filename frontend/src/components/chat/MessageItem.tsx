@@ -27,6 +27,7 @@ type MessageItemProps = {
   onPin?: (messageId: string) => void;
   onJumpToQuotedMessage?: (messageId: string) => void;
   onUserClick?: (user: User) => void;
+  onRetry?: (message: Message) => void;
 };
 
 function formatBytes(bytes?: number | null): string {
@@ -74,6 +75,7 @@ export function MessageItem({
   onPin,
   onJumpToQuotedMessage,
   onUserClick,
+  onRetry,
 }: MessageItemProps) {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
 
@@ -170,7 +172,7 @@ export function MessageItem({
   return (
     <div
       id={`message-${message.id}`}
-      className={`stitch-message-row group ${isTtlActive ? "has-ttl" : ""} ${isMessageExpired ? "is-expired" : ""}`}
+      className={`stitch-message-row group ${isTtlActive ? "has-ttl" : ""} ${isMessageExpired ? "is-expired" : ""} ${message.isOptimistic ? "is-optimistic" : ""} ${message.sendError ? "has-send-error" : ""}`}
     >
       {/* Coluna Esquerda: Avatar Squircle */}
       <div
@@ -224,14 +226,37 @@ export function MessageItem({
           )}
 
           {isMine && !isDeleted && !isMessageExpired && (
-            <span
-              className={`material-symbols-outlined stitch-msg-check ${
-                isRead ? "read" : "delivered"
-              }`}
-              title={isRead ? "Lida" : "Enviada"}
-            >
-              done_all
-            </span>
+            message.sendError ? (
+              <span className="stitch-msg-error-container" title="Falha ao enviar mensagem">
+                <span className="material-symbols-outlined stitch-msg-error-icon">error</span>
+                {onRetry && (
+                  <button
+                    type="button"
+                    onClick={() => onRetry(message)}
+                    className="stitch-msg-retry-btn"
+                    title="Tentar enviar novamente"
+                  >
+                    Reenviar
+                  </button>
+                )}
+              </span>
+            ) : message.isOptimistic ? (
+              <span
+                className="material-symbols-outlined stitch-msg-check pending"
+                title="Enviando..."
+              >
+                schedule
+              </span>
+            ) : (
+              <span
+                className={`material-symbols-outlined stitch-msg-check ${
+                  isRead ? "read" : "delivered"
+                }`}
+                title={isRead ? "Lida" : "Enviada"}
+              >
+                done_all
+              </span>
+            )
           )}
           {message.isEdited && !isDeleted && !isMessageExpired && (
             <span className="stitch-msg-edited-tag">(editada)</span>
@@ -420,7 +445,7 @@ export function MessageItem({
       </div>
 
       {/* Barra de Ações Flutuante no Hover (Discord Toolbar) */}
-      {!isDeleted && (
+      {!isDeleted && !message.isOptimistic && !message.sendError && (
         <div className="stitch-msg-hover-toolbar">
           {showReactionPicker && (
             <div className="stitch-hover-quick-emojis">

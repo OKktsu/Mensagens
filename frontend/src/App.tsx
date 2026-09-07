@@ -26,7 +26,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useChatSocket } from "./hooks/useChatSocket";
 import { useWebRTCCall } from "./hooks/useWebRTCCall";
 import { useGroupWebRTCCall } from "./hooks/useGroupWebRTCCall";
-import { addMessageIfMissing } from "./utils/chat-helpers";
+import { addMessageIfMissing, reconcileOptimisticMessage } from "./utils/chat-helpers";
 import { AuthScreen } from "./components/auth/AuthScreen";
 import { Sidebar } from "./components/sidebar/Sidebar";
 import { SidebarTab } from "./components/sidebar/SidebarHeader";
@@ -127,13 +127,13 @@ export function App() {
         const cached = messagesCacheRef.current[newMessage.conversationId];
         messagesCacheRef.current[newMessage.conversationId] = {
           ...cached,
-          messages: addMessageIfMissing(cached.messages, newMessage),
+          messages: reconcileOptimisticMessage(cached.messages, newMessage),
         };
       }
 
       // Se for da conversa aberta no momento, adiciona à lista de mensagens e marca como lida
       if (newMessage.conversationId === selectedConversationId) {
-        setMessages((current) => addMessageIfMissing(current, newMessage));
+        setMessages((current) => reconcileOptimisticMessage(current, newMessage));
         if (token && selectedConversationId) {
           markConversationAsRead(token, selectedConversationId).catch(() => {});
         }
@@ -771,34 +771,178 @@ export function App() {
 
   async function handleSendMessage(event: FormEvent<HTMLFormElement>, ttl?: number) {
     event.preventDefault();
-    if (!token || !selectedConversationId || !messageText.trim()) return;
+    if (!token || !selectedConversationId || !messageText.trim() || !currentUser) return;
 
+    const content = messageText.trim();
+    const replyTo = replyingToMessage;
+    const targetConversationId = selectedConversationId;
+    const tempId = `optimistic-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const now = new Date().toISOString();
+
+    const optimisticMsg: Message = {
+      id: tempId,
+      conversationId: targetConversationId,
+      content,
+      type: "text",
+      createdAt: now,
+      senderId: currentUser.id,
+      sender: currentUser,
+      replyToId: replyTo?.id,
+      replyTo: replyTo || undefined,
+      ttl: ttl && ttl > 0 ? ttl : undefined,
+      expiresAt: ttl && ttl > 0 ? new Date(Date.now() + ttl * 1000).toISOString() : undefined,
+      isOptimistic: true,
+    };
+
+    // ⚡ 0ms: Limpa o campo de texto e citação imediatamente
+    setMessageText("");
+    setReplyingToMessage(null);
+    setChatError("");
+
+    // ⚡ 0ms: Insere a mensagem otimista no estado e cache local
+    setMessages((current) => [...current, optimisticMsg]);
+    if (messagesCacheRef.current[targetConversationId]) {
+      const cached = messagesCacheRef.current[targetConversationId];
+      messagesCacheRef.current[targetConversationId] = {
+        ...cached,
+        messages: [...cached.messages, optimisticMsg],
+      };
+    }
+
+    // ⚡ 0ms: Atualiza a barra lateral em memória e move para o topo (sem roundtrip extra)
+    setConversations((current) => {
+      const idx = current.findIndex((c) => c.id === targetConversationId);
+      if (idx === -1) return current;
+      const target = current[idx];
+      const updated: Conversation = {
+        ...target,
+        updatedAt: now,
+        messages: [
+          {
+            id: tempId,
+            content,
+            createdAt: now,
+            sender: {
+              id: currentUser.id,
+              name: currentUser.name,
+            },
+          },
+        ],
+      };
+      return [updated, ...current.filter((c) => c.id !== targetConversationId)];
+    });
+
+    // 🌐 Disparo da API em segundo plano
     try {
-      setChatError("");
-      const response = await sendMessage(token, selectedConversationId, {
-        content: messageText,
+      const response = await sendMessage(token, targetConversationId, {
+        content,
         type: "text",
-        replyToId: replyingToMessage?.id,
+        replyToId: replyTo?.id,
         ttl: ttl && ttl > 0 ? ttl : undefined,
       });
-      setMessages((current) => addMessageIfMissing(current, response.message));
-      setMessageText("");
-      setReplyingToMessage(null);
-      const conversationsResponse = await getConversations(token);
-      setConversations(conversationsResponse.conversations);
+
+      // Reconcilia a mensagem temporária com a mensagem persistida no banco
+      setMessages((current) => reconcileOptimisticMessage(current, response.message, tempId));
+      if (messagesCacheRef.current[targetConversationId]) {
+        const cached = messagesCacheRef.current[targetConversationId];
+        messagesCacheRef.current[targetConversationId] = {
+          ...cached,
+          messages: reconcileOptimisticMessage(cached.messages, response.message, tempId),
+        };
+      }
+
+      // Atualiza o preview na conversa caso ainda estivesse com o tempId
+      setConversations((current) =>
+        current.map((c) => {
+          if (c.id === targetConversationId && c.messages?.[0]?.id === tempId) {
+            return {
+              ...c,
+              messages: [
+                {
+                  id: response.message.id,
+                  content: response.message.content,
+                  createdAt: response.message.createdAt,
+                  sender: {
+                    id: response.message.sender.id,
+                    name: response.message.sender.name,
+                  },
+                },
+              ],
+            };
+          }
+          return c;
+        })
+      );
     } catch (caughtError) {
-      setChatError(caughtError instanceof Error ? caughtError.message : "Não foi possível enviar a mensagem.");
+      console.error("Falha no envio da mensagem:", caughtError);
+      // Marca a mensagem otimista com erro para permitir reenvio
+      setMessages((current) =>
+        current.map((m) => (m.id === tempId ? { ...m, isOptimistic: false, sendError: true } : m))
+      );
+      if (messagesCacheRef.current[targetConversationId]) {
+        const cached = messagesCacheRef.current[targetConversationId];
+        messagesCacheRef.current[targetConversationId] = {
+          ...cached,
+          messages: cached.messages.map((m) =>
+            m.id === tempId ? { ...m, isOptimistic: false, sendError: true } : m
+          ),
+        };
+      }
     }
   }
 
+  // Reenvio de mensagem com falha
+  const handleRetryMessage = useCallback(
+    async (failedMessage: Message) => {
+      if (!token || !failedMessage.conversationId) return;
+      const targetConversationId = failedMessage.conversationId;
+
+      // Coloca em estado de enviando novamente
+      setMessages((current) =>
+        current.map((m) =>
+          m.id === failedMessage.id ? { ...m, isOptimistic: true, sendError: false } : m
+        )
+      );
+
+      try {
+        const response = await sendMessage(token, targetConversationId, {
+          content: failedMessage.content,
+          type: failedMessage.type,
+          replyToId: failedMessage.replyToId || undefined,
+          ttl: failedMessage.ttl ?? undefined,
+        });
+
+        setMessages((current) =>
+          reconcileOptimisticMessage(current, response.message, failedMessage.id)
+        );
+        if (messagesCacheRef.current[targetConversationId]) {
+          const cached = messagesCacheRef.current[targetConversationId];
+          messagesCacheRef.current[targetConversationId] = {
+            ...cached,
+            messages: reconcileOptimisticMessage(cached.messages, response.message, failedMessage.id),
+          };
+        }
+      } catch (caughtError) {
+        console.error("Erro ao reenviar mensagem:", caughtError);
+        setMessages((current) =>
+          current.map((m) =>
+            m.id === failedMessage.id ? { ...m, isOptimistic: false, sendError: true } : m
+          )
+        );
+      }
+    },
+    [token]
+  );
+
   const handleSendFile = useCallback(
     async (file: File, ttl?: number) => {
-      if (!token || !selectedConversationId) return;
+      if (!token || !selectedConversationId || !currentUser) return;
+      const targetConversationId = selectedConversationId;
       try {
         setIsUploadingAttachment(true);
         setChatError("");
         const uploadRes = await uploadFile(token, file);
-        const sendRes = await sendMessage(token, selectedConversationId, {
+        const sendRes = await sendMessage(token, targetConversationId, {
           type: uploadRes.type,
           fileUrl: uploadRes.fileUrl,
           fileName: uploadRes.fileName,
@@ -806,10 +950,32 @@ export function App() {
           replyToId: replyingToMessage?.id,
           ttl: ttl && ttl > 0 ? ttl : undefined,
         });
-        setMessages((current) => addMessageIfMissing(current, sendRes.message));
+
+        setMessages((current) => reconcileOptimisticMessage(current, sendRes.message));
         setReplyingToMessage(null);
-        const conversationsResponse = await getConversations(token);
-        setConversations(conversationsResponse.conversations);
+
+        // Atualiza a conversa na barra lateral em memória
+        setConversations((current) => {
+          const idx = current.findIndex((c) => c.id === targetConversationId);
+          if (idx === -1) return current;
+          const target = current[idx];
+          const updated: Conversation = {
+            ...target,
+            updatedAt: sendRes.message.createdAt,
+            messages: [
+              {
+                id: sendRes.message.id,
+                content: sendRes.message.content || `Arquivo: ${uploadRes.fileName}`,
+                createdAt: sendRes.message.createdAt,
+                sender: {
+                  id: currentUser.id,
+                  name: currentUser.name,
+                },
+              },
+            ],
+          };
+          return [updated, ...current.filter((c) => c.id !== targetConversationId)];
+        });
       } catch (caughtError) {
         setChatError(
           caughtError instanceof Error ? caughtError.message : "Não foi possível enviar o arquivo.",
@@ -818,12 +984,13 @@ export function App() {
         setIsUploadingAttachment(false);
       }
     },
-    [token, selectedConversationId, replyingToMessage],
+    [token, selectedConversationId, replyingToMessage, currentUser],
   );
 
   const handleSendVoiceNote = useCallback(
     async (audioBlob: Blob, duration: number, ttl?: number) => {
-      if (!token || !selectedConversationId) return;
+      if (!token || !selectedConversationId || !currentUser) return;
+      const targetConversationId = selectedConversationId;
       try {
         setIsUploadingAttachment(true);
         setChatError("");
@@ -831,7 +998,7 @@ export function App() {
           type: audioBlob.type || "audio/webm",
         });
         const uploadRes = await uploadFile(token, file);
-        const sendRes = await sendMessage(token, selectedConversationId, {
+        const sendRes = await sendMessage(token, targetConversationId, {
           type: "audio",
           fileUrl: uploadRes.fileUrl,
           fileName: uploadRes.fileName,
@@ -840,10 +1007,32 @@ export function App() {
           replyToId: replyingToMessage?.id,
           ttl: ttl && ttl > 0 ? ttl : undefined,
         });
-        setMessages((current) => addMessageIfMissing(current, sendRes.message));
+
+        setMessages((current) => reconcileOptimisticMessage(current, sendRes.message));
         setReplyingToMessage(null);
-        const conversationsResponse = await getConversations(token);
-        setConversations(conversationsResponse.conversations);
+
+        // Atualiza a conversa na barra lateral em memória
+        setConversations((current) => {
+          const idx = current.findIndex((c) => c.id === targetConversationId);
+          if (idx === -1) return current;
+          const target = current[idx];
+          const updated: Conversation = {
+            ...target,
+            updatedAt: sendRes.message.createdAt,
+            messages: [
+              {
+                id: sendRes.message.id,
+                content: "Mensagem de voz",
+                createdAt: sendRes.message.createdAt,
+                sender: {
+                  id: currentUser.id,
+                  name: currentUser.name,
+                },
+              },
+            ],
+          };
+          return [updated, ...current.filter((c) => c.id !== targetConversationId)];
+        });
       } catch (caughtError) {
         setChatError(
           caughtError instanceof Error ? caughtError.message : "Não foi possível enviar o áudio.",
@@ -852,7 +1041,7 @@ export function App() {
         setIsUploadingAttachment(false);
       }
     },
-    [token, selectedConversationId, replyingToMessage],
+    [token, selectedConversationId, replyingToMessage, currentUser],
   );
 
   // Ações de mensagem
@@ -1254,6 +1443,7 @@ export function App() {
           onSendMessage={handleSendMessage}
           onTypingStart={handleTypingStart}
           onTypingStop={handleTypingStop}
+          onRetryMessage={handleRetryMessage}
         />
       )}
 

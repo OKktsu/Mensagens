@@ -24,6 +24,7 @@ type MessageListProps = {
   onToggleStar?: (messageId: string) => void;
   onPin?: (messageId: string) => void;
   onUserClick?: (user: import("../../services/api").User) => void;
+  onRetryMessage?: (message: Message) => void;
 };
 
 function MessageStreamSkeleton() {
@@ -97,6 +98,7 @@ export function MessageList({
   onToggleStar,
   onPin,
   onUserClick,
+  onRetryMessage,
 }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -334,6 +336,7 @@ export function MessageList({
                   onPin={onPin}
                   onJumpToQuotedMessage={handleJumpToMessage}
                   onUserClick={onUserClick}
+                  onRetry={onRetryMessage}
                 />
               </Fragment>
             );

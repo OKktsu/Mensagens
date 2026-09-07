@@ -55,6 +55,7 @@ type ChatPanelProps = {
   hasMoreMessages?: boolean;
   isLoadingMoreMessages?: boolean;
   onLoadMoreMessages?: () => void;
+  onRetryMessage?: (message: Message) => void;
 };
 
 export function ChatPanel({
@@ -100,6 +101,7 @@ export function ChatPanel({
   onSendMessage,
   onTypingStart,
   onTypingStop,
+  onRetryMessage,
 }: ChatPanelProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
@@ -171,6 +173,7 @@ export function ChatPanel({
           onToggleStar={onToggleStar}
           onPin={onPin}
           onUserClick={onUserClick}
+          onRetryMessage={onRetryMessage}
         />
 
         <MessageInput

@@ -76,6 +76,8 @@ export type Message = {
   }>;
   expiresAt?: string | null;
   ttl?: number | null;
+  isOptimistic?: boolean;
+  sendError?: boolean;
   createdAt: string;
   updatedAt?: string;
   conversationId?: string;

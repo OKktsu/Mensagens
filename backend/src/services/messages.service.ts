@@ -263,13 +263,16 @@ export async function createMessage(
 
   emitMessageCreated(enrichedMessage);
 
-  await prisma.conversation.update({
+  // Atualiza updatedAt da conversa em background sem bloquear o retorno imediato da API
+  prisma.conversation.update({
     where: {
       id: conversationId,
     },
     data: {
       updatedAt: new Date(),
     },
+  }).catch((err) => {
+    console.error("[Messages Service] Erro ao atualizar timestamp da conversa:", err);
   });
 
   return enrichedMessage;
