@@ -263,3 +263,11 @@ Mensagens/
       routes/
       services/
 ```
+
+## Amizades e pedidos
+
+Friendship representa a relacao aceita entre duas pessoas. O sistema registra a amizade nas duas direcoes para consultar os contatos de cada usuario de forma direta.
+
+ConversationRequest representa o convite antes da amizade. O pedido pode ser aceito, recusado, cancelado ou expirado. No aceite, a API cria a amizade e uma conversa direta em uma transacao.
+
+Somente amigos podem abrir DMs ou ser escolhidos como participantes de grupos.

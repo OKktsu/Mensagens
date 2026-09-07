@@ -304,6 +304,51 @@ export async function searchContent(
       : Promise.resolve([]),
   ]);
 
+  const matchedUserIds = usersRaw.map((user) => user.id);
+  const [friendships, pendingRequests] = await Promise.all([
+    prisma.friendship.findMany({
+      where: {
+        userId,
+        friendId: { in: matchedUserIds },
+      },
+      select: { friendId: true },
+    }),
+    prisma.conversationRequest.findMany({
+      where: {
+        status: "PENDING",
+        expiresAt: { gt: new Date() },
+        OR: [
+          { senderId: userId, receiverId: { in: matchedUserIds } },
+          { receiverId: userId, senderId: { in: matchedUserIds } },
+        ],
+      },
+      select: { id: true, senderId: true, receiverId: true },
+    }),
+  ]);
+
+  const friendIds = new Set(friendships.map((friendship) => friendship.friendId));
+  const formattedUsers = usersRaw.map((user) => {
+    if (friendIds.has(user.id)) {
+      return { ...user, relationship: "FRIEND" as const };
+    }
+
+    const pendingRequest = pendingRequests.find(
+      (request) => request.senderId === user.id || request.receiverId === user.id,
+    );
+
+    if (!pendingRequest) {
+      return { ...user, relationship: "NONE" as const };
+    }
+
+    return {
+      ...user,
+      relationship:
+        pendingRequest.receiverId === userId
+          ? ("INCOMING_REQUEST" as const)
+          : ("OUTGOING_REQUEST" as const),
+      requestId: pendingRequest.id,
+    };
+  });
   // Formatar Conversas
   const formattedConversations: SearchConversationResult[] = conversationsRaw.map((conv) => {
     const isGroup = !!conv.title || conv.members.length > 2;
@@ -360,7 +405,7 @@ export async function searchContent(
 
   return {
     conversations: formattedConversations,
-    users: usersRaw,
+    users: formattedUsers,
     messages: formattedMessages,
     totalMatches:
       formattedConversations.length + usersRaw.length + formattedMessages.length,

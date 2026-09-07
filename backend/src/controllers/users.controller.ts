@@ -2,13 +2,13 @@ import type { Request, Response } from "express";
 
 import { AppError } from "../utils/app-error.js";
 import {
-  listUsers,
   getUserById,
   updateUserProfile,
   updateUserAvatar,
   updateUserBanner,
 } from "../services/users.service.js";
 import { uploadToStorage } from "../config/supabase.js";
+import { listFriends, searchPeople } from "../services/friends.service.js";
 import { emitUserProfileUpdated } from "../realtime/socket.js";
 
 export async function index(request: Request, response: Response) {
@@ -16,13 +16,26 @@ export async function index(request: Request, response: Response) {
     throw new AppError("Usuario nao autenticado.", 401);
   }
 
-  const users = await listUsers(request.userId);
+  const users = await listFriends(request.userId);
 
   return response.json({
     users,
   });
 }
 
+
+export async function search(request: Request, response: Response) {
+  if (!request.userId) {
+    throw new AppError("Usuario nao autenticado.", 401);
+  }
+
+  const query = String(request.query.query ?? "").trim();
+  const users = await searchPeople(request.userId, query);
+
+  return response.json({
+    users,
+  });
+}
 export async function getProfile(request: Request, response: Response) {
   const targetUserId = request.params.id || request.userId;
   if (!targetUserId) {

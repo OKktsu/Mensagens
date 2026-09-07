@@ -4,11 +4,18 @@ import {
   Message,
   User,
   CallRecord,
+  ConversationRequest,
   createConversation,
   createGroup,
   getConversations,
   getMessages,
   getUsers,
+  getReceivedConversationRequests,
+  getSentConversationRequests,
+  sendConversationRequest,
+  acceptConversationRequest,
+  rejectConversationRequest,
+  cancelConversationRequest,
   getCalls,
   uploadFile,
   markConversationAsRead,
@@ -32,6 +39,7 @@ import { Sidebar } from "./components/sidebar/Sidebar";
 import { SidebarTab } from "./components/sidebar/SidebarHeader";
 import { ChatPanel } from "./components/chat/ChatPanel";
 import { CreateGroupModal } from "./components/sidebar/CreateGroupModal";
+import { FriendRequestsModal } from "./components/sidebar/FriendRequestsModal";
 import { ForwardMessageModal } from "./components/chat/ForwardMessageModal";
 import { IncomingCallModal } from "./components/call/IncomingCallModal";
 import { ActiveCallModal } from "./components/call/ActiveCallModal";
@@ -61,6 +69,9 @@ export function App() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [pdfModalData, setPdfModalData] = useState<{ url: string; fileName?: string } | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isFriendRequestsOpen, setIsFriendRequestsOpen] = useState(false);
+  const [receivedRequests, setReceivedRequests] = useState<ConversationRequest[]>([]);
+  const [sentRequests, setSentRequests] = useState<ConversationRequest[]>([]);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [activeUserProfilePopover, setActiveUserProfilePopover] = useState<User | null>(null);
 
@@ -360,6 +371,27 @@ export function App() {
     [currentUser, updateCurrentUser],
   );
 
+  const refreshFriendData = useCallback(async (authToken: string) => {
+    const [usersResponse, receivedResponse, sentResponse] = await Promise.all([
+      getUsers(authToken),
+      getReceivedConversationRequests(authToken),
+      getSentConversationRequests(authToken),
+    ]);
+
+    setUsers(usersResponse.users);
+    setReceivedRequests(receivedResponse.conversationRequests);
+    setSentRequests(sentResponse.conversationRequests);
+  }, []);
+
+  const handleFriendDataChanged = useCallback(() => {
+    if (!token) {
+      return;
+    }
+
+    refreshFriendData(token).catch(() => {
+      setChatError("Nao foi possivel atualizar seus amigos e pedidos.");
+    });
+  }, [refreshFriendData, token]);
   const { socket, socketError, sendTypingStart, sendTypingStop } = useChatSocket({
     token,
     onNewMessage: handleNewMessage,
@@ -536,15 +568,19 @@ export function App() {
       try {
         setIsInitialDataLoading(true);
         setChatError("");
-        const [usersResponse, conversationsResponse, callsResponse] = await Promise.all([
+        const [usersResponse, conversationsResponse, callsResponse, receivedRequestsResponse, sentRequestsResponse] = await Promise.all([
           getUsers(authToken),
           getConversations(authToken),
           getCalls(authToken).catch(() => ({ calls: [] })),
+          getReceivedConversationRequests(authToken),
+          getSentConversationRequests(authToken),
         ]);
 
         setUsers(usersResponse.users);
         setConversations(conversationsResponse.conversations);
         setCalls(callsResponse.calls);
+        setReceivedRequests(receivedRequestsResponse.conversationRequests);
+        setSentRequests(sentRequestsResponse.conversationRequests);
 
 
         // Preenche o mapa inicial de lastReadAt
@@ -750,6 +786,78 @@ export function App() {
     }
   }
 
+  async function handleGlobalUserAction(user: {
+    id: string;
+    relationship?: "FRIEND" | "NONE" | "INCOMING_REQUEST" | "OUTGOING_REQUEST";
+    requestId?: string;
+  }) {
+    if (!token) {
+      return;
+    }
+
+    if (user.relationship === "FRIEND") {
+      await handleSelectUser(user.id);
+      return;
+    }
+
+    try {
+      setChatError("");
+
+      if (user.relationship === "INCOMING_REQUEST") {
+        if (!user.requestId) {
+          throw new Error("Pedido de amizade nao encontrado.");
+        }
+
+        const response = await acceptConversationRequest(token, user.requestId);
+        await refreshFriendData(token);
+        const conversationsResponse = await getConversations(token);
+        setConversations(conversationsResponse.conversations);
+        setSelectedConversationId(response.conversation.id);
+        return;
+      }
+
+      if (user.relationship === "OUTGOING_REQUEST") {
+        setChatError("Voce ja enviou um pedido para essa pessoa.");
+        return;
+      }
+
+      await sendConversationRequest(token, user.id);
+      await refreshFriendData(token);
+      setChatError("Pedido de amizade enviado.");
+    } catch (caughtError) {
+      setChatError(caughtError instanceof Error ? caughtError.message : "Nao foi possivel atualizar o pedido.");
+    }
+  }
+
+  async function handleAcceptFriendRequest(requestId: string) {
+    if (!token) {
+      return;
+    }
+
+    const response = await acceptConversationRequest(token, requestId);
+    await refreshFriendData(token);
+    const conversationsResponse = await getConversations(token);
+    setConversations(conversationsResponse.conversations);
+    setSelectedConversationId(response.conversation.id);
+  }
+
+  async function handleRejectFriendRequest(requestId: string) {
+    if (!token) {
+      return;
+    }
+
+    await rejectConversationRequest(token, requestId);
+    await refreshFriendData(token);
+  }
+
+  async function handleCancelFriendRequest(requestId: string) {
+    if (!token) {
+      return;
+    }
+
+    await cancelConversationRequest(token, requestId);
+    await refreshFriendData(token);
+  }
   async function handleCreateGroup(participantIds: string[], title?: string) {
     if (!token) return;
 
@@ -1447,6 +1555,15 @@ export function App() {
         />
       )}
 
+      <FriendRequestsModal
+        isOpen={isFriendRequestsOpen}
+        receivedRequests={receivedRequests}
+        sentRequests={sentRequests}
+        onClose={() => setIsFriendRequestsOpen(false)}
+        onAccept={handleAcceptFriendRequest}
+        onReject={handleRejectFriendRequest}
+        onCancel={handleCancelFriendRequest}
+      />
       <CreateGroupModal
         isOpen={isCreateGroupOpen}
         onClose={() => setIsCreateGroupOpen(false)}
@@ -1518,15 +1635,14 @@ export function App() {
         onSelectConversation={(conversationId) => {
           setSelectedConversationId(conversationId);
         }}
-        onSelectUser={(user) => {
-          handleSelectUser(user.id);
-        }}
+        onSelectUser={handleGlobalUserAction}
         onOpenCreateGroup={() => {
           setIsCreateGroupOpen(true);
         }}
         onOpenProfileSettings={() => {
           setIsProfileModalOpen(true);
         }}
+        onOpenFriendRequests={() => setIsFriendRequestsOpen(true)}
         onSelectMessage={(conversationId, messageId) => {
           setSelectedConversationId(conversationId);
           setTimeout(() => {

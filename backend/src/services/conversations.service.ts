@@ -121,24 +121,59 @@ export async function markConversationAsRead(userId: string, conversationId: str
 
 
 
-export async function createConversation(currentUserId: string, participantId: string) {
+function getDirectConversationKey(firstUserId: string, secondUserId: string) {
+  return [firstUserId, secondUserId].sort().join(":");
+}
+
+const directConversationSelection = {
+  id: true,
+  title: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+export async function findOrCreateDirectConversation(
+  transaction: import("@prisma/client").Prisma.TransactionClient,
+  currentUserId: string,
+  participantId: string,
+) {
   if (currentUserId === participantId) {
     throw new AppError("Nao e possivel criar uma conversa com voce mesmo.");
   }
 
-  const participant = await prisma.user.findUnique({
-    where: {
-      id: participantId,
-    },
+  const participant = await transaction.user.findUnique({
+    where: { id: participantId },
+    select: { id: true },
   });
 
   if (!participant) {
     throw new AppError("Usuario participante nao encontrado.", 404);
   }
 
-  const existingConversation = await prisma.conversation.findFirst({
+  const directKey = getDirectConversationKey(currentUserId, participantId);
+  const existingConversation = await transaction.conversation.findUnique({
+    where: { directKey },
+    select: directConversationSelection,
+  });
+
+  if (existingConversation) {
+    return existingConversation;
+  }
+
+  const legacyConversation = await transaction.conversation.findFirst({
     where: {
+      title: null,
+      directKey: null,
       AND: [
+        {
+          members: {
+            every: {
+              userId: {
+                in: [currentUserId, participantId],
+              },
+            },
+          },
+        },
         {
           members: {
             some: {
@@ -155,40 +190,49 @@ export async function createConversation(currentUserId: string, participantId: s
         },
       ],
     },
-    select: {
-      id: true,
-      title: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+    select: directConversationSelection,
   });
 
-  if (existingConversation) {
-    return existingConversation;
+  if (legacyConversation) {
+    return transaction.conversation.update({
+      where: { id: legacyConversation.id },
+      data: { directKey },
+      select: directConversationSelection,
+    });
   }
 
-  return prisma.conversation.create({
+  return transaction.conversation.create({
     data: {
+      directKey,
       members: {
         create: [
-          {
-            userId: currentUserId,
-          },
-          {
-            userId: participantId,
-          },
+          { userId: currentUserId },
+          { userId: participantId },
         ],
       },
     },
-    select: {
-      id: true,
-      title: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+    select: directConversationSelection,
   });
 }
 
+export async function createConversation(currentUserId: string, participantId: string) {
+  const friendship = await prisma.friendship.findUnique({
+    where: {
+      userId_friendId: {
+        userId: currentUserId,
+        friendId: participantId,
+      },
+    },
+  });
+
+  if (!friendship) {
+    throw new AppError("Envie um pedido de amizade antes de iniciar uma conversa.", 403);
+  }
+
+  return prisma.$transaction((transaction) =>
+    findOrCreateDirectConversation(transaction, currentUserId, participantId),
+  );
+}
 export async function createGroupConversation(
   currentUserId: string,
   participantIds: string[],
@@ -215,6 +259,18 @@ export async function createGroupConversation(
     },
   });
 
+  const friendshipCount = await prisma.friendship.count({
+    where: {
+      userId: currentUserId,
+      friendId: {
+        in: uniqueParticipantIds,
+      },
+    },
+  });
+
+  if (friendshipCount !== uniqueParticipantIds.length) {
+    throw new AppError("Grupos so podem incluir usuarios da sua lista de amigos.", 403);
+  }
   if (foundUsers.length !== uniqueParticipantIds.length) {
     throw new AppError("Um ou mais participantes nao foram encontrados.", 404);
   }

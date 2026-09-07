@@ -3,6 +3,7 @@ import multer from "multer";
 
 import {
   index,
+  search,
   getProfile,
   updateProfile,
   uploadAvatar,
@@ -24,6 +25,7 @@ const upload = multer({
 
 usersRoutes.use(authMiddleware);
 
+usersRoutes.get("/search", asyncHandler(search));
 usersRoutes.get("/", asyncHandler(index));
 usersRoutes.get("/profile", asyncHandler(getProfile));
 usersRoutes.get("/profile/:id", asyncHandler(getProfile));

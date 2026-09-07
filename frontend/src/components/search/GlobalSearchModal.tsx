@@ -17,6 +17,7 @@ type GlobalSearchModalProps = {
   onSelectUser?: (user: { id: string; name: string; email: string }) => void;
   onOpenCreateGroup?: () => void;
   onOpenProfileSettings?: () => void;
+  onOpenFriendRequests?: () => void;
   activeConversationId?: string | null;
   onlineUserIds?: Set<string>;
 };
@@ -66,6 +67,7 @@ export function GlobalSearchModal({
   onSelectUser,
   onOpenCreateGroup,
   onOpenProfileSettings,
+  onOpenFriendRequests,
   activeConversationId,
   onlineUserIds,
 }: GlobalSearchModalProps) {
@@ -118,7 +120,18 @@ export function GlobalSearchModal({
           onOpenProfileSettings?.();
         },
       },
-    ];
+      {
+        id: "friend-requests",
+        title: "Pedidos de amizade",
+        subtitle: "Ver convites recebidos e enviados",
+        icon: "person_add",
+        shortcut: "A",
+        keywords: ["amigos", "pedido", "convite", "adicionar", "contato"],
+        onAction: () => {
+          onClose();
+          onOpenFriendRequests?.();
+        },
+      },    ];
 
     if (!query.trim()) {
       return list;
@@ -129,7 +142,7 @@ export function GlobalSearchModal({
       act.title.toLowerCase().includes(clean) ||
       act.keywords.some((k) => k.includes(clean))
     );
-  }, [query, onClose, onOpenCreateGroup, onOpenProfileSettings]);
+  }, [query, onClose, onOpenCreateGroup, onOpenProfileSettings, onOpenFriendRequests]);
 
   // Lista unificada para navegação por teclado (↑ ↓ Enter)
   const unifiedItems = useMemo<UnifiedItem[]>(() => {
@@ -581,8 +594,18 @@ export function GlobalSearchModal({
                       </div>
 
                       <span className="action-hint flex items-center gap-1">
-                        <span>Conversar</span>
-                        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                        <span>
+                          {user.relationship === "FRIEND"
+                            ? "Conversar"
+                            : user.relationship === "INCOMING_REQUEST"
+                              ? "Aceitar pedido"
+                              : user.relationship === "OUTGOING_REQUEST"
+                                ? "Pedido enviado"
+                                : "Adicionar"}
+                        </span>
+                        <span className="material-symbols-outlined text-[14px]">
+                          {user.relationship === "FRIEND" ? "arrow_forward" : "person_add"}
+                        </span>
                       </span>
                     </div>
                   );

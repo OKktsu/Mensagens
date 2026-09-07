@@ -514,3 +514,11 @@ export function emitUserProfileUpdated(user: unknown) {
   if (!io) return;
   io.emit("user:profile_updated", user);
 }
+
+export function emitConversationRequestReceived(receiverId: string) {
+  io?.to("user:" + receiverId).emit("conversation-request:received");
+}
+
+export function emitFriendshipCreated(userId: string) {
+  io?.to("user:" + userId).emit("friendship:created");
+}

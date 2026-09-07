@@ -28,6 +28,8 @@ type UseChatSocketOptions = {
   onUserStatus?: (payload: UserStatusPayload) => void;
   onUserProfileUpdated?: (user: import("../services/api").User) => void;
   onConversationRead?: (payload: ConversationReadPayload) => void;
+  onConversationRequestReceived?: () => void;
+  onFriendshipCreated?: () => void;
 };
 
 export function useChatSocket({
@@ -42,6 +44,8 @@ export function useChatSocket({
   onUserStatus,
   onUserProfileUpdated,
   onConversationRead,
+  onConversationRequestReceived,
+  onFriendshipCreated,
 }: UseChatSocketOptions) {
   const [socket, setSocket] = useState<ChatSocket | null>(null);
   const [socketError, setSocketError] = useState("");
@@ -76,6 +80,12 @@ export function useChatSocket({
 
   const onConversationReadRef = useRef(onConversationRead);
   onConversationReadRef.current = onConversationRead;
+
+  const onConversationRequestReceivedRef = useRef(onConversationRequestReceived);
+  onConversationRequestReceivedRef.current = onConversationRequestReceived;
+
+  const onFriendshipCreatedRef = useRef(onFriendshipCreated);
+  onFriendshipCreatedRef.current = onFriendshipCreated;
 
   // Cria e gerencia a conexão do socket APENAS quando o token mudar
   useEffect(() => {
@@ -134,6 +144,13 @@ export function useChatSocket({
 
     chatSocket.on("conversation:read", (payload: ConversationReadPayload) => {
       onConversationReadRef.current?.(payload);
+    });
+    chatSocket.on("conversation-request:received", () => {
+      onConversationRequestReceivedRef.current?.();
+    });
+
+    chatSocket.on("friendship:created", () => {
+      onFriendshipCreatedRef.current?.();
     });
 
     setSocket(chatSocket);

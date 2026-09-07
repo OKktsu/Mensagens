@@ -118,3 +118,9 @@ Start: pnpm --dir backend start
 O arquivo `backend/prisma/init.sql` registra o SQL inicial das tabelas do banco.
 
 Mais detalhes estao em `docs/architecture.md`.
+
+## Amizades e pedidos
+
+Usuarios nao iniciam uma conversa apenas por existirem no sistema. A busca global permite encontrar uma pessoa e enviar um pedido. Quando o pedido e aceito, o sistema cria uma amizade reciproca e uma conversa direta.
+
+A lista usada para DMs e para criar grupos contem apenas amigos. Pedidos pendentes expiram em sete dias.

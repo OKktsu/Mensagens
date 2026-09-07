@@ -190,6 +190,62 @@ export function getUsers(token: string) {
     token,
   });
 }
+export type ConversationRequest = {
+  id: string;
+  status: "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELED" | "EXPIRED";
+  expiresAt: string;
+  createdAt: string;
+  sender: User;
+  receiver: User;
+};
+
+export function searchUsers(token: string, query: string) {
+  return request<{ users: Array<User & { relationship: "FRIEND" | "NONE" | "INCOMING_REQUEST" | "OUTGOING_REQUEST" }> }>(
+    "/users/search?query=" + encodeURIComponent(query),
+    { token },
+  );
+}
+
+export function getReceivedConversationRequests(token: string) {
+  return request<{ conversationRequests: ConversationRequest[] }>("/conversation-requests/received", {
+    token,
+  });
+}
+
+export function getSentConversationRequests(token: string) {
+  return request<{ conversationRequests: ConversationRequest[] }>("/conversation-requests/sent", {
+    token,
+  });
+}
+
+export function sendConversationRequest(token: string, receiverId: string) {
+  return request<{ conversationRequest: ConversationRequest }>("/conversation-requests", {
+    method: "POST",
+    token,
+    body: { receiverId },
+  });
+}
+
+export function acceptConversationRequest(token: string, requestId: string) {
+  return request<{ conversation: Conversation }>("/conversation-requests/" + requestId + "/accept", {
+    method: "POST",
+    token,
+  });
+}
+
+export function rejectConversationRequest(token: string, requestId: string) {
+  return request<void>("/conversation-requests/" + requestId + "/reject", {
+    method: "POST",
+    token,
+  });
+}
+
+export function cancelConversationRequest(token: string, requestId: string) {
+  return request<void>("/conversation-requests/" + requestId, {
+    method: "DELETE",
+    token,
+  });
+}
 
 export function getConversations(token: string) {
   return request<{ conversations: Conversation[] }>("/conversations", {
@@ -492,6 +548,8 @@ export type SearchMessageResult = {
 
 export type SearchUserResult = {
   id: string;
+  relationship?: "FRIEND" | "NONE" | "INCOMING_REQUEST" | "OUTGOING_REQUEST";
+  requestId?: string;
   name: string;
   email: string;
   avatarUrl?: string | null;

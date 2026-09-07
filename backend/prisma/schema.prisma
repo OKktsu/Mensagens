@@ -24,8 +24,12 @@ model User {
   messages        Message[]
   reactions       MessageReaction[]
   starredMessages StarredMessage[]
-  callsMade       Call[]               @relation("CallsMade")
-  callsReceived   Call[]               @relation("CallsReceived")
+  callsMade                    Call[]                  @relation("CallsMade")
+  callsReceived                Call[]                  @relation("CallsReceived")
+  friendships                  Friendship[]            @relation("UserFriendships")
+  friendOf                     Friendship[]            @relation("FriendOf")
+  sentConversationRequests     ConversationRequest[]   @relation("SentConversationRequests")
+  receivedConversationRequests ConversationRequest[]   @relation("ReceivedConversationRequests")
 
   @@map("users")
 }
@@ -33,6 +37,7 @@ model User {
 model Conversation {
   id              String               @id @default(cuid())
   title           String?              @map("title")
+  directKey       String?              @unique @map("direct_key")
   pinnedMessageId String?              @map("pinned_message_id")
   createdAt       DateTime             @default(now()) @map("created_at")
   updatedAt       DateTime             @updatedAt @map("updated_at")
@@ -132,3 +137,39 @@ model Call {
   @@map("calls")
 }
 
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  friendId  String   @map("friend_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation("UserFriendships", fields: [userId], references: [id], onDelete: Cascade)
+  friend    User     @relation("FriendOf", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@map("friendships")
+}
+
+model ConversationRequest {
+  id         String                    @id @default(cuid())
+  senderId   String                    @map("sender_id")
+  receiverId String                    @map("receiver_id")
+  status     ConversationRequestStatus @default(PENDING)
+  expiresAt  DateTime                  @map("expires_at")
+  resolvedAt DateTime?                 @map("resolved_at")
+  createdAt  DateTime                  @default(now()) @map("created_at")
+  sender     User                      @relation("SentConversationRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User                      @relation("ReceivedConversationRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([receiverId, status])
+  @@index([senderId, status])
+  @@map("conversation_requests")
+}
+
+enum ConversationRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELED
+  EXPIRED
+}
