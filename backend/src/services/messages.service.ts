@@ -117,20 +117,58 @@ async function enrichMessageWithSignedUrls<
   };
 }
 
-export async function listMessages(conversationId: string, userId: string) {
+export type ListMessagesOptions = {
+  limit?: number;
+  before?: string;
+};
+
+export async function listMessages(
+  conversationId: string,
+  userId: string,
+  options: ListMessagesOptions = {},
+) {
   await ensureConversationMember(conversationId, userId);
 
-  const messages = await prisma.message.findMany({
-    where: {
-      conversationId,
-    },
+  const limit = options.limit ? Math.min(Math.max(Number(options.limit), 1), 100) : 25;
+  const whereClause: { conversationId: string; createdAt?: { lt: Date } } = {
+    conversationId,
+  };
+
+  if (options.before) {
+    const referenceMessage = await prisma.message.findUnique({
+      where: { id: options.before },
+      select: { createdAt: true },
+    });
+
+    if (referenceMessage) {
+      whereClause.createdAt = {
+        lt: referenceMessage.createdAt,
+      };
+    }
+  }
+
+  // Busca limit + 1 em ordem decrescente para saber se há mais mensagens anteriores
+  const rawMessages = await prisma.message.findMany({
+    where: whereClause,
     orderBy: {
-      createdAt: "asc",
+      createdAt: "desc",
     },
+    take: limit + 1,
     select: messageSelect,
   });
 
-  return Promise.all(messages.map((m) => enrichMessageWithSignedUrls(m)));
+  const hasMore = rawMessages.length > limit;
+  const pageMessages = hasMore ? rawMessages.slice(0, limit) : rawMessages;
+
+  // Reordena para ordem cronológica (asc) para renderização no chat
+  const chronological = pageMessages.reverse();
+  const enriched = await Promise.all(chronological.map((m) => enrichMessageWithSignedUrls(m)));
+
+  return {
+    messages: enriched,
+    hasMore,
+    nextCursor: hasMore && enriched.length > 0 ? enriched[0].id : null,
+  };
 }
 
 type CreateMessageInput = {

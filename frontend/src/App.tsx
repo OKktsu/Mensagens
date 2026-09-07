@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState, useCallback } from "react";
+import { FormEvent, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   Conversation,
   Message,
@@ -89,6 +89,16 @@ export function App() {
   const [messageText, setMessageText] = useState("");
   const [chatError, setChatError] = useState("");
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+  const [isInitialDataLoading, setIsInitialDataLoading] = useState(false);
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [isLoadingMoreMessages, setIsLoadingMoreMessages] = useState(false);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+
+  // Cache em memória de mensagens por conversa (SWR - Instant Switch em 0ms)
+  const messagesCacheRef = useRef<Record<string, { messages: Message[]; hasMore: boolean }>>({});
+  const selectedConversationIdRef = useRef<string | null>(selectedConversationId);
+  selectedConversationIdRef.current = selectedConversationId;
 
   // Estados para interações de mensagem
   const [replyingToMessage, setReplyingToMessage] = useState<Message | null>(null);
@@ -112,6 +122,15 @@ export function App() {
   // Manipulador de novas mensagens recebidas em tempo real
   const handleNewMessage = useCallback(
     (newMessage: Message) => {
+      // Atualiza o cache da conversa se existir
+      if (newMessage.conversationId && messagesCacheRef.current[newMessage.conversationId]) {
+        const cached = messagesCacheRef.current[newMessage.conversationId];
+        messagesCacheRef.current[newMessage.conversationId] = {
+          ...cached,
+          messages: addMessageIfMissing(cached.messages, newMessage),
+        };
+      }
+
       // Se for da conversa aberta no momento, adiciona à lista de mensagens e marca como lida
       if (newMessage.conversationId === selectedConversationId) {
         setMessages((current) => addMessageIfMissing(current, newMessage));
@@ -508,6 +527,7 @@ export function App() {
 
     async function loadInitialData() {
       try {
+        setIsInitialDataLoading(true);
         setChatError("");
         const [usersResponse, conversationsResponse, callsResponse] = await Promise.all([
           getUsers(authToken),
@@ -542,6 +562,8 @@ export function App() {
       } catch (caughtError) {
         setChatError(caughtError instanceof Error ? caughtError.message : "Sessão inválida.");
         logout();
+      } finally {
+        setIsInitialDataLoading(false);
       }
     }
 
@@ -549,28 +571,111 @@ export function App() {
   }, [token, logout]);
 
 
-  // Carrega histórico de mensagens da conversa selecionada
+  // Carrega histórico de mensagens com SWR (0ms quando em cache, revalidação em background)
   useEffect(() => {
     if (!token || !selectedConversationId) {
       setMessages([]);
+      setHasMoreMessages(false);
+      setIsMessagesLoading(false);
       return;
     }
 
     const authToken = token;
     const conversationId = selectedConversationId;
 
+    // ⚡ Se já temos em cache da conversa selecionada, renderiza IMEDIATAMENTE em 0ms
+    const cached = messagesCacheRef.current[conversationId];
+    if (cached) {
+      setMessages(cached.messages);
+      setHasMoreMessages(cached.hasMore);
+      setIsMessagesLoading(false);
+    } else {
+      setIsMessagesLoading(true);
+      setMessages([]);
+      setHasMoreMessages(false);
+    }
+
     async function loadMessages() {
       try {
         setChatError("");
-        const response = await getMessages(authToken, conversationId);
-        setMessages(response.messages);
+        const response = await getMessages(authToken, conversationId, { limit: 25 });
+        
+        // Sempre atualiza o cache da conversa em segundo plano
+        messagesCacheRef.current[conversationId] = {
+          messages: response.messages,
+          hasMore: Boolean(response.hasMore),
+        };
+
+        // 🛡️ GUARDA DE SEGURANÇA: Só atualiza a tela se o usuário AINDA estiver nesta conversa!
+        if (selectedConversationIdRef.current === conversationId) {
+          setMessages(response.messages);
+          setHasMoreMessages(Boolean(response.hasMore));
+          setIsMessagesLoading(false);
+        }
       } catch (caughtError) {
-        setChatError(caughtError instanceof Error ? caughtError.message : "Não foi possível carregar as mensagens.");
+        if (selectedConversationIdRef.current === conversationId) {
+          setChatError(caughtError instanceof Error ? caughtError.message : "Não foi possível carregar as mensagens.");
+          setIsMessagesLoading(false);
+        }
       }
     }
 
     loadMessages();
   }, [token, selectedConversationId]);
+
+  // Carrega lote anterior de mensagens mais antigas (Infinite Scroll ao subir)
+  const handleLoadMoreMessages = useCallback(async () => {
+    const activeConversationId = selectedConversationIdRef.current;
+    if (
+      !token ||
+      !activeConversationId ||
+      !hasMoreMessages ||
+      isLoadingMoreMessages ||
+      messages.length === 0
+    ) {
+      return;
+    }
+
+    const oldestMessageId = messages[0].id;
+    try {
+      setIsLoadingMoreMessages(true);
+      const response = await getMessages(token, activeConversationId, {
+        limit: 25,
+        before: oldestMessageId,
+      });
+
+      if (response.messages && response.messages.length > 0) {
+        // Atualiza cache em background
+        const currentCached = messagesCacheRef.current[activeConversationId]?.messages || [];
+        const existingCachedIds = new Set(currentCached.map((m) => m.id));
+        const newOlderCached = response.messages.filter((m) => !existingCachedIds.has(m.id));
+        messagesCacheRef.current[activeConversationId] = {
+          messages: [...newOlderCached, ...currentCached],
+          hasMore: Boolean(response.hasMore),
+        };
+
+        // 🛡️ Só atualiza a tela se o usuário ainda estiver na mesma conversa
+        if (selectedConversationIdRef.current === activeConversationId) {
+          setMessages((prev) => {
+            const existingIds = new Set(prev.map((m) => m.id));
+            const newOlder = response.messages.filter((m) => !existingIds.has(m.id));
+            return [...newOlder, ...prev];
+          });
+          setHasMoreMessages(Boolean(response.hasMore));
+        }
+      } else {
+        if (selectedConversationIdRef.current === activeConversationId) {
+          setHasMoreMessages(Boolean(response.hasMore));
+        }
+      }
+    } catch (caughtError) {
+      console.error("Erro ao carregar mensagens anteriores:", caughtError);
+    } finally {
+      if (selectedConversationIdRef.current === activeConversationId) {
+        setIsLoadingMoreMessages(false);
+      }
+    }
+  }, [token, hasMoreMessages, isLoadingMoreMessages, messages]);
 
   // Ao selecionar conversa, zera contador e avisa API
   const handleSelectConversation = useCallback(
@@ -682,6 +787,7 @@ export function App() {
     async (file: File) => {
       if (!token || !selectedConversationId) return;
       try {
+        setIsUploadingAttachment(true);
         setChatError("");
         const uploadRes = await uploadFile(token, file);
         const sendRes = await sendMessage(token, selectedConversationId, {
@@ -699,6 +805,8 @@ export function App() {
         setChatError(
           caughtError instanceof Error ? caughtError.message : "Não foi possível enviar o arquivo.",
         );
+      } finally {
+        setIsUploadingAttachment(false);
       }
     },
     [token, selectedConversationId, replyingToMessage],
@@ -708,6 +816,7 @@ export function App() {
     async (audioBlob: Blob, duration: number) => {
       if (!token || !selectedConversationId) return;
       try {
+        setIsUploadingAttachment(true);
         setChatError("");
         const file = new File([audioBlob], `voice-note-${Date.now()}.webm`, {
           type: audioBlob.type || "audio/webm",
@@ -729,6 +838,8 @@ export function App() {
         setChatError(
           caughtError instanceof Error ? caughtError.message : "Não foi possível enviar o áudio.",
         );
+      } finally {
+        setIsUploadingAttachment(false);
       }
     },
     [token, selectedConversationId, replyingToMessage],
@@ -1009,6 +1120,7 @@ export function App() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         calls={calls}
+        isLoading={isInitialDataLoading}
         onStartVoiceCall={handleStartVoiceCallDirect}
         onStartVideoCall={handleStartVideoCallDirect}
         onSelectConversation={handleSelectConversation}
@@ -1096,6 +1208,11 @@ export function App() {
           typingText={activeTypingText}
           isOnline={isRecipientOnline}
           recipientLastReadAt={activeRecipientLastReadAt}
+          isLoadingMessages={isMessagesLoading}
+          isUploading={isUploadingAttachment}
+          hasMoreMessages={hasMoreMessages}
+          isLoadingMoreMessages={isLoadingMoreMessages}
+          onLoadMoreMessages={handleLoadMoreMessages}
           replyingToMessage={replyingToMessage}
           onCancelReply={handleCancelReply}
           editingMessage={editingMessage}
@@ -1191,14 +1308,24 @@ export function App() {
         />
       )}
 
-      {/* MODAL DE BUSCA GLOBAL (CTRL+K) */}
+      {/* MODAL DE BUSCA GLOBAL (CTRL+K / COMMAND PALETTE) */}
       <GlobalSearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         token={token}
         activeConversationId={selectedConversationId}
+        onlineUserIds={onlineUserIds}
+        onSelectConversation={(conversationId) => {
+          setSelectedConversationId(conversationId);
+        }}
         onSelectUser={(user) => {
           handleSelectUser(user.id);
+        }}
+        onOpenCreateGroup={() => {
+          setIsCreateGroupOpen(true);
+        }}
+        onOpenProfileSettings={() => {
+          setIsProfileModalOpen(true);
         }}
         onSelectMessage={(conversationId, messageId) => {
           setSelectedConversationId(conversationId);

@@ -96,6 +96,9 @@ export async function uploadToStorage(
   };
 }
 
+// Cache em memória para URLs assinadas (evita requisições HTTP repetitivas ao Supabase)
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
 /**
  * Gera uma URL assinada (Signed URL) com token temporário para acesso seguro.
  */
@@ -122,6 +125,13 @@ export async function createSignedMediaUrl(
     .replace(/^chat-uploads\//, "")
     .split("?")[0];
 
+  // ⚡ Cache Hit: Se já temos URL válida em memória, retorna instantaneamente em 0ms
+  const now = Date.now();
+  const cached = signedUrlCache.get(cleanPath);
+  if (cached && cached.expiresAt > now + 60000) {
+    return cached.url;
+  }
+
   try {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase.storage
@@ -132,6 +142,12 @@ export async function createSignedMediaUrl(
       console.warn(`[Supabase Storage] Não foi possível gerar Signed URL para '${cleanPath}':`, error?.message);
       return path;
     }
+
+    // Armazena no cache (com margem de 5 minutos antes de expirar)
+    signedUrlCache.set(cleanPath, {
+      url: data.signedUrl,
+      expiresAt: now + (expiresInSeconds - 300) * 1000,
+    });
 
     return data.signedUrl;
   } catch (err) {

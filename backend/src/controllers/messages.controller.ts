@@ -23,10 +23,17 @@ function getAuthenticatedUserId(request: Request) {
 export async function index(request: Request, response: Response) {
   const userId = getAuthenticatedUserId(request);
   const { conversationId } = request.params;
-  const messages = await listMessages(conversationId, userId);
+  const { limit, before } = request.query;
+
+  const result = await listMessages(conversationId, userId, {
+    limit: limit ? Number(limit) : undefined,
+    before: typeof before === "string" ? before : undefined,
+  });
 
   return response.json({
-    messages,
+    messages: result.messages,
+    hasMore: result.hasMore,
+    nextCursor: result.nextCursor,
   });
 }
 

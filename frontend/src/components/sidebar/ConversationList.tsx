@@ -15,11 +15,34 @@ type ConversationListProps = {
   typingMap?: Record<string, string[]>;
   onlineUserIds?: Set<string>;
   filterTab?: SidebarTab;
+  isLoading?: boolean;
   onSelectConversation: (conversationId: string) => void;
   onOpenCreateGroup?: () => void;
   onOpenNewDm?: () => void;
   onStartVoiceCall?: (userId: string, userName: string, conversationId?: string) => void;
 };
+
+function ConversationListSkeleton() {
+  return (
+    <div className="conv-list-skeleton" aria-busy="true" aria-label="Carregando conversas...">
+      <div className="section-header-row" style={{ padding: "4px 8px" }}>
+        <span className="conv-skeleton-title" style={{ width: "90px", height: "10px" }} />
+      </div>
+      {[1, 2, 3, 4, 5].map((item) => (
+        <div key={`conv-skel-${item}`} className="conv-skeleton-item">
+          <div className="conv-skeleton-avatar" />
+          <div className="conv-skeleton-info">
+            <div className="conv-skeleton-title-row">
+              <div className="conv-skeleton-title" style={{ width: item % 2 === 0 ? "110px" : "140px" }} />
+              <div className="conv-skeleton-time" />
+            </div>
+            <div className="conv-skeleton-snippet" style={{ width: item % 2 === 0 ? "180px" : "120px" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // Gera um badge de função baseado no nome/email para dar o visual rico cyberpunk do Stitch
 function getUserRoleBadge(name: string): string {
@@ -48,6 +71,7 @@ export function ConversationList({
   typingMap,
   onlineUserIds,
   filterTab = "all",
+  isLoading = false,
   onSelectConversation,
   onOpenCreateGroup,
   onOpenNewDm,
@@ -72,6 +96,10 @@ export function ConversationList({
 
   const showSquads = filterTab === "all" || filterTab === "chats" || filterTab === "squads";
   const showDms = filterTab === "all" || filterTab === "chats" || filterTab === "dms";
+
+  if (isLoading) {
+    return <ConversationListSkeleton />;
+  }
 
   return (
     <div className="conversation-stream-viewport" role="region" aria-label="Lista de canais e mensagens">

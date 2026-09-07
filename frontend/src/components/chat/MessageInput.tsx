@@ -18,6 +18,7 @@ type MessageInputProps = {
   onCancelEdit?: () => void;
   onSaveEdit?: (newContent: string) => void;
   disabled: boolean;
+  isUploading?: boolean;
 };
 
 export function MessageInput({
@@ -34,6 +35,7 @@ export function MessageInput({
   onCancelEdit,
   onSaveEdit,
   disabled,
+  isUploading = false,
 }: MessageInputProps) {
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -216,6 +218,16 @@ export function MessageInput({
             >
               <span className="material-symbols-outlined">close</span>
             </button>
+          </div>
+        )}
+
+        {/* INDICADOR DE UPLOAD EM ANDAMENTO */}
+        {isUploading && (
+          <div className="input-reply-banner" style={{ borderLeftColor: "#a855f7", background: "rgba(168, 85, 247, 0.08)" }}>
+            <div className="upload-progress-chip">
+              <div className="upload-spinner-ring" />
+              <span>Enviando anexo para a nuvem...</span>
+            </div>
           </div>
         )}
 

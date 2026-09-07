@@ -115,7 +115,6 @@ export type Conversation = {
   }>;
 };
 
-
 export type CallRecord = {
   id: string;
   callerId: string;
@@ -133,7 +132,6 @@ export type CallRecord = {
     title?: string | null;
   } | null;
 };
-
 
 async function request<T>(path: string, options: RequestOptions = {}) {
   const headers: Record<string, string> = {
@@ -217,10 +215,28 @@ export function createGroup(
   });
 }
 
-export function getMessages(token: string, conversationId: string) {
-  return request<{ messages: Message[] }>(`/conversations/${conversationId}/messages`, {
-    token,
-  });
+export type GetMessagesResponse = {
+  messages: Message[];
+  hasMore?: boolean;
+  nextCursor?: string | null;
+};
+
+export function getMessages(
+  token: string,
+  conversationId: string,
+  options?: { limit?: number; before?: string },
+) {
+  const params = new URLSearchParams();
+  if (options?.limit) params.set("limit", String(options.limit));
+  if (options?.before) params.set("before", options.before);
+
+  const qs = params.toString();
+  return request<GetMessagesResponse>(
+    `/conversations/${conversationId}/messages${qs ? `?${qs}` : ""}`,
+    {
+      token,
+    },
+  );
 }
 
 export type SendMessagePayload = {
@@ -372,7 +388,6 @@ export function getMediaUrl(path?: string | null): string {
 }
 
 export function markConversationAsRead(token: string, conversationId: string) {
-
   return request<{ ok: boolean }>(`/conversations/${conversationId}/read`, {
     method: "POST",
     token,
@@ -425,7 +440,29 @@ export function getLinkPreview(token: string, url: string) {
   );
 }
 
-export type SearchCategory = "all" | "messages" | "users" | "media" | "links" | "files";
+export type SearchCategory =
+  | "all"
+  | "conversations"
+  | "messages"
+  | "users"
+  | "media"
+  | "links"
+  | "files";
+
+export type SearchConversationResult = {
+  id: string;
+  title: string;
+  isGroup: boolean;
+  memberCount: number;
+  avatarUrl?: string | null;
+  lastMessage?: {
+    content: string;
+    createdAt: string;
+    senderName: string;
+    type: string;
+  } | null;
+  updatedAt: string;
+};
 
 export type SearchMessageResult = {
   id: string;
@@ -441,6 +478,7 @@ export type SearchMessageResult = {
     id: string;
     name: string;
     email: string;
+    avatarUrl?: string | null;
   };
 };
 
@@ -448,9 +486,14 @@ export type SearchUserResult = {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string | null;
+  customStatus?: string | null;
+  statusEmoji?: string | null;
+  bio?: string | null;
 };
 
 export type SearchResults = {
+  conversations: SearchConversationResult[];
   messages: SearchMessageResult[];
   users: SearchUserResult[];
   totalMatches: number;
@@ -562,4 +605,3 @@ export async function getUserProfile(
     token,
   });
 }
-

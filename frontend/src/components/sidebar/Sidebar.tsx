@@ -20,6 +20,7 @@ type SidebarProps = {
   activeTab: SidebarTab;
   onTabChange: (tab: SidebarTab) => void;
   calls: CallRecord[];
+  isLoading?: boolean;
   onStartVoiceCall: (userId: string, userName: string, conversationId?: string) => void;
   onStartVideoCall: (userId: string, userName: string, conversationId?: string) => void;
   onSelectConversation: (conversationId: string) => void;
@@ -51,6 +52,7 @@ export function Sidebar({
   activeTab,
   onTabChange,
   calls,
+  isLoading = false,
   onStartVoiceCall,
   onStartVideoCall,
   onSelectConversation,
@@ -124,6 +126,7 @@ export function Sidebar({
           typingMap={typingMap}
           onlineUserIds={onlineUserIds}
           filterTab={activeTab}
+          isLoading={isLoading}
           onSelectConversation={onSelectConversation}
           onOpenCreateGroup={onOpenCreateGroup}
           onOpenNewDm={() => onOpenSearch?.()}

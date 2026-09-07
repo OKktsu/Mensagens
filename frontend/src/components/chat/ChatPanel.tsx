@@ -50,6 +50,11 @@ type ChatPanelProps = {
   onSendMessage: (event: FormEvent<HTMLFormElement>) => void;
   onTypingStart?: () => void;
   onTypingStop?: () => void;
+  isLoadingMessages?: boolean;
+  isUploading?: boolean;
+  hasMoreMessages?: boolean;
+  isLoadingMoreMessages?: boolean;
+  onLoadMoreMessages?: () => void;
 };
 
 export function ChatPanel({
@@ -63,6 +68,11 @@ export function ChatPanel({
   isOnline,
   onlineUserIds,
   recipientLastReadAt,
+  isLoadingMessages = false,
+  isUploading = false,
+  hasMoreMessages = false,
+  isLoadingMoreMessages = false,
+  onLoadMoreMessages,
   replyingToMessage,
   onCancelReply,
   editingMessage,
@@ -147,6 +157,10 @@ export function ChatPanel({
           recipientLastReadAt={recipientLastReadAt}
           pinnedMessageId={selectedConversation?.pinnedMessageId}
           token={token}
+          isLoading={isLoadingMessages}
+          hasMore={hasMoreMessages}
+          isLoadingMore={isLoadingMoreMessages}
+          onLoadMore={onLoadMoreMessages}
           onImageClick={onImageClick}
           onPdfClick={onPdfClick}
           onReply={onReply}
@@ -172,7 +186,8 @@ export function ChatPanel({
           editingMessage={editingMessage}
           onCancelEdit={onCancelEdit}
           onSaveEdit={onSaveEdit}
-          disabled={!selectedConversation}
+          disabled={!selectedConversation || isUploading}
+          isUploading={isUploading}
         />
       </section>
 
