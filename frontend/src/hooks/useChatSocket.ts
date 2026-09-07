@@ -26,6 +26,7 @@ type UseChatSocketOptions = {
   onUserTyping?: (payload: TypingPayload) => void;
   onOnlineUserIds?: (ids: string[]) => void;
   onUserStatus?: (payload: UserStatusPayload) => void;
+  onUserProfileUpdated?: (user: import("../services/api").User) => void;
   onConversationRead?: (payload: ConversationReadPayload) => void;
 };
 
@@ -39,6 +40,7 @@ export function useChatSocket({
   onUserTyping,
   onOnlineUserIds,
   onUserStatus,
+  onUserProfileUpdated,
   onConversationRead,
 }: UseChatSocketOptions) {
   const [socket, setSocket] = useState<ChatSocket | null>(null);
@@ -68,6 +70,9 @@ export function useChatSocket({
 
   const onUserStatusRef = useRef(onUserStatus);
   onUserStatusRef.current = onUserStatus;
+
+  const onUserProfileUpdatedRef = useRef(onUserProfileUpdated);
+  onUserProfileUpdatedRef.current = onUserProfileUpdated;
 
   const onConversationReadRef = useRef(onConversationRead);
   onConversationReadRef.current = onConversationRead;
@@ -121,6 +126,10 @@ export function useChatSocket({
 
     chatSocket.on("user:status", (payload: UserStatusPayload) => {
       onUserStatusRef.current?.(payload);
+    });
+
+    chatSocket.on("user:profile_updated", (user) => {
+      onUserProfileUpdatedRef.current?.(user);
     });
 
     chatSocket.on("conversation:read", (payload: ConversationReadPayload) => {

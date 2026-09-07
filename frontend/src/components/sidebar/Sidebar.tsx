@@ -26,6 +26,7 @@ type SidebarProps = {
   onLogout: () => void;
   onOpenCreateGroup: () => void;
   onOpenSearch?: () => void;
+  onOpenProfile?: () => void;
   onOpenSettings?: () => void;
   isMicMuted?: boolean;
   isAudioMuted?: boolean;
@@ -56,6 +57,7 @@ export function Sidebar({
   onLogout,
   onOpenCreateGroup,
   onOpenSearch,
+  onOpenProfile,
   onOpenSettings,
   isMicMuted,
   isAudioMuted,
@@ -133,6 +135,7 @@ export function Sidebar({
       <ProfileDock
         currentUser={currentUser ?? null}
         onLogout={onLogout}
+        onOpenProfile={onOpenProfile}
         onOpenSettings={onOpenSettings}
         isMicMuted={isMicMuted}
         isAudioMuted={isAudioMuted}

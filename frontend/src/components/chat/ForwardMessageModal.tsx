@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import type { Conversation, Message, User } from "../../services/api";
-import { Avatar } from "../common/Avatar";
 
 type ForwardMessageModalProps = {
   isOpen: boolean;
@@ -94,63 +93,95 @@ export function ForwardMessageModal({
   const getPreviewContent = () => {
     if (messageToForward.type === "image") {
       return (
-        <span className="flex items-center gap-1">
-          <span className="material-symbols-outlined text-[14px]">image</span>
-          <span>Foto</span>
+        <span className="flex items-center gap-1.5 text-slate-300">
+          <span className="material-symbols-outlined text-[15px] text-violet-400">image</span>
+          <span>Foto enviada</span>
         </span>
       );
     }
     if (messageToForward.type === "audio") {
       return (
-        <span className="flex items-center gap-1">
-          <span className="material-symbols-outlined text-[14px]">mic</span>
+        <span className="flex items-center gap-1.5 text-slate-300">
+          <span className="material-symbols-outlined text-[15px] text-emerald-400">mic</span>
           <span>Mensagem de voz</span>
         </span>
       );
     }
     if (messageToForward.type === "file") {
       return (
-        <span className="flex items-center gap-1">
-          <span className="material-symbols-outlined text-[14px]">description</span>
-          <span>{messageToForward.fileName || "Arquivo"}</span>
+        <span className="flex items-center gap-1.5 text-slate-300">
+          <span className="material-symbols-outlined text-[15px] text-rose-400">description</span>
+          <span className="truncate">{messageToForward.fileName || "Arquivo anexado"}</span>
         </span>
       );
     }
-    return <span>{messageToForward.content || ""}</span>;
+    return <span className="truncate">{messageToForward.content || ""}</span>;
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="modal-content forward-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Encaminhar mensagem</h2>
-          <button type="button" className="icon-button flex items-center justify-center" onClick={onClose} aria-label="Fechar">
+    <div className="forward-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="forward-modal-container" onClick={(e) => e.stopPropagation()}>
+        {/* CABEÇALHO */}
+        <header className="forward-modal-header">
+          <div className="forward-modal-title-group">
+            <div className="forward-modal-icon">
+              <span className="material-symbols-outlined text-[18px] text-violet-400">reply</span>
+            </div>
+            <div>
+              <h2 className="forward-modal-title">Encaminhar Mensagem</h2>
+              <p className="forward-modal-subtitle">Selecione uma ou mais conversas para enviar</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="forward-modal-close-btn"
+            onClick={onClose}
+            aria-label="Fechar"
+            title="Fechar (Esc)"
+          >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
-        </div>
+        </header>
 
-        {/* Prévia da mensagem a ser encaminhada */}
-        <div className="forward-preview-box">
-          <span className="forward-preview-label">Mensagem selecionada:</span>
+        {/* PRÉVIA DA MENSAGEM SELECIONADA */}
+        <div className="forward-preview-block">
+          <span className="forward-preview-heading">Mensagem selecionada:</span>
           <div className="forward-preview-card">
-            <strong>{messageToForward.sender.name}</strong>
-            <p>{getPreviewContent()}</p>
+            <div className="forward-preview-author">
+              <span className="material-symbols-outlined text-[13px] text-slate-400">person</span>
+              <span>{messageToForward.sender.name}</span>
+            </div>
+            <div className="forward-preview-snippet">{getPreviewContent()}</div>
           </div>
         </div>
 
-        <div className="forward-search-wrapper">
+        {/* CAMPO DE BUSCA */}
+        <div className="forward-search-box">
+          <span className="material-symbols-outlined forward-search-icon">search</span>
           <input
             type="text"
-            className="modal-search"
+            className="forward-search-input"
             placeholder="Pesquisar conversa ou contato..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            autoFocus
           />
+          {searchTerm && (
+            <button
+              type="button"
+              className="forward-search-clear"
+              onClick={() => setSearchTerm("")}
+              title="Limpar busca"
+            >
+              <span className="material-symbols-outlined text-[14px]">close</span>
+            </button>
+          )}
         </div>
 
-        <div className="forward-list">
+        {/* LISTA DE DESTINATÁRIOS */}
+        <div className="forward-targets-list">
           {filteredConversations.length > 0 && (
-            <div className="forward-section">
+            <div className="forward-targets-section">
               <span className="forward-section-title">Conversas Recentes</span>
               {filteredConversations.map((conv) => {
                 const isSelected = selectedConvIds.has(conv.id);
@@ -159,62 +190,119 @@ export function ForwardMessageModal({
                   conv.title ||
                   conv.members.find((m) => (m.userId || m.user?.id) !== currentUserId)?.user.name ||
                   "Conversa";
+                const initial = title.slice(0, 2).toUpperCase();
 
                 return (
-                  <label key={conv.id} className={`modal-user-item ${isSelected ? "selected" : ""}`}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleConv(conv.id)}
-                    />
-                    <Avatar name={title} isGroup={isGroup} size="small" />
-                    <div className="modal-user-info">
-                      <strong>{title}</strong>
-                      <small>{isGroup ? `${conv.members.length} participantes` : "Conversa direta"}</small>
+                  <div
+                    key={conv.id}
+                    className={`forward-target-item ${isSelected ? "selected" : ""}`}
+                    onClick={() => toggleConv(conv.id)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className={`forward-checkbox ${isSelected ? "checked" : ""}`}>
+                      {isSelected && (
+                        <span className="material-symbols-outlined text-[13px]">check</span>
+                      )}
                     </div>
-                  </label>
+
+                    <div className={`forward-target-avatar ${isGroup ? "group" : ""}`}>
+                      {isGroup ? (
+                        <span className="material-symbols-outlined text-[16px]">groups</span>
+                      ) : (
+                        <span>{initial}</span>
+                      )}
+                    </div>
+
+                    <div className="forward-target-info">
+                      <strong className="forward-target-name">{title}</strong>
+                      <span className="forward-target-sub">
+                        {isGroup ? `${conv.members.length} participantes` : "Conversa direta"}
+                      </span>
+                    </div>
+                  </div>
                 );
               })}
             </div>
           )}
 
           {filteredUsers.length > 0 && (
-            <div className="forward-section">
+            <div className="forward-targets-section">
               <span className="forward-section-title">Outros Contatos</span>
               {filteredUsers.map((user) => {
                 const isSelected = selectedUserIds.has(user.id);
+                const initial = user.name.slice(0, 2).toUpperCase();
+
                 return (
-                  <label key={user.id} className={`modal-user-item ${isSelected ? "selected" : ""}`}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleUser(user.id)}
-                    />
-                    <Avatar name={user.name} size="small" />
-                    <div className="modal-user-info">
-                      <strong>{user.name}</strong>
-                      <small>{user.email}</small>
+                  <div
+                    key={user.id}
+                    className={`forward-target-item ${isSelected ? "selected" : ""}`}
+                    onClick={() => toggleUser(user.id)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className={`forward-checkbox ${isSelected ? "checked" : ""}`}>
+                      {isSelected && (
+                        <span className="material-symbols-outlined text-[13px]">check</span>
+                      )}
                     </div>
-                  </label>
+
+                    <div className="forward-target-avatar">
+                      {user.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt={user.name}
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <span>{initial}</span>
+                      )}
+                    </div>
+
+                    <div className="forward-target-info">
+                      <strong className="forward-target-name">{user.name}</strong>
+                      <span className="forward-target-sub">{user.email}</span>
+                    </div>
+                  </div>
                 );
               })}
             </div>
           )}
+
+          {filteredConversations.length === 0 && filteredUsers.length === 0 && (
+            <div className="forward-empty-results">
+              <span className="material-symbols-outlined text-[24px] text-slate-500">search_off</span>
+              <span>Nenhuma conversa ou contato encontrado</span>
+            </div>
+          )}
         </div>
 
-        <div className="modal-footer">
-          <button type="button" className="ghost-button" onClick={onClose} disabled={isSending}>
+        {/* RODAPÉ */}
+        <footer className="forward-modal-footer">
+          <button
+            type="button"
+            className="forward-cancel-btn"
+            onClick={onClose}
+            disabled={isSending}
+          >
             Cancelar
           </button>
           <button
             type="button"
-            className="auth-form button"
+            className={`forward-submit-btn ${totalSelected > 0 ? "active" : "disabled"}`}
             onClick={handleConfirmForward}
             disabled={totalSelected === 0 || isSending}
           >
-            {isSending ? "Enviando..." : `Encaminhar (${totalSelected})`}
+            {isSending ? (
+              <span className="flex items-center gap-1.5">
+                <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Enviando...</span>
+              </span>
+            ) : (
+              <span>Encaminhar {totalSelected > 0 ? `(${totalSelected})` : ""}</span>
+            )}
           </button>
-        </div>
+        </footer>
       </div>
     </div>
   );

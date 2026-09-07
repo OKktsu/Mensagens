@@ -40,6 +40,8 @@ import { MinimizedCallWidget } from "./components/call/MinimizedCallWidget";
 import { ImageLightbox } from "./components/chat/ImageLightbox";
 import { PdfViewerModal } from "./components/chat/PdfViewerModal";
 import { GlobalSearchModal } from "./components/search/GlobalSearchModal";
+import { ProfileSettingsModal } from "./components/profile/ProfileSettingsModal";
+import { UserProfilePopover } from "./components/profile/UserProfilePopover";
 
 export function App() {
   const {
@@ -50,6 +52,7 @@ export function App() {
     login,
     register,
     logout,
+    updateCurrentUser,
     clearError: clearAuthError,
   } = useAuth();
 
@@ -58,6 +61,8 @@ export function App() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [pdfModalData, setPdfModalData] = useState<{ url: string; fileName?: string } | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [activeUserProfilePopover, setActiveUserProfilePopover] = useState<User | null>(null);
 
   // Estados para minimizar chamadas ativas e permitir navegar em outros chats
   const [isCallMinimized, setIsCallMinimized] = useState(false);
@@ -304,6 +309,31 @@ export function App() {
     setOnlineUserIds(new Set(ids));
   }, []);
 
+  // Manipulador de atualização de perfil em tempo real
+  const handleUserProfileUpdated = useCallback(
+    (updatedUser: User) => {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u))
+      );
+
+      if (currentUser && currentUser.id === updatedUser.id) {
+        updateCurrentUser(updatedUser);
+      }
+
+      setConversations((prev) =>
+        prev.map((c) => ({
+          ...c,
+          members: c.members.map((m) =>
+            (m.userId || m.user?.id) === updatedUser.id
+              ? { ...m, user: { ...m.user, ...updatedUser } }
+              : m
+          ),
+        }))
+      );
+    },
+    [currentUser, updateCurrentUser],
+  );
+
   const { socket, socketError, sendTypingStart, sendTypingStop } = useChatSocket({
     token,
     onNewMessage: handleNewMessage,
@@ -314,6 +344,7 @@ export function App() {
     onUserTyping: handleUserTyping,
     onOnlineUserIds: handleOnlineUserIds,
     onUserStatus: handleUserStatus,
+    onUserProfileUpdated: handleUserProfileUpdated,
     onConversationRead: handleConversationRead,
   });
 
@@ -984,6 +1015,8 @@ export function App() {
         onLogout={logout}
         onOpenCreateGroup={() => setIsCreateGroupOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenSettings={() => setIsProfileModalOpen(true)}
         isMicMuted={currentMicMuted}
         isAudioMuted={currentAudioMuted}
         isVideoOff={currentVideoOff}
@@ -1089,6 +1122,7 @@ export function App() {
           token={token}
           onImageClick={setLightboxImage}
           onPdfClick={(url, fileName) => setPdfModalData({ url, fileName })}
+          onUserClick={(user) => setActiveUserProfilePopover(user)}
           onMessageChange={setMessageText}
           onSendMessage={handleSendMessage}
           onTypingStart={handleTypingStart}
@@ -1125,6 +1159,36 @@ export function App() {
 
       {lightboxImage && (
         <ImageLightbox src={lightboxImage} onClose={() => setLightboxImage(null)} />
+      )}
+
+      {currentUser && token && (
+        <ProfileSettingsModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          currentUser={currentUser}
+          token={token}
+          onProfileUpdated={(updated) => {
+            updateCurrentUser(updated);
+          }}
+        />
+      )}
+
+      {activeUserProfilePopover && (
+        <UserProfilePopover
+          user={activeUserProfilePopover}
+          isOnline={onlineUserIds.has(activeUserProfilePopover.id)}
+          isSelf={activeUserProfilePopover.id === currentUser?.id}
+          onClose={() => setActiveUserProfilePopover(null)}
+          onSendMessage={() => {
+            handleSelectUser(activeUserProfilePopover.id);
+          }}
+          onStartVoiceCall={() => {
+            handleStartVoiceCallDirect(activeUserProfilePopover.id, activeUserProfilePopover.name);
+          }}
+          onStartVideoCall={() => {
+            handleStartVideoCallDirect(activeUserProfilePopover.id, activeUserProfilePopover.name);
+          }}
+        />
       )}
 
       {/* MODAL DE BUSCA GLOBAL (CTRL+K) */}

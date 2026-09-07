@@ -1,10 +1,11 @@
-import { FormEvent } from "react";
+import { FormEvent, useState } from "react";
 import type { Conversation, Message } from "../../services/api";
 import { ChatHeader } from "./ChatHeader";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
 import { GroupCallBanner } from "./GroupCallBanner";
 import { PinnedMessageBanner } from "./PinnedMessageBanner";
+import { ChatDetailsSidebar } from "./ChatDetailsSidebar";
 
 type ChatPanelProps = {
   selectedConversation: Conversation | null;
@@ -15,6 +16,7 @@ type ChatPanelProps = {
   messageText: string;
   typingText?: string | null;
   isOnline?: boolean;
+  onlineUserIds?: Set<string>;
   recipientLastReadAt?: string | null;
   replyingToMessage?: Message | null;
   onCancelReply?: () => void;
@@ -43,6 +45,7 @@ type ChatPanelProps = {
   token?: string | null;
   onImageClick?: (url: string) => void;
   onPdfClick?: (url: string, fileName?: string) => void;
+  onUserClick?: (user: import("../../services/api").User) => void;
   onMessageChange: (text: string) => void;
   onSendMessage: (event: FormEvent<HTMLFormElement>) => void;
   onTypingStart?: () => void;
@@ -58,6 +61,7 @@ export function ChatPanel({
   messageText,
   typingText,
   isOnline,
+  onlineUserIds,
   recipientLastReadAt,
   replyingToMessage,
   onCancelReply,
@@ -81,11 +85,14 @@ export function ChatPanel({
   token,
   onImageClick,
   onPdfClick,
+  onUserClick,
   onMessageChange,
   onSendMessage,
   onTypingStart,
   onTypingStop,
 }: ChatPanelProps) {
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
   const handleJumpToMessage = (messageId: string) => {
     const el = document.getElementById(`message-${messageId}`);
     if (el) {
@@ -98,71 +105,93 @@ export function ChatPanel({
   };
 
   return (
-    <section className="chat-panel" aria-label="Conversa aberta">
-      <ChatHeader
+    <div className="chat-panel-layout">
+      <section className="chat-panel" aria-label="Conversa aberta">
+        <ChatHeader
+          conversation={selectedConversation}
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
+          typingText={typingText}
+          isOnline={isOnline}
+          onStartVoiceCall={onStartVoiceCall}
+          onStartVideoCall={onStartVideoCall}
+          onUserClick={onUserClick}
+          isDetailsOpen={isDetailsOpen}
+          onToggleDetails={() => setIsDetailsOpen((prev) => !prev)}
+        />
+
+        {/* BANNER DE MENSAGEM FIXADA */}
+        {selectedConversation?.pinnedMessage && onUnpin && (
+          <PinnedMessageBanner
+            pinnedMessage={selectedConversation.pinnedMessage}
+            onJumpToMessage={handleJumpToMessage}
+            onUnpin={onUnpin}
+          />
+        )}
+
+        {activeGroupCallBanner && activeGroupCallBanner.isActive && onJoinGroupCall && (
+          <GroupCallBanner
+            callType={activeGroupCallBanner.callType}
+            participantCount={activeGroupCallBanner.participantCount}
+            initiatorName={activeGroupCallBanner.initiatorName}
+            onJoin={onJoinGroupCall}
+          />
+        )}
+
+        {error && <p className="inline-error">{error}</p>}
+
+        <MessageList
+          messages={messages}
+          conversation={selectedConversation}
+          currentUserId={currentUserId}
+          recipientLastReadAt={recipientLastReadAt}
+          pinnedMessageId={selectedConversation?.pinnedMessageId}
+          token={token}
+          onImageClick={onImageClick}
+          onPdfClick={onPdfClick}
+          onReply={onReply}
+          onForward={onForward}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onReaction={onReaction}
+          onToggleStar={onToggleStar}
+          onPin={onPin}
+          onUserClick={onUserClick}
+        />
+
+        <MessageInput
+          messageText={messageText}
+          onMessageChange={onMessageChange}
+          onSendMessage={onSendMessage}
+          onSendFile={onSendFile}
+          onSendVoiceNote={onSendVoiceNote}
+          onTypingStart={onTypingStart}
+          onTypingStop={onTypingStop}
+          replyingToMessage={replyingToMessage}
+          onCancelReply={onCancelReply}
+          editingMessage={editingMessage}
+          onCancelEdit={onCancelEdit}
+          onSaveEdit={onSaveEdit}
+          disabled={!selectedConversation}
+        />
+      </section>
+
+      {/* 3ª COLUNA LATERAL DE INFORMAÇÕES, MÍDIAS, ARQUIVOS, LINKS E FIXADAS */}
+      <ChatDetailsSidebar
+        isOpen={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
         conversation={selectedConversation}
         currentUserId={currentUserId}
-        currentUserName={currentUserName}
-        typingText={typingText}
-        isOnline={isOnline}
+        messages={messages}
+        onlineUserIds={onlineUserIds}
         onStartVoiceCall={onStartVoiceCall}
         onStartVideoCall={onStartVideoCall}
-      />
-
-      {/* BANNER DE MENSAGEM FIXADA */}
-      {selectedConversation?.pinnedMessage && onUnpin && (
-        <PinnedMessageBanner
-          pinnedMessage={selectedConversation.pinnedMessage}
-          onJumpToMessage={handleJumpToMessage}
-          onUnpin={onUnpin}
-        />
-      )}
-
-      {activeGroupCallBanner && activeGroupCallBanner.isActive && onJoinGroupCall && (
-        <GroupCallBanner
-          callType={activeGroupCallBanner.callType}
-          participantCount={activeGroupCallBanner.participantCount}
-          initiatorName={activeGroupCallBanner.initiatorName}
-          onJoin={onJoinGroupCall}
-        />
-      )}
-
-      {error && <p className="inline-error">{error}</p>}
-
-      <MessageList
-        messages={messages}
-        conversation={selectedConversation}
-        currentUserId={currentUserId}
-        recipientLastReadAt={recipientLastReadAt}
-        pinnedMessageId={selectedConversation?.pinnedMessageId}
-        token={token}
         onImageClick={onImageClick}
         onPdfClick={onPdfClick}
-        onReply={onReply}
-        onForward={onForward}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        onReaction={onReaction}
-        onToggleStar={onToggleStar}
-        onPin={onPin}
+        onJumpToMessage={handleJumpToMessage}
+        onUserClick={onUserClick}
       />
-
-      <MessageInput
-        messageText={messageText}
-        onMessageChange={onMessageChange}
-        onSendMessage={onSendMessage}
-        onSendFile={onSendFile}
-        onSendVoiceNote={onSendVoiceNote}
-        onTypingStart={onTypingStart}
-        onTypingStop={onTypingStop}
-        replyingToMessage={replyingToMessage}
-        onCancelReply={onCancelReply}
-        editingMessage={editingMessage}
-        onCancelEdit={onCancelEdit}
-        onSaveEdit={onSaveEdit}
-        disabled={!selectedConversation}
-      />
-    </section>
+    </div>
   );
 }
 

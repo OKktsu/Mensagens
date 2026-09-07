@@ -14,6 +14,12 @@ model User {
   email           String               @unique
   passwordHash    String               @map("password_hash")
   createdAt       DateTime             @default(now()) @map("created_at")
+  avatarUrl       String?              @map("avatar_url")
+  bannerUrl       String?              @map("banner_url")
+  bannerColor     String?              @default("#5865F2") @map("banner_color")
+  bio             String?              @map("bio")
+  customStatus    String?              @map("custom_status")
+  statusEmoji     String?              @map("status_emoji")
   memberships     ConversationMember[]
   messages        Message[]
   reactions       MessageReaction[]

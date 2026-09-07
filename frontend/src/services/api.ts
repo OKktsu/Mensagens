@@ -12,6 +12,11 @@ export type AuthUser = {
   email: string;
   createdAt: string;
   avatarUrl?: string | null;
+  bannerUrl?: string | null;
+  bannerColor?: string | null;
+  bio?: string | null;
+  customStatus?: string | null;
+  statusEmoji?: string | null;
 };
 
 export type AuthResponse = {
@@ -25,6 +30,11 @@ export type User = {
   email: string;
   createdAt: string;
   avatarUrl?: string | null;
+  bannerUrl?: string | null;
+  bannerColor?: string | null;
+  bio?: string | null;
+  customStatus?: string | null;
+  statusEmoji?: string | null;
 };
 
 export type MessageReaction = {
@@ -462,3 +472,94 @@ export function searchGlobal(
     token,
   });
 }
+
+export type UpdateProfilePayload = {
+  name?: string;
+  bio?: string | null;
+  bannerColor?: string | null;
+  customStatus?: string | null;
+  statusEmoji?: string | null;
+};
+
+export async function updateUserProfile(
+  token: string,
+  payload: UpdateProfilePayload,
+): Promise<{ user: User }> {
+  return request<{ user: User }>("/api/users/profile", {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export async function uploadUserAvatar(
+  token: string,
+  file: File,
+): Promise<{ user: User }> {
+  const formData = new FormData();
+  formData.append("avatar", file);
+
+  const response = await fetch(`${API_URL}/api/users/avatar`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Falha ao enviar avatar.");
+  }
+
+  return response.json();
+}
+
+export async function removeUserAvatar(token: string): Promise<{ user: User }> {
+  return request<{ user: User }>("/api/users/avatar", {
+    method: "DELETE",
+    token,
+  });
+}
+
+export async function uploadUserBanner(
+  token: string,
+  file: File,
+): Promise<{ user: User }> {
+  const formData = new FormData();
+  formData.append("banner", file);
+
+  const response = await fetch(`${API_URL}/api/users/banner`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Falha ao enviar banner.");
+  }
+
+  return response.json();
+}
+
+export async function removeUserBanner(token: string): Promise<{ user: User }> {
+  return request<{ user: User }>("/api/users/banner", {
+    method: "DELETE",
+    token,
+  });
+}
+
+export async function getUserProfile(
+  token: string,
+  userId?: string,
+): Promise<{ user: User }> {
+  const endpoint = userId ? `/api/users/profile/${userId}` : "/api/users/profile";
+  return request<{ user: User }>(endpoint, {
+    method: "GET",
+    token,
+  });
+}
+

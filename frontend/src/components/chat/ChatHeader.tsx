@@ -15,6 +15,9 @@ type ChatHeaderProps = {
   onStartVideoCall?: () => void;
   onToggleSearch?: () => void;
   pinnedCount?: number;
+  onUserClick?: (user: import("../../services/api").User) => void;
+  isDetailsOpen?: boolean;
+  onToggleDetails?: () => void;
 };
 
 // Gera tags de função baseadas no nome
@@ -45,6 +48,9 @@ export function ChatHeader({
   onStartVideoCall,
   onToggleSearch,
   pinnedCount = 0,
+  onUserClick,
+  isDetailsOpen = false,
+  onToggleDetails,
 }: ChatHeaderProps) {
   const isGroup = Boolean(
     conversation?.title || (conversation && conversation.members.length > 2),
@@ -65,10 +71,22 @@ export function ChatHeader({
       ? `${conversation?.members.length} membros`
       : "";
 
+  const handleHeaderClick = () => {
+    if (onToggleDetails) {
+      onToggleDetails();
+    } else if (!isGroup && otherMember?.user && onUserClick) {
+      onUserClick(otherMember.user);
+    }
+  };
+
   return (
     <header className="stitch-chat-header" aria-label="Cabeçalho da conversa">
       {conversation ? (
-        <div className="stitch-header-left">
+        <div
+          className={`stitch-header-left ${onToggleDetails || (!isGroup && otherMember?.user) ? "cursor-pointer" : ""}`}
+          onClick={handleHeaderClick}
+          title={isGroup ? "Ver detalhes do Squad" : "Ver dados do contato e mídias"}
+        >
           {/* Avatar com squircle e indicador de presença */}
           <div className="stitch-header-avatar-wrap">
             <Avatar
@@ -164,6 +182,20 @@ export function ChatHeader({
             >
               <span className="material-symbols-outlined text-[19px]">push_pin</span>
               <span className="stitch-btn-dot" />
+            </button>
+          )}
+
+          {onToggleDetails && (
+            <button
+              type="button"
+              className={`stitch-action-btn ${isDetailsOpen ? "active" : ""}`}
+              onClick={onToggleDetails}
+              title={isDetailsOpen ? "Ocultar dados do contato e mídias" : "Ver dados do contato e mídias"}
+              aria-label="Dados do contato"
+            >
+              <span className="material-symbols-outlined text-[19px]">
+                {isGroup ? "groups" : "info"}
+              </span>
             </button>
           )}
 

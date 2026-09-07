@@ -508,5 +508,7 @@ export async function emitConversationRead(conversationId: string, readerUserId:
   });
 }
 
-
-
+export function emitUserProfileUpdated(user: unknown) {
+  if (!io) return;
+  io.emit("user:profile_updated", user);
+}

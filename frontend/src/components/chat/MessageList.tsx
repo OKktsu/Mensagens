@@ -19,6 +19,7 @@ type MessageListProps = {
   onReaction?: (messageId: string, emoji: string) => void;
   onToggleStar?: (messageId: string) => void;
   onPin?: (messageId: string) => void;
+  onUserClick?: (user: import("../../services/api").User) => void;
 };
 
 export function MessageList({
@@ -37,6 +38,7 @@ export function MessageList({
   onReaction,
   onToggleStar,
   onPin,
+  onUserClick,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -56,51 +58,43 @@ export function MessageList({
     }
   };
 
-  const recipientReadDate = recipientLastReadAt ? new Date(recipientLastReadAt).getTime() : 0;
-  const isGroup = Boolean(conversation?.title || (conversation && conversation.members.length > 2));
-  const convTitle = conversation ? getConversationTitle(conversation, currentUserId) : "";
-  const convInitial = conversation ? getConversationInitial(conversation, currentUserId) : "";
+  if (!conversation) {
+    return (
+      <div className="stitch-empty-messages-pane">
+        <span className="material-symbols-outlined stitch-empty-hero-icon">forum</span>
+        <h3 className="stitch-empty-title">Nenhuma conversa selecionada</h3>
+        <p className="stitch-empty-subtitle">Selecione uma conversa ao lado para começar a interagir.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="stitch-message-stream-viewport" role="log" aria-label="Histórico de mensagens">
-      {/* Welcome Card de Início da Conversa estilo Stitch */}
-      {conversation && (
-        <div className="stitch-welcome-card">
-          <div className="stitch-welcome-avatar-wrap">
-            <span className="stitch-welcome-avatar-letter">{convInitial}</span>
-          </div>
-          <h1 className="stitch-welcome-title">{convTitle}</h1>
-          <p className="stitch-welcome-handle">
-            {isGroup ? `${conversation.members.length} membros no squad` : `@${convTitle.toLowerCase().replace(/\s+/g, ".")}`}
-          </p>
-          <p className="stitch-welcome-desc">
-            {isGroup
-              ? `Este é o início do canal #${convTitle}. Compartilhe arquivos, debata ideias e colabore em tempo real.`
-              : `Este é o início do seu histórico de mensagens diretas com ${convTitle}. Troque ideias, arquivos e áudios com segurança.`}
-          </p>
+    <div className="stitch-message-stream-scroll" aria-label="Histórico de Mensagens">
+      {/* Banner de início de conversa */}
+      <div className="stitch-conversation-starter-card">
+        <div className="starter-avatar-circle">
+          <span>{getConversationInitial(conversation, currentUserId)}</span>
         </div>
-      )}
+        <h2 className="starter-title">{getConversationTitle(conversation, currentUserId)}</h2>
+        <p className="starter-description">
+          Este é o início da sua história de mensagens com <strong>{getConversationTitle(conversation, currentUserId)}</strong>.
+        </p>
+      </div>
 
-      {/* Lista de Mensagens */}
       {messages.map((message, index) => {
-        const isMine = message.sender.id === currentUserId;
-        const msgTime = new Date(message.createdAt).getTime();
-        const isRead = isMine && recipientReadDate >= msgTime;
-        const isPinned = pinnedMessageId === message.id;
-
-        const previousMessage = messages[index - 1];
-        const showDateDivider =
-          !previousMessage || !isSameDay(previousMessage.createdAt, message.createdAt);
+        const isMine = message.sender?.id === currentUserId;
+        const isRead = Boolean(
+          recipientLastReadAt && new Date(message.createdAt) <= new Date(recipientLastReadAt),
+        );
+        const isPinned = Boolean(pinnedMessageId && message.id === pinnedMessageId);
+        const prevMessage = index > 0 ? messages[index - 1] : null;
+        const showDateDivider = !prevMessage || !isSameDay(prevMessage.createdAt, message.createdAt);
 
         return (
           <Fragment key={message.id}>
             {showDateDivider && (
-              <div className="stitch-date-divider">
-                <div className="stitch-date-divider-line" />
-                <span className="stitch-date-divider-label">
-                  {formatDateDivider(message.createdAt)}
-                </span>
-                <div className="stitch-date-divider-line" />
+              <div className="stitch-date-separator">
+                <span className="stitch-date-bubble">{formatDateDivider(message.createdAt)}</span>
               </div>
             )}
             <MessageItem
@@ -120,6 +114,7 @@ export function MessageList({
               onToggleStar={onToggleStar}
               onPin={onPin}
               onJumpToQuotedMessage={handleJumpToMessage}
+              onUserClick={onUserClick}
             />
           </Fragment>
         );

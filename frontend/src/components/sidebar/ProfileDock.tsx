@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { AuthUser } from "../../services/api";
 
 type ProfileDockProps = {
   currentUser: AuthUser | null;
   onLogout: () => void;
+  onOpenProfile?: () => void;
   onOpenSettings?: () => void;
   isMicMuted?: boolean;
   isAudioMuted?: boolean;
@@ -17,6 +18,7 @@ type ProfileDockProps = {
 export function ProfileDock({
   currentUser,
   onLogout,
+  onOpenProfile,
   onOpenSettings,
   isMicMuted = false,
   isAudioMuted = false,
@@ -30,6 +32,20 @@ export function ProfileDock({
   const [internalAudioMuted, setInternalAudioMuted] = useState(isAudioMuted);
   const [internalVideoOff, setInternalVideoOff] = useState(isVideoOff);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowSettingsMenu(false);
+      }
+    };
+    if (showSettingsMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showSettingsMenu]);
 
   const handleToggleMic = () => {
     if (onToggleMic) {
@@ -67,18 +83,42 @@ export function ProfileDock({
         {/* User Details */}
         <div
           className="profile-user-group"
-          onClick={() => setShowSettingsMenu((prev) => !prev)}
+          onClick={() => {
+            if (onOpenProfile) {
+              onOpenProfile();
+            } else {
+              setShowSettingsMenu((prev) => !prev);
+            }
+          }}
           role="button"
           tabIndex={0}
-          title="Opções da Conta"
+          title="Ver e Editar Perfil"
         >
           <div className="profile-avatar-squircle">
-            <span>{initial}</span>
+            {currentUser?.avatarUrl ? (
+              <img
+                src={currentUser.avatarUrl}
+                alt={currentUser.name}
+                className="w-full h-full object-cover rounded-full"
+              />
+            ) : (
+              <span>{initial}</span>
+            )}
             <span className="profile-presence-dot" title="Online" />
           </div>
 
           <div className="profile-text-details">
             <span className="profile-user-name">{currentUser?.name || "Usuário"}</span>
+            {(currentUser?.customStatus || currentUser?.statusEmoji) ? (
+              <span className="profile-custom-status-snippet">
+                {currentUser.statusEmoji && <span className="mr-0.5">{currentUser.statusEmoji}</span>}
+                <span className="truncate">{currentUser.customStatus}</span>
+              </span>
+            ) : (
+              <span className="profile-user-handle">
+                Online
+              </span>
+            )}
           </div>
         </div>
 
@@ -124,23 +164,36 @@ export function ProfileDock({
           </button>
 
           {/* Configurações */}
-          <div className="profile-settings-wrapper">
+          <div className="profile-settings-wrapper" ref={dropdownRef}>
             <button
               type="button"
               className="profile-action-btn"
               onClick={() => setShowSettingsMenu((prev) => !prev)}
-              title="Opções e Sair"
+              title="Opções de Perfil e Conta"
               aria-label="Configurações"
             >
               <span className="material-symbols-outlined text-[17px]">settings</span>
             </button>
 
             {showSettingsMenu && (
-              <div className="profile-settings-dropdown">
+              <div className="profile-settings-dropdown animate-fade-in-up">
                 <div className="dropdown-user-header">
                   <strong>{currentUser?.name}</strong>
                   <small>{currentUser?.email}</small>
                 </div>
+                {onOpenProfile && (
+                  <button
+                    type="button"
+                    className="dropdown-item"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      onOpenProfile();
+                    }}
+                  >
+                    <span className="material-symbols-outlined text-[16px] text-indigo-400">person</span>
+                    <span>Editar Perfil</span>
+                  </button>
+                )}
                 {onOpenSettings && (
                   <button
                     type="button"
@@ -173,3 +226,4 @@ export function ProfileDock({
     </div>
   );
 }
+

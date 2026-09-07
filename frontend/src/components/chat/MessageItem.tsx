@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import type { Message } from "../../services/api";
+import type { Message, User } from "../../services/api";
 import { getMediaUrl } from "../../services/api";
 import { formatTime } from "../../utils/chat-helpers";
 import { extractFirstUrl, parseTextWithLinks } from "../../utils/link-extractor";
@@ -26,6 +26,7 @@ type MessageItemProps = {
   onToggleStar?: (messageId: string) => void;
   onPin?: (messageId: string) => void;
   onJumpToQuotedMessage?: (messageId: string) => void;
+  onUserClick?: (user: User) => void;
 };
 
 function formatBytes(bytes?: number | null): string {
@@ -33,6 +34,13 @@ function formatBytes(bytes?: number | null): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatFileName(fileName?: string | null): string {
+  if (!fileName) return "Documento";
+  let cleaned = fileName.replace(/^\d+[-_]\d+[-_]?/, "").replace(/^[a-f0-9-]{36}[-_]/i, "");
+  cleaned = cleaned.replace(/^\d{10,14}[-_]/, "");
+  return cleaned || fileName;
 }
 
 export function MessageItem({
@@ -52,6 +60,7 @@ export function MessageItem({
   onToggleStar,
   onPin,
   onJumpToQuotedMessage,
+  onUserClick,
 }: MessageItemProps) {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
 
@@ -112,9 +121,22 @@ export function MessageItem({
   return (
     <div id={`message-${message.id}`} className="stitch-message-row group">
       {/* Coluna Esquerda: Avatar Squircle */}
-      <div className="stitch-msg-avatar-col">
+      <div
+        className="stitch-msg-avatar-col"
+        onClick={() => onUserClick?.(message.sender)}
+        style={{ cursor: "pointer" }}
+        title={`Ver perfil de ${message.sender.name}`}
+      >
         <div className="stitch-msg-squircle-avatar">
-          <span>{initial}</span>
+          {message.sender?.avatarUrl ? (
+            <img
+              src={message.sender.avatarUrl}
+              alt={message.sender.name}
+              className="w-full h-full object-cover rounded-full"
+            />
+          ) : (
+            <span>{initial}</span>
+          )}
         </div>
       </div>
 
@@ -122,7 +144,11 @@ export function MessageItem({
       <div className="stitch-msg-content-col">
         {/* Linha de Cabeçalho: Nome + Badge + Timestamp + Checks */}
         <div className="stitch-msg-meta-line">
-          <span className={`stitch-msg-author ${isMine ? "is-me" : "is-partner"}`}>
+          <span
+            className={`stitch-msg-author ${isMine ? "is-me" : "is-partner"} cursor-pointer hover:underline`}
+            onClick={() => onUserClick?.(message.sender)}
+            title={`Ver perfil de ${message.sender.name}`}
+          >
             {message.sender.name}
           </span>
           {isMine ? (
@@ -211,7 +237,7 @@ export function MessageItem({
                 className="stitch-msg-file-card"
                 onClick={() => {
                   if (isPdf && onPdfClick) {
-                    onPdfClick(effectiveMediaUrl, message.fileName || "documento.pdf");
+                    onPdfClick(effectiveMediaUrl, formatFileName(message.fileName));
                   }
                 }}
               >
@@ -221,8 +247,8 @@ export function MessageItem({
                   </span>
                 </div>
                 <div className="stitch-file-meta">
-                  <strong className="stitch-file-name">
-                    {message.fileName || "Documento"}
+                  <strong className="stitch-file-name" title={message.fileName || undefined}>
+                    {formatFileName(message.fileName)}
                   </strong>
                   <span className="stitch-file-size">
                     {formatBytes(message.fileSize)}
@@ -231,7 +257,7 @@ export function MessageItem({
                 </div>
                 <a
                   href={effectiveMediaUrl}
-                  download={message.fileName || "arquivo"}
+                  download={formatFileName(message.fileName)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="stitch-file-dl-btn"

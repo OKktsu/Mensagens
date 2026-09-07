@@ -9,6 +9,12 @@ type AuthUser = {
   name: string;
   email: string;
   createdAt: Date;
+  avatarUrl?: string | null;
+  bannerUrl?: string | null;
+  bannerColor?: string | null;
+  bio?: string | null;
+  customStatus?: string | null;
+  statusEmoji?: string | null;
 };
 
 type AuthResponse = {
@@ -64,6 +70,12 @@ export async function registerUser(
       name: true,
       email: true,
       createdAt: true,
+      avatarUrl: true,
+      bannerUrl: true,
+      bannerColor: true,
+      bio: true,
+      customStatus: true,
+      statusEmoji: true,
     },
   });
 
@@ -77,6 +89,19 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
   const user = await prisma.user.findUnique({
     where: {
       email: normalizeEmail(email),
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      passwordHash: true,
+      createdAt: true,
+      avatarUrl: true,
+      bannerUrl: true,
+      bannerColor: true,
+      bio: true,
+      customStatus: true,
+      statusEmoji: true,
     },
   });
 
@@ -96,6 +121,12 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
       name: user.name,
       email: user.email,
       createdAt: user.createdAt,
+      avatarUrl: user.avatarUrl,
+      bannerUrl: user.bannerUrl,
+      bannerColor: user.bannerColor,
+      bio: user.bio,
+      customStatus: user.customStatus,
+      statusEmoji: user.statusEmoji,
     },
     token: signAuthToken(user.id),
   };

@@ -27,6 +27,16 @@ export function extractFirstUrl(text?: string | null): string | null {
 }
 
 /**
+ * Extrai todas as URLs encontradas em um texto.
+ */
+export function extractAllUrls(text?: string | null): string[] {
+  if (!text) return [];
+  const matches = text.match(URL_REGEX);
+  if (!matches) return [];
+  return Array.from(new Set(matches.map(cleanUrl)));
+}
+
+/**
  * Extrai o ID do vídeo do YouTube caso a URL seja do YouTube ou YouTube Shorts.
  */
 export function getYouTubeVideoId(url?: string | null): string | null {

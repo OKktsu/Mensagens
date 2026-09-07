@@ -89,7 +89,7 @@ export function LinkPreviewCard({ url, token }: LinkPreviewCardProps) {
   const description = preview?.description || "";
   const imageUrl =
     preview?.image ||
-    (youtubeId ? `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` : null);
+    (youtubeId ? `https://i.ytimg.com/vi/${youtubeId}/mqdefault.jpg` : null);
   const themeColor = preview?.themeColor || (youtubeId ? "#FF0000" : "#6366f1");
 
   return (

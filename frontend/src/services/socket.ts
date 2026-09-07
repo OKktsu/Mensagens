@@ -105,6 +105,7 @@ type ServerToClientEvents = {
   }) => void;
   "user:typing": (payload: TypingPayload) => void;
   "user:status": (payload: UserStatusPayload) => void;
+  "user:profile_updated": (user: import("./api").User) => void;
   "conversation:read": (payload: ConversationReadPayload) => void;
   "call:incoming": (payload: CallIncomingPayload) => void;
   "call:answered": (payload: CallAnsweredPayload) => void;

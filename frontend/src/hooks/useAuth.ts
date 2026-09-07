@@ -65,6 +65,15 @@ export function useAuth() {
     setError("");
   }, []);
 
+  const updateCurrentUser = useCallback((updated: Partial<AuthUser> | AuthUser) => {
+    setCurrentUser((prev) => {
+      if (!prev) return null;
+      const next = { ...prev, ...updated };
+      localStorage.setItem(userStorageKey, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const clearError = useCallback(() => {
     setError("");
   }, []);
@@ -77,6 +86,7 @@ export function useAuth() {
     login,
     register,
     logout,
+    updateCurrentUser,
     clearError,
   };
 }
