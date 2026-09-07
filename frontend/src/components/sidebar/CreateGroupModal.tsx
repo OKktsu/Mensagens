@@ -84,84 +84,129 @@ export function CreateGroupModal({
   return (
     <div className="modal-backdrop" onClick={handleClose}>
       <div
-        className="modal-content"
+        className="modal-content create-group-modal"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
       >
         <header className="modal-header">
-          <h2 id="modal-title">Criar Novo Grupo</h2>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[20px] text-violet-400">group_add</span>
+            <h2 id="modal-title">Criar Novo Grupo</h2>
+          </div>
           <button
             type="button"
-            className="icon-button"
+            className="modal-close-btn flex items-center justify-center"
             onClick={handleClose}
             aria-label="Fechar"
+            title="Fechar"
           >
-            ✕
+            <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </header>
 
         <form onSubmit={handleSubmit} className="modal-form">
-          <label className="modal-label">
-            Nome do Grupo (opcional)
-            <input
-              type="text"
-              placeholder="Ex: Time de Produto, Galera do Churrasco..."
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-            />
-          </label>
-
-          <div className="modal-section-title">
-            <span>Adicionar Membros</span>
-            <small>
-              {selectedUserIds.length}{" "}
-              {selectedUserIds.length === 1 ? "selecionado" : "selecionados"}
-            </small>
+          <div className="modal-field">
+            <label className="modal-label" htmlFor="group-name-input">
+              Nome do Grupo <span className="modal-optional-hint">(opcional)</span>
+            </label>
+            <div className="modal-input-wrapper">
+              <span className="material-symbols-outlined modal-input-icon">groups</span>
+              <input
+                id="group-name-input"
+                type="text"
+                className="modal-text-input"
+                placeholder="Ex: Time de Produto, Galera do Churrasco..."
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                autoFocus
+              />
+            </div>
           </div>
 
-          <input
-            type="search"
-            placeholder="Filtrar por nome ou email..."
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-            className="modal-search"
-          />
+          <div className="modal-members-section">
+            <div className="modal-section-title">
+              <span>Adicionar Membros</span>
+              <span className="modal-selected-badge">
+                {selectedUserIds.length}{" "}
+                {selectedUserIds.length === 1 ? "selecionado" : "selecionados"}
+              </span>
+            </div>
 
-          <div className="modal-user-list">
-            {filteredUsers.map((user) => {
-              const isSelected = selectedUserIds.includes(user.id);
-              return (
-                <label
-                  key={user.id}
-                  className={`modal-user-item ${isSelected ? "selected" : ""}`}
+            <div className="modal-search-wrapper">
+              <span className="material-symbols-outlined modal-search-icon">search</span>
+              <input
+                type="search"
+                placeholder="Filtrar por nome ou email..."
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                className="modal-search-input"
+              />
+              {searchText && (
+                <button
+                  type="button"
+                  className="modal-search-clear"
+                  onClick={() => setSearchText("")}
+                  title="Limpar pesquisa"
                 >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => handleToggleUser(user.id)}
-                  />
-                  <Avatar name={user.name} size="small" />
-                  <span className="modal-user-info">
-                    <strong>{user.name}</strong>
-                    <small>{user.email}</small>
-                  </span>
-                </label>
-              );
-            })}
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              )}
+            </div>
 
-            {!filteredUsers.length && (
-              <p className="empty-state">Nenhum usuário encontrado.</p>
-            )}
+            <div className="modal-user-list custom-scrollbar">
+              {filteredUsers.map((user) => {
+                const isSelected = selectedUserIds.includes(user.id);
+                return (
+                  <div
+                    key={user.id}
+                    className={`modal-user-row ${isSelected ? "selected" : ""}`}
+                    onClick={() => handleToggleUser(user.id)}
+                    role="checkbox"
+                    aria-checked={isSelected}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === " " || e.key === "Enter") {
+                        e.preventDefault();
+                        handleToggleUser(user.id);
+                      }
+                    }}
+                  >
+                    <div className={`modal-custom-checkbox ${isSelected ? "checked" : ""}`}>
+                      {isSelected && (
+                        <span className="material-symbols-outlined text-[13px]">check</span>
+                      )}
+                    </div>
+                    <Avatar name={user.name} size="small" />
+                    <div className="modal-user-details">
+                      <span className="modal-user-name">{user.name}</span>
+                      <span className="modal-user-email">{user.email}</span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {!filteredUsers.length && (
+                <div className="modal-empty-state">
+                  <span className="material-symbols-outlined text-[24px] text-gray-500 mb-1">person_search</span>
+                  <p>Nenhum contato encontrado</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          {error && <p className="form-error">{error}</p>}
+          {error && (
+            <div className="modal-error-banner flex items-center gap-2">
+              <span className="material-symbols-outlined text-[16px] text-red-400">error</span>
+              <span>{error}</span>
+            </div>
+          )}
 
           <footer className="modal-footer">
             <button
               type="button"
-              className="ghost-button"
+              className="modal-btn-cancel"
               onClick={handleClose}
               disabled={isSubmitting}
             >
@@ -169,9 +214,20 @@ export function CreateGroupModal({
             </button>
             <button
               type="submit"
+              className="modal-btn-submit"
               disabled={selectedUserIds.length === 0 || isSubmitting}
             >
-              {isSubmitting ? "Criando..." : "Criar Grupo"}
+              {isSubmitting ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
+                  <span>Criando...</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[16px]">check</span>
+                  <span>Criar Grupo</span>
+                </>
+              )}
             </button>
           </footer>
         </form>

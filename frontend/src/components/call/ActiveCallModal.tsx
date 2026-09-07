@@ -21,6 +21,7 @@ type ActiveCallModalProps = {
   onToggleVideo: () => void;
   onToggleScreenShare?: () => void;
   onToggleDeafen?: () => void;
+  onMinimize?: () => void;
   onEndCall: () => void;
 };
 
@@ -49,6 +50,7 @@ export function ActiveCallModal({
   onToggleVideo,
   onToggleScreenShare,
   onToggleDeafen,
+  onMinimize,
   onEndCall,
 }: ActiveCallModalProps) {
   const isConnected = callState === "connected";
@@ -128,7 +130,8 @@ export function ActiveCallModal({
         minWidth: 0,
         minHeight: 0,
         flex: 1,
-        backgroundColor: "#0b0c10",
+        backgroundColor: "#0d0f14",
+        backgroundImage: "radial-gradient(circle at 50% 50%, #171922 0%, #0a0b0f 100%)",
         color: "#e2e8f0",
         display: "flex",
         flexDirection: "column",
@@ -138,98 +141,21 @@ export function ActiveCallModal({
       role="region"
       aria-label="Chamada PulseChat"
     >
-      {/* 1. TOP NAVIGATION BAR */}
-      <header className="pulse-call-header">
-        <div className="pulse-call-header-left">
-          <div className="pulse-call-brand">
-            <div className="pulse-call-logo-box">
-              <span className="material-symbols-outlined text-[20px] text-white">bolt</span>
-            </div>
-            <span className="pulse-call-brand-text">
-              Pulse<span className="text-[#a78bfa]">Chat</span>
-            </span>
-          </div>
+      {/* BOTÃO FLUTUANTE DE MINIMIZAR */}
+      {onMinimize && (
+        <button
+          type="button"
+          className="pulse-call-top-minimize-btn"
+          onClick={onMinimize}
+          title="Minimizar chamada (continuar navegando no chat)"
+        >
+          <span className="material-symbols-outlined text-[18px]">expand_more</span>
+          <span className="text-xs font-semibold">Minimizar</span>
+        </button>
+      )}
 
-          <div className="pulse-call-header-divider" />
-
-          <nav className="pulse-call-breadcrumbs">
-            <span className="breadcrumb-parent">Conversa Direta</span>
-            <span className="breadcrumb-slash">/</span>
-            <div className="breadcrumb-active-room">
-              <span className="material-symbols-outlined text-[15px] text-[#a78bfa]">
-                {isVideoCall ? "videocam" : "call"}
-              </span>
-              <span>{peerName}</span>
-            </div>
-            <span className="pulse-call-crypto-badge">
-              <span className="material-symbols-outlined text-[13px]">lock</span>
-              <span>E2E Criptografado</span>
-            </span>
-          </nav>
-        </div>
-
-        <div className="pulse-call-header-center">
-          <div className="pulse-call-live-pill">
-            <span className="live-dot-wrapper">
-              <span className="live-dot-ping" />
-              <span className="live-dot" />
-            </span>
-            <span className="live-label">{isConnected ? "AO VIVO" : "CHAMANDO..."}</span>
-            <span className="live-sep">•</span>
-            <span className="live-timer">{formatDuration(callDuration)}</span>
-          </div>
-
-          <div className="pulse-call-webrtc-pill">
-            <span className="material-symbols-outlined text-[14px] text-[#a78bfa]">trending_up</span>
-            <span>96kbps</span>
-            <span className="text-[#4b5563]">•</span>
-            <span className="text-emerald-400 font-semibold">16ms WebRTC</span>
-          </div>
-        </div>
-
-        <div className="pulse-call-header-right">
-          <div className="pulse-call-layout-toggle">
-            <button
-              type="button"
-              className={`layout-btn ${layoutMode === "speaker" ? "active" : ""}`}
-              onClick={() => setLayoutMode("speaker")}
-              title="Orador Principal"
-            >
-              <span className="material-symbols-outlined text-[16px]">person</span>
-            </button>
-            <button
-              type="button"
-              className={`layout-btn ${layoutMode === "grid" ? "active" : ""}`}
-              onClick={() => setLayoutMode("grid")}
-              title="Visão em Grade"
-            >
-              <span className="material-symbols-outlined text-[16px]">grid_view</span>
-            </button>
-          </div>
-
-          <button
-            type="button"
-            className="pulse-call-icon-btn"
-            onClick={toggleFullscreen}
-            title={isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              {isFullscreen ? "fullscreen_exit" : "fullscreen"}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className="pulse-call-icon-btn"
-            title="Configurações da Sala"
-          >
-            <span className="material-symbols-outlined text-[18px]">settings</span>
-          </button>
-        </div>
-      </header>
-
-      {/* 2. PALCO PRINCIPAL (MAIN STAGE) */}
-      <main className="pulse-call-stage">
+      {/* 1. PALCO PRINCIPAL (MAIN STAGE) */}
+      <main className="pulse-call-main-stage">
         {/* MODO GRADE (GRID) */}
         {layoutMode === "grid" ? (
           <div className="pulse-call-grid-stage">
@@ -330,29 +256,28 @@ export function ActiveCallModal({
               <div className="pulse-call-glow-ring ring-2" />
               
               <div className="pulse-call-speaker-avatar-wrap">
-                <Avatar
-                  name={peerName}
-                  src={peerAvatarUrl}
-                  size="large"
-                  className="w-full h-full text-4xl shadow-2xl"
-                />
-                <div className="pulse-call-status-badge">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[10px] font-mono text-emerald-300 font-bold uppercase">
-                    {isConnected ? "Conectado" : "Chamando..."}
-                  </span>
-                </div>
+                {peerAvatarUrl ? (
+                  <img
+                    src={peerAvatarUrl}
+                    alt={peerName}
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full rounded-full flex items-center justify-center text-4xl font-extrabold text-white select-none shadow-inner"
+                    style={{
+                      background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                    }}
+                  >
+                    {peerName.trim().slice(0, 1).toUpperCase() || "U"}
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="pulse-call-speaker-meta">
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-extrabold text-white tracking-tight">{peerName}</h1>
-                <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-[#8b5cf6]/20 text-[#c084fc] border border-[#8b5cf6]/30">
-                  {isVideoCall ? "Vídeo HD" : "Voz HQ"}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 font-mono">@{peerName.toLowerCase().replace(/\s+/g, ".")}</p>
+              <h1 className="text-2xl font-extrabold text-white tracking-tight">{peerName}</h1>
+              <p className="text-sm text-slate-400 font-mono">@{peerName.toLowerCase().replace(/\s+/g, ".")}</p>
 
               <div className="pulse-call-eq-container">
                 <span className="eq-bar bar-1" />
@@ -363,104 +288,14 @@ export function ActiveCallModal({
                 <span className="eq-bar bar-6" />
                 <span className="eq-bar bar-7" />
               </div>
-
-              <div className="pulse-call-hardware-badge">
-                <span className="material-symbols-outlined text-[14px] text-slate-400">mic</span>
-                <span className="font-mono text-[11px] text-slate-400">
-                  {isMuted ? "Microfone Silenciado" : "Microfone • Ativo"}
-                </span>
-              </div>
             </div>
           </div>
         )}
-
-        {/* 3. SECONDARY PARTICIPANT STRIP */}
-        <div className="pulse-call-participant-strip">
-          <div className="participant-strip-scroll">
-            <div className="pulse-participant-card self">
-              <div className="participant-card-top">
-                <div className="flex items-center gap-2.5">
-                  <Avatar name={currentUserName} size="small" />
-                  <div className="overflow-hidden">
-                    <p className="text-xs font-bold text-slate-100 truncate">{currentUserName} (Você)</p>
-                    <p className="text-[10px] text-slate-400 truncate">
-                      {isScreenSharing ? "Compartilhando Tela" : "Conectado"}
-                    </p>
-                  </div>
-                </div>
-                {isMuted && (
-                  <span className="w-6 h-6 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[13px]">mic_off</span>
-                  </span>
-                )}
-              </div>
-              <div className="participant-card-bottom">
-                <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                  <span className={`w-1.5 h-1.5 rounded-full ${hasLocalVideo ? "bg-emerald-400" : "bg-slate-500"}`} />
-                  {hasLocalVideo ? "Câmera Ativa" : "Câmera Desligada"}
-                </span>
-                <span className="text-slate-500 font-mono text-[10px]">{isMuted ? "Mudo" : "Voz Ativa"}</span>
-              </div>
-            </div>
-
-            <div className="pulse-participant-card">
-              <div className="participant-card-top">
-                <div className="flex items-center gap-2.5">
-                  <Avatar name={peerName} src={peerAvatarUrl} size="small" />
-                  <div className="overflow-hidden">
-                    <p className="text-xs font-bold text-slate-100 truncate">{peerName}</p>
-                    <p className="text-[10px] text-slate-400 truncate">
-                      {isCalling ? "Chamando..." : "Conectado"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="participant-card-bottom">
-                <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                  <span className={`w-1.5 h-1.5 rounded-full ${hasRemoteVideo ? "bg-emerald-400" : isCalling ? "bg-amber-400" : "bg-slate-500"}`} />
-                  {hasRemoteVideo ? "Câmera Ligada" : isCalling ? "Aguardando..." : "Apenas Áudio"}
-                </span>
-                <span className="text-emerald-400 font-mono text-[10px]">HD</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </main>
 
-      {/* 4. BOTTOM PERSISTENT GLASS DOCK */}
+      {/* 2. BARRA DE CONTROLE INFERIOR (APENAS 2 BOTÕES) */}
       <footer className="pulse-call-footer">
-        <div className="pulse-call-footer-side left">
-          <div className="pulse-call-device-pill">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="font-mono text-[11px] truncate max-w-[140px]">Dispositivo de Áudio</span>
-          </div>
-        </div>
-
         <div className="pulse-glass-dock">
-          <button
-            type="button"
-            className={`dock-action-btn ${isMuted ? "muted" : ""}`}
-            onClick={onToggleMute}
-            title={isMuted ? "Desmutar microfone" : "Mutar microfone"}
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              {isMuted ? "mic_off" : "mic"}
-            </span>
-            <span className="dock-btn-label">{isMuted ? "Mudo" : "Mutar"}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`dock-action-btn ${isVideoOff ? "off" : ""}`}
-            onClick={onToggleVideo}
-            title={isVideoOff ? "Ligar câmera" : "Desligar câmera"}
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              {isVideoOff ? "videocam_off" : "videocam"}
-            </span>
-            <span className="dock-btn-label">{isVideoOff ? "Sem Vídeo" : "Câmera"}</span>
-          </button>
-
           {onToggleScreenShare && (
             <button
               type="button"
@@ -472,47 +307,22 @@ export function ActiveCallModal({
                 {isScreenSharing ? "stop_screen_share" : "screen_share"}
               </span>
               <span className="dock-btn-label">
-                {isScreenSharing ? "Compartilhando" : "Tela"}
+                {isScreenSharing ? "Compartilhando" : "Compartilhar Tela"}
               </span>
             </button>
           )}
-
-          {onToggleDeafen && (
-            <button
-              type="button"
-              className={`dock-action-btn ${isDeafened ? "deafened" : ""}`}
-              onClick={onToggleDeafen}
-              title={isDeafened ? "Ativar Áudio da Sala" : "Desativar Áudio da Sala"}
-            >
-              <span className="material-symbols-outlined text-[20px]">
-                {isDeafened ? "headset_off" : "headphones"}
-              </span>
-              <span className="dock-btn-label">{isDeafened ? "Surdo" : "Áudio"}</span>
-            </button>
-          )}
-
-          <div className="dock-divider" />
 
           <button
             type="button"
             className="dock-hangup-btn"
             onClick={onEndCall}
-            title="Encerrar Chamada"
+            title="Desligar Chamada"
           >
             <span className="material-symbols-outlined text-[20px] rotate-[135deg]">
               call_end
             </span>
-            <span className="dock-btn-label">Sair</span>
+            <span className="dock-btn-label">Desligar</span>
           </button>
-        </div>
-
-        <div className="pulse-call-footer-side right">
-          <div className="pulse-call-health-pill">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Opus UHD</span>
-            <span className="text-slate-600">•</span>
-            <span className="text-emerald-400">0% loss</span>
-          </div>
         </div>
       </footer>
 
@@ -529,7 +339,7 @@ export function ActiveCallModal({
               {onRetry && (
                 <button
                   type="button"
-                  className="px-4 py-2 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs font-bold transition-all shadow-lg shadow-[#7c3aed]/30"
+                  className="px-4 py-2 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-xs font-bold transition-all shadow-lg shadow-[#2563eb]/30"
                   onClick={onRetry}
                 >
                   Tentar Novamente

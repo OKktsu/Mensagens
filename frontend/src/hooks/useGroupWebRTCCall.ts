@@ -260,15 +260,17 @@ export function useGroupWebRTCCall(
     cleanupGroupCall();
   }, [socket, activeConversationId, token, currentUserId, callType, cleanupGroupCall]);
 
-  // Alternar microfone
+  // Alternar mudo
   const toggleMute = useCallback(() => {
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsMuted(!audioTrack.enabled);
+        return;
       }
     }
+    setIsMuted((prev) => !prev);
   }, []);
 
   // Alternar Deafen
@@ -283,6 +285,7 @@ export function useGroupWebRTCCall(
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setIsVideoOff(!videoTrack.enabled);
+        return;
       } else {
         try {
           const videoStream = await navigator.mediaDevices.getUserMedia({
@@ -301,16 +304,22 @@ export function useGroupWebRTCCall(
             }
             setIsVideoOff(false);
             setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+            return;
           }
         } catch (camErr) {
           console.error("Não foi possível ligar a câmera:", camErr);
         }
       }
     }
+    setIsVideoOff((prev) => !prev);
   }, []);
 
   // Alternar tela
   const toggleScreenShare = useCallback(async () => {
+    if (peersRef.current.size === 0) {
+      setIsScreenSharing((prev) => !prev);
+      return;
+    }
     if (isScreenSharing) {
       if (screenStreamRef.current) {
         screenStreamRef.current.getTracks().forEach((track) => track.stop());

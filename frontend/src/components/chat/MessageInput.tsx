@@ -157,63 +157,6 @@ export function MessageInput({
 
   return (
     <div className="message-input-wrapper">
-      {/* BANNER DE LINK DETECTADO DURANTE A DIGITAÇÃO */}
-      {detectedUrl && !replyingToMessage && !editingMessage && (
-        <div className="input-link-detect-banner">
-          <div className="link-detect-bar" />
-          <div className="link-detect-info flex items-center gap-2">
-            <span className="material-symbols-outlined text-[16px] text-violet-400">link</span>
-            <span className="link-detect-text">
-              Link detectado: <strong>{(() => { try { return new URL(detectedUrl).hostname; } catch { return detectedUrl; } })()}</strong> — card de pré-visualização será anexado
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* BANNER DE RESPOSTA ATIVA */}
-      {replyingToMessage && !editingMessage && (
-        <div className="input-reply-banner">
-          <div className="reply-banner-bar" />
-          <div className="reply-banner-info">
-            <strong className="reply-banner-sender flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px] text-violet-400">reply</span>
-              <span>Respondendo a {replyingToMessage.sender.name}</span>
-            </strong>
-            <p className="reply-banner-text">{getReplySnippet(replyingToMessage)}</p>
-          </div>
-          <button
-            type="button"
-            className="reply-banner-close flex items-center justify-center"
-            onClick={onCancelReply}
-            title="Cancelar resposta"
-          >
-            <span className="material-symbols-outlined text-[16px]">close</span>
-          </button>
-        </div>
-      )}
-
-      {/* BANNER DE EDIÇÃO ATIVA */}
-      {editingMessage && (
-        <div className="input-edit-banner">
-          <div className="edit-banner-bar" />
-          <div className="edit-banner-info">
-            <strong className="edit-banner-title flex items-center gap-1 text-violet-400">
-              <span className="material-symbols-outlined text-[14px]">edit</span>
-              <span>Editando mensagem</span>
-            </strong>
-            <p className="edit-banner-text">{editingMessage.content}</p>
-          </div>
-          <button
-            type="button"
-            className="edit-banner-close flex items-center justify-center"
-            onClick={onCancelEdit}
-            title="Cancelar edição"
-          >
-            <span className="material-symbols-outlined text-[16px]">close</span>
-          </button>
-        </div>
-      )}
-
       {/* SELETOR DE EMOJIS */}
       <EmojiPicker
         isOpen={isEmojiOpen}
@@ -221,18 +164,73 @@ export function MessageInput({
         onSelectEmoji={handleSelectEmoji}
       />
 
-      {/* GRAVADOR DE ÁUDIO */}
-      {isRecording && !editingMessage ? (
-        <VoiceRecorder
-          isRecording={isRecording}
-          onCancel={() => setIsRecording(false)}
-          onSendVoiceNote={(blob, duration) => {
-            setIsRecording(false);
-            onSendVoiceNote?.(blob, duration);
-          }}
-        />
-      ) : (
-        <form className="stitch-input-dock" onSubmit={handleSubmit}>
+      <div className={`stitch-dock-container ${replyingToMessage || editingMessage || detectedUrl ? "has-banner" : ""}`}>
+        {/* BANNER DE LINK DETECTADO DURANTE A DIGITAÇÃO */}
+        {detectedUrl && !replyingToMessage && !editingMessage && (
+          <div className="input-link-detect-banner">
+            <div className="link-detect-info">
+              <span className="material-symbols-outlined link-banner-icon">link</span>
+              <span className="link-detect-text">
+                Link detectado: <strong>{(() => { try { return new URL(detectedUrl).hostname; } catch { return detectedUrl; } })()}</strong> — card de pré-visualização será anexado
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* BANNER DE RESPOSTA ATIVA */}
+        {replyingToMessage && !editingMessage && (
+          <div className="input-reply-banner">
+            <div className="reply-banner-info">
+              <span className="material-symbols-outlined reply-banner-icon">reply</span>
+              <span className="reply-banner-sender">Respondendo a <strong className="reply-banner-name">{replyingToMessage.sender.name}</strong></span>
+              <span className="reply-banner-divider">•</span>
+              <span className="reply-banner-snippet">{getReplySnippet(replyingToMessage)}</span>
+            </div>
+            <button
+              type="button"
+              className="reply-banner-close"
+              onClick={onCancelReply}
+              title="Cancelar resposta"
+              aria-label="Cancelar resposta"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        )}
+
+        {/* BANNER DE EDIÇÃO ATIVA */}
+        {editingMessage && (
+          <div className="input-edit-banner">
+            <div className="edit-banner-info">
+              <span className="material-symbols-outlined edit-banner-icon">edit</span>
+              <span className="edit-banner-title">Editando mensagem</span>
+              <span className="edit-banner-divider">•</span>
+              <span className="edit-banner-snippet">{editingMessage.content}</span>
+            </div>
+            <button
+              type="button"
+              className="edit-banner-close"
+              onClick={onCancelEdit}
+              title="Cancelar edição"
+              aria-label="Cancelar edição"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        )}
+
+        {/* GRAVADOR DE ÁUDIO */}
+        {isRecording && !editingMessage ? (
+          <VoiceRecorder
+            isRecording={isRecording}
+            onCancel={() => setIsRecording(false)}
+            onSendVoiceNote={(blob, duration) => {
+              setIsRecording(false);
+              onSendVoiceNote?.(blob, duration);
+            }}
+          />
+        ) : (
+          <form className="stitch-input-dock" onSubmit={handleSubmit}>
           {/* INPUT OCULTO DE ARQUIVOS */}
           {!editingMessage && (
             <input
@@ -336,7 +334,8 @@ export function MessageInput({
         </form>
       )}
     </div>
-  );
+  </div>
+);
 }
 
 

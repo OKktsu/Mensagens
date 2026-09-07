@@ -27,6 +27,13 @@ type SidebarProps = {
   onOpenCreateGroup: () => void;
   onOpenSearch?: () => void;
   onOpenSettings?: () => void;
+  isMicMuted?: boolean;
+  isAudioMuted?: boolean;
+  isVideoOff?: boolean;
+  isInCall?: boolean;
+  onToggleMic?: () => void;
+  onToggleAudio?: () => void;
+  onToggleVideo?: () => void;
 };
 
 export function Sidebar({
@@ -50,6 +57,13 @@ export function Sidebar({
   onOpenCreateGroup,
   onOpenSearch,
   onOpenSettings,
+  isMicMuted,
+  isAudioMuted,
+  isVideoOff,
+  isInCall,
+  onToggleMic,
+  onToggleAudio,
+  onToggleVideo,
 }: SidebarProps) {
   // Contadores de DMs e Squads para as pílulas de navegação
   const { dmCount, squadCount } = useMemo(() => {
@@ -66,10 +80,11 @@ export function Sidebar({
   }, [conversations]);
 
   const isCallView = activeTab === "calls";
+  const isPeopleView = activeTab === "all";
 
   return (
-    <aside aria-label="PulseChat Modular Workspace Hub" className="sidebar">
-      {/* Top Header com Marca, Busca e Pílulas */}
+    <aside className="sidebar">
+      {/* Header Superior com Abas e Novo Chat */}
       <SidebarHeader
         activeTab={activeTab}
         onTabChange={onTabChange}
@@ -119,6 +134,13 @@ export function Sidebar({
         currentUser={currentUser ?? null}
         onLogout={onLogout}
         onOpenSettings={onOpenSettings}
+        isMicMuted={isMicMuted}
+        isAudioMuted={isAudioMuted}
+        isVideoOff={isVideoOff}
+        isInCall={isInCall}
+        onToggleMic={onToggleMic}
+        onToggleAudio={onToggleAudio}
+        onToggleVideo={onToggleVideo}
       />
     </aside>
   );

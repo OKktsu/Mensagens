@@ -536,8 +536,10 @@ export function useWebRTCCall(
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsMuted(!audioTrack.enabled);
+        return;
       }
     }
+    setIsMuted((prev) => !prev);
   }, []);
 
   // Alternar desativar áudio (Deafen)
@@ -558,6 +560,7 @@ export function useWebRTCCall(
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setIsVideoOff(!videoTrack.enabled);
+        return;
       } else {
         try {
           const videoStream = await navigator.mediaDevices.getUserMedia({
@@ -577,6 +580,7 @@ export function useWebRTCCall(
             }
             setIsVideoOff(false);
             setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+            return;
           }
         } catch (camErr) {
           console.error("Não foi possível ligar a câmera:", camErr);
@@ -584,12 +588,16 @@ export function useWebRTCCall(
         }
       }
     }
+    setIsVideoOff((prev) => !prev);
   }, []);
 
   // Alternar Compartilhamento de Tela
   const toggleScreenShare = useCallback(async () => {
     const pc = peerConnectionRef.current;
-    if (!pc) return;
+    if (!pc) {
+      setIsScreenSharing((prev) => !prev);
+      return;
+    }
 
     if (isScreenSharing) {
       if (screenStreamRef.current) {

@@ -36,6 +36,7 @@ import { ForwardMessageModal } from "./components/chat/ForwardMessageModal";
 import { IncomingCallModal } from "./components/call/IncomingCallModal";
 import { ActiveCallModal } from "./components/call/ActiveCallModal";
 import { GroupCallModal } from "./components/call/GroupCallModal";
+import { MinimizedCallWidget } from "./components/call/MinimizedCallWidget";
 import { ImageLightbox } from "./components/chat/ImageLightbox";
 import { PdfViewerModal } from "./components/chat/PdfViewerModal";
 import { GlobalSearchModal } from "./components/search/GlobalSearchModal";
@@ -57,6 +58,10 @@ export function App() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [pdfModalData, setPdfModalData] = useState<{ url: string; fileName?: string } | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Estados para minimizar chamadas ativas e permitir navegar em outros chats
+  const [isCallMinimized, setIsCallMinimized] = useState(false);
+  const [isGroupCallMinimized, setIsGroupCallMinimized] = useState(false);
 
   // Atalho global de teclado Ctrl + K / Cmd + K
   useEffect(() => {
@@ -370,13 +375,41 @@ export function App() {
     toggleDeafen: toggleGroupDeafen,
   } = useGroupWebRTCCall(socket, token, currentUser?.id, handleCallLogged);
 
+  const isAnyCallActive = callState === "connected" || callState === "calling" || isInGroupCall;
+  const currentMicMuted = isInGroupCall ? isGroupMuted : isMuted;
+  const currentAudioMuted = isInGroupCall ? isGroupDeafened : isDeafened;
+  const currentVideoOff = isInGroupCall ? isGroupVideoOff : isVideoOff;
+  const currentScreenSharing = isInGroupCall ? isGroupScreenSharing : isScreenSharing;
+
+  const handleDockToggleMic = useCallback(() => {
+    if (isInGroupCall) toggleGroupMute();
+    else toggleMute();
+  }, [isInGroupCall, toggleGroupMute, toggleMute]);
+
+  const handleDockToggleAudio = useCallback(() => {
+    if (isInGroupCall) toggleGroupDeafen();
+    else toggleDeafen();
+  }, [isInGroupCall, toggleGroupDeafen, toggleDeafen]);
+
+  const handleDockToggleVideo = useCallback(() => {
+    if (isInGroupCall) toggleGroupVideo();
+    else toggleVideo();
+  }, [isInGroupCall, toggleGroupVideo, toggleVideo]);
+
+  const handleDockToggleScreenShare = useCallback(() => {
+    if (isInGroupCall) toggleGroupScreenShare();
+    else toggleScreenShare();
+  }, [isInGroupCall, toggleGroupScreenShare, toggleScreenShare]);
+
   const handleStartVoiceCall = useCallback(() => {
     if (!selectedConversation || !currentUser) return;
+    setIsCallMinimized(false);
     const otherMember = selectedConversation.members.find(
       (m) => (m.userId || m.user?.id) !== currentUser.id,
     );
     const isGroup = selectedConversation.members.length > 2;
     if (isGroup || !otherMember) {
+      setIsGroupCallMinimized(false);
       joinGroupCall(selectedConversation.id, "audio");
       return;
     }
@@ -387,11 +420,13 @@ export function App() {
 
   const handleStartVideoCall = useCallback(() => {
     if (!selectedConversation || !currentUser) return;
+    setIsCallMinimized(false);
     const otherMember = selectedConversation.members.find(
       (m) => (m.userId || m.user?.id) !== currentUser.id,
     );
     const isGroup = selectedConversation.members.length > 2;
     if (isGroup || !otherMember) {
+      setIsGroupCallMinimized(false);
       joinGroupCall(selectedConversation.id, "video");
       return;
     }
@@ -401,12 +436,27 @@ export function App() {
   }, [selectedConversation, currentUser, joinGroupCall, startCall]);
 
   const handleStartVoiceCallDirect = useCallback((targetUserId: string, targetUserName: string, conversationId?: string) => {
+    setIsCallMinimized(false);
     startCall(targetUserId, targetUserName, conversationId ?? "", "audio");
   }, [startCall]);
 
   const handleStartVideoCallDirect = useCallback((targetUserId: string, targetUserName: string, conversationId?: string) => {
+    setIsCallMinimized(false);
     startCall(targetUserId, targetUserName, conversationId ?? "", "video");
   }, [startCall]);
+
+  // Reseta minimização quando a chamada for encerrada
+  useEffect(() => {
+    if (callState === "idle") {
+      setIsCallMinimized(false);
+    }
+  }, [callState]);
+
+  useEffect(() => {
+    if (!isInGroupCall) {
+      setIsGroupCallMinimized(false);
+    }
+  }, [isInGroupCall]);
 
 
   // Carrega lista de usuários e conversas iniciais após login
@@ -498,6 +548,15 @@ export function App() {
       setChatError("");
       setReplyingToMessage(null);
       setEditingMessage(null);
+      setPdfModalData(null);
+
+      // Se estiver em chamada ativa, minimiza automaticamente para permitir navegar e conversar
+      if (callState === "calling" || callState === "connected") {
+        setIsCallMinimized(true);
+      }
+      if (isInGroupCall) {
+        setIsGroupCallMinimized(true);
+      }
 
       setConversations((current) =>
         current.map((c) => (c.id === conversationId ? { ...c, unreadCount: 0 } : c)),
@@ -507,7 +566,7 @@ export function App() {
         markConversationAsRead(token, conversationId).catch(() => {});
       }
     },
-    [token],
+    [token, callState, isInGroupCall],
   );
 
 
@@ -530,10 +589,19 @@ export function App() {
 
     try {
       setChatError("");
+      setPdfModalData(null);
       const response = await createConversation(token, participantId);
       const conversationsResponse = await getConversations(token);
       setConversations(conversationsResponse.conversations);
       setSelectedConversationId(response.conversation.id);
+
+      // Minimiza chamada ativa se o usuário selecionar outro contato
+      if (callState === "calling" || callState === "connected") {
+        setIsCallMinimized(true);
+      }
+      if (isInGroupCall) {
+        setIsGroupCallMinimized(true);
+      }
     } catch (caughtError) {
       setChatError(caughtError instanceof Error ? caughtError.message : "Não foi possível criar a conversa.");
     }
@@ -916,13 +984,22 @@ export function App() {
         onLogout={logout}
         onOpenCreateGroup={() => setIsCreateGroupOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
+        isMicMuted={currentMicMuted}
+        isAudioMuted={currentAudioMuted}
+        isVideoOff={currentVideoOff}
+        isInCall={isAnyCallActive}
+        onToggleMic={handleDockToggleMic}
+        onToggleAudio={handleDockToggleAudio}
+        onToggleVideo={handleDockToggleVideo}
       />
 
-      {(callState === "calling" || callState === "connected") ? (
+      {(callState === "calling" || callState === "connected") && !isCallMinimized ? (
         <ActiveCallModal
           peerName={activePeer?.userName ?? (callType === "video" ? "Chamada de Vídeo" : "Chamada de Voz")}
           peerAvatarUrl={
-            selectedConversation?.members.find((m) => (m.userId || m.user?.id) === activePeer?.userId)?.user?.avatarUrl ||
+            conversations
+              .find((c) => c.id === activePeer?.conversationId)
+              ?.members.find((m) => (m.userId || m.user?.id) === activePeer?.userId)?.user?.avatarUrl ||
             users.find((u) => u.id === activePeer?.userId)?.avatarUrl
           }
           currentUserName={currentUser?.name ?? "Você"}
@@ -945,9 +1022,10 @@ export function App() {
           onToggleVideo={toggleVideo}
           onToggleScreenShare={toggleScreenShare}
           onToggleDeafen={toggleDeafen}
+          onMinimize={() => setIsCallMinimized(true)}
           onEndCall={endCall}
         />
-      ) : isInGroupCall ? (
+      ) : isInGroupCall && !isGroupCallMinimized ? (
         <GroupCallModal
           conversationTitle={
             conversations.find((c) => c.id === groupCallConvId)?.title || "Chamada em Grupo"
@@ -965,7 +1043,14 @@ export function App() {
           onToggleVideo={toggleGroupVideo}
           onToggleScreenShare={toggleGroupScreenShare}
           onToggleDeafen={toggleGroupDeafen}
+          onMinimize={() => setIsGroupCallMinimized(true)}
           onLeaveCall={leaveGroupCall}
+        />
+      ) : pdfModalData ? (
+        <PdfViewerModal
+          pdfUrl={pdfModalData.url}
+          fileName={pdfModalData.fileName}
+          onClose={() => setPdfModalData(null)}
         />
       ) : (
         <ChatPanel
@@ -1042,14 +1127,6 @@ export function App() {
         <ImageLightbox src={lightboxImage} onClose={() => setLightboxImage(null)} />
       )}
 
-      {pdfModalData && (
-        <PdfViewerModal
-          pdfUrl={pdfModalData.url}
-          fileName={pdfModalData.fileName}
-          onClose={() => setPdfModalData(null)}
-        />
-      )}
-
       {/* MODAL DE BUSCA GLOBAL (CTRL+K) */}
       <GlobalSearchModal
         isOpen={isSearchOpen}
@@ -1073,6 +1150,53 @@ export function App() {
           }, 350);
         }}
       />
+      {/* WIDGET FLUTUANTE DE CHAMADA MINIMIZADA (PIP) */}
+      {isCallMinimized && (callState === "calling" || callState === "connected") && (
+        <MinimizedCallWidget
+          peerName={activePeer?.userName ?? (callType === "video" ? "Chamada de Vídeo" : "Chamada de Voz")}
+          peerAvatarUrl={
+            conversations
+              .find((c) => c.id === activePeer?.conversationId)
+              ?.members.find((m) => (m.userId || m.user?.id) === activePeer?.userId)?.user?.avatarUrl ||
+            users.find((u) => u.id === activePeer?.userId)?.avatarUrl
+          }
+          callDuration={callDuration}
+          callType={callType}
+          callState={callState}
+          isMuted={isMuted}
+          isVideoOff={isVideoOff}
+          localStream={localStream}
+          remoteStream={remoteStream}
+          onMaximize={() => {
+            setIsCallMinimized(false);
+            if (activePeer?.conversationId) {
+              setSelectedConversationId(activePeer.conversationId);
+            }
+          }}
+          onToggleMute={toggleMute}
+          onEndCall={endCall}
+        />
+      )}
+
+      {isGroupCallMinimized && isInGroupCall && (
+        <MinimizedCallWidget
+          peerName={conversations.find((c) => c.id === groupCallConvId)?.title || "Chamada em Grupo"}
+          callDuration={groupCallDuration}
+          callType={groupCallType}
+          callState="connected"
+          isMuted={isGroupMuted}
+          isVideoOff={isGroupVideoOff}
+          localStream={groupLocalStream}
+          onMaximize={() => {
+            setIsGroupCallMinimized(false);
+            if (groupCallConvId) {
+              setSelectedConversationId(groupCallConvId);
+            }
+          }}
+          onToggleMute={toggleGroupMute}
+          onEndCall={leaveGroupCall}
+        />
+      )}
     </main>
   );
 }

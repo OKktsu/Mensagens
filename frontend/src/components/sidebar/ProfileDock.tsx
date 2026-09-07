@@ -7,8 +7,11 @@ type ProfileDockProps = {
   onOpenSettings?: () => void;
   isMicMuted?: boolean;
   isAudioMuted?: boolean;
+  isVideoOff?: boolean;
+  isInCall?: boolean;
   onToggleMic?: () => void;
   onToggleAudio?: () => void;
+  onToggleVideo?: () => void;
 };
 
 export function ProfileDock({
@@ -17,11 +20,15 @@ export function ProfileDock({
   onOpenSettings,
   isMicMuted = false,
   isAudioMuted = false,
+  isVideoOff = true,
+  isInCall = false,
   onToggleMic,
   onToggleAudio,
+  onToggleVideo,
 }: ProfileDockProps) {
   const [internalMicMuted, setInternalMicMuted] = useState(isMicMuted);
   const [internalAudioMuted, setInternalAudioMuted] = useState(isAudioMuted);
+  const [internalVideoOff, setInternalVideoOff] = useState(isVideoOff);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
   const handleToggleMic = () => {
@@ -40,8 +47,17 @@ export function ProfileDock({
     }
   };
 
+  const handleToggleVideo = () => {
+    if (onToggleVideo) {
+      onToggleVideo();
+    } else {
+      setInternalVideoOff((prev) => !prev);
+    }
+  };
+
   const micActive = !(onToggleMic ? isMicMuted : internalMicMuted);
   const audioActive = !(onToggleAudio ? isAudioMuted : internalAudioMuted);
+  const videoActive = !(onToggleVideo ? isVideoOff : internalVideoOff);
 
   const initial = currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : "EU";
 
@@ -62,45 +78,52 @@ export function ProfileDock({
           </div>
 
           <div className="profile-text-details">
-            <div className="profile-name-row">
-              <span className="profile-user-name">{currentUser?.name || "Usuário"}</span>
-              <span className="profile-pro-badge">PRO</span>
-            </div>
-            <div className="profile-tag-row">
-              <span className="profile-tag-dot" />
-              <span className="profile-tag-text">#0001 • Online</span>
-            </div>
+            <span className="profile-user-name">{currentUser?.name || "Usuário"}</span>
           </div>
         </div>
 
-        {/* Tactile Audio / Mic & Settings Controls */}
+        {/* Tactile Audio / Mic / Video & Settings Controls */}
         <div className="profile-actions-group">
+          {/* Microfone */}
           <button
             type="button"
-            className={`profile-action-btn ${!micActive ? "is-off" : ""}`}
+            className={`profile-action-btn ${micActive ? "is-active" : "is-off"}`}
             onClick={handleToggleMic}
-            title={micActive ? "Microfone (Ativo)" : "Microfone (Mutado)"}
+            title={micActive ? "Silenciar Microfone" : "Ativar Microfone"}
             aria-label="Microfone"
           >
             <span className="material-symbols-outlined text-[17px]">
               {micActive ? "mic" : "mic_off"}
             </span>
-            {micActive && <span className="profile-btn-indicator" />}
           </button>
 
+          {/* Áudio / Fone */}
           <button
             type="button"
-            className={`profile-action-btn ${!audioActive ? "is-off" : ""}`}
+            className={`profile-action-btn ${audioActive ? "is-active" : "is-off"}`}
             onClick={handleToggleAudio}
-            title={audioActive ? "Áudio (Ativo)" : "Áudio (Desativado)"}
+            title={audioActive ? "Desativar Áudio" : "Ativar Áudio"}
             aria-label="Áudio"
           >
             <span className="material-symbols-outlined text-[17px]">
               {audioActive ? "headphones" : "headset_off"}
             </span>
-            {audioActive && <span className="profile-btn-indicator" />}
           </button>
 
+          {/* Câmera / Vídeo */}
+          <button
+            type="button"
+            className={`profile-action-btn ${videoActive ? "is-active" : "is-off"}`}
+            onClick={handleToggleVideo}
+            title={videoActive ? "Desligar Câmera de Vídeo" : "Ligar Câmera de Vídeo"}
+            aria-label="Câmera"
+          >
+            <span className="material-symbols-outlined text-[17px]">
+              {videoActive ? "videocam" : "videocam_off"}
+            </span>
+          </button>
+
+          {/* Configurações */}
           <div className="profile-settings-wrapper">
             <button
               type="button"

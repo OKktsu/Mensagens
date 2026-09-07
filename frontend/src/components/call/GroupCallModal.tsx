@@ -17,6 +17,7 @@ type GroupCallModalProps = {
   onToggleVideo: () => void;
   onToggleScreenShare?: () => void;
   onToggleDeafen?: () => void;
+  onMinimize?: () => void;
   onLeaveCall: () => void;
 };
 
@@ -77,6 +78,7 @@ export function GroupCallModal({
   onToggleVideo,
   onToggleScreenShare,
   onToggleDeafen,
+  onMinimize,
   onLeaveCall,
 }: GroupCallModalProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -119,7 +121,8 @@ export function GroupCallModal({
         minWidth: 0,
         minHeight: 0,
         flex: 1,
-        backgroundColor: "#0b0c10",
+        backgroundColor: "#0d0f14",
+        backgroundImage: "radial-gradient(circle at 50% 50%, #171922 0%, #0a0b0f 100%)",
         color: "#e2e8f0",
         display: "flex",
         flexDirection: "column",
@@ -129,89 +132,20 @@ export function GroupCallModal({
       role="region"
       aria-label="Chamada em Grupo"
     >
-      {/* 1. TOP NAVIGATION BAR */}
-      <header className="pulse-call-header">
-        <div className="pulse-call-header-left">
-          <div className="pulse-call-brand">
-            <div className="pulse-call-logo-box">
-              <span className="material-symbols-outlined text-[20px] text-white">bolt</span>
-            </div>
-            <span className="pulse-call-brand-text">
-              Pulse<span className="text-[#a78bfa]">Chat</span>
-            </span>
-          </div>
+      {/* BOTÃO FLUTUANTE DE MINIMIZAR */}
+      {onMinimize && (
+        <button
+          type="button"
+          className="pulse-call-top-minimize-btn"
+          onClick={onMinimize}
+          title="Minimizar chamada (continuar navegando no chat)"
+        >
+          <span className="material-symbols-outlined text-[18px]">expand_more</span>
+          <span className="text-xs font-semibold">Minimizar</span>
+        </button>
+      )}
 
-          <div className="pulse-call-header-divider" />
-
-          <nav className="pulse-call-breadcrumbs">
-            <span className="breadcrumb-parent">Squad</span>
-            <span className="breadcrumb-slash">/</span>
-            <div className="breadcrumb-active-room">
-              <span className="material-symbols-outlined text-[15px] text-[#a78bfa]">
-                {callType === "video" ? "videocam" : "groups"}
-              </span>
-              <span>{conversationTitle || "Sala de Voz - Squad"}</span>
-            </div>
-            <span className="pulse-call-crypto-badge">
-              <span className="material-symbols-outlined text-[13px]">lock</span>
-              <span>E2E Criptografado</span>
-            </span>
-          </nav>
-        </div>
-
-        <div className="pulse-call-header-center">
-          <div className="pulse-call-live-pill">
-            <span className="live-dot-wrapper">
-              <span className="live-dot-ping" />
-              <span className="live-dot" />
-            </span>
-            <span className="live-label">AO VIVO</span>
-            <span className="live-sep">•</span>
-            <span className="live-timer">{formatDuration(callDuration)}</span>
-          </div>
-
-          <div className="pulse-call-webrtc-pill">
-            <span className="material-symbols-outlined text-[14px] text-[#a78bfa]">group</span>
-            <span>{totalParticipants} membros</span>
-            <span className="text-[#4b5563]">•</span>
-            <span className="text-emerald-400 font-semibold">Mesh WebRTC</span>
-          </div>
-        </div>
-
-        <div className="pulse-call-header-right">
-          <div className="pulse-call-layout-toggle">
-            <button
-              type="button"
-              className={`layout-btn ${layoutMode === "speaker" ? "active" : ""}`}
-              onClick={() => setLayoutMode("speaker")}
-              title="Orador Principal"
-            >
-              <span className="material-symbols-outlined text-[16px]">person</span>
-            </button>
-            <button
-              type="button"
-              className={`layout-btn ${layoutMode === "grid" ? "active" : ""}`}
-              onClick={() => setLayoutMode("grid")}
-              title="Visão em Grade"
-            >
-              <span className="material-symbols-outlined text-[16px]">grid_view</span>
-            </button>
-          </div>
-
-          <button
-            type="button"
-            className="pulse-call-icon-btn"
-            onClick={toggleFullscreen}
-            title={isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              {isFullscreen ? "fullscreen_exit" : "fullscreen"}
-            </span>
-          </button>
-        </div>
-      </header>
-
-      {/* 2. MAIN STAGE (GRADE DE PARTICIPANTES) */}
+      {/* 1. MAIN STAGE (GRADE DE PARTICIPANTES) */}
       <main className="pulse-call-main-stage">
         <div className={`pulse-group-grid total-${Math.min(totalParticipants, 6)}`}>
           {/* Tile do Usuário Local */}
@@ -244,42 +178,9 @@ export function GroupCallModal({
         </div>
       </main>
 
-      {/* 3. BOTTOM PERSISTENT GLASS DOCK */}
+      {/* 2. BARRA DE CONTROLE INFERIOR (APENAS 2 BOTÕES) */}
       <footer className="pulse-call-footer">
-        <div className="pulse-call-footer-side left">
-          <div className="pulse-call-device-pill">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="font-mono text-[11px] truncate max-w-[140px]">Dispositivo Padrão</span>
-          </div>
-        </div>
-
         <div className="pulse-glass-dock">
-          {/* Mute Button */}
-          <button
-            type="button"
-            className={`dock-action-btn ${isMuted ? "muted" : ""}`}
-            onClick={onToggleMute}
-            title={isMuted ? "Desmutar microfone" : "Mutar microfone"}
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              {isMuted ? "mic_off" : "mic"}
-            </span>
-            <span className="dock-btn-label">{isMuted ? "Mudo" : "Mutar"}</span>
-          </button>
-
-          {/* Camera Button */}
-          <button
-            type="button"
-            className={`dock-action-btn ${isVideoOff ? "off" : ""}`}
-            onClick={onToggleVideo}
-            title={isVideoOff ? "Ligar câmera" : "Desligar câmera"}
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              {isVideoOff ? "videocam_off" : "videocam"}
-            </span>
-            <span className="dock-btn-label">{isVideoOff ? "Sem Vídeo" : "Câmera"}</span>
-          </button>
-
           {/* Screen Share Button */}
           {onToggleScreenShare && (
             <button
@@ -292,27 +193,10 @@ export function GroupCallModal({
                 {isScreenSharing ? "stop_screen_share" : "screen_share"}
               </span>
               <span className="dock-btn-label">
-                {isScreenSharing ? "Compartilhando" : "Tela"}
+                {isScreenSharing ? "Compartilhando" : "Compartilhar Tela"}
               </span>
             </button>
           )}
-
-          {/* Deafen Button */}
-          {onToggleDeafen && (
-            <button
-              type="button"
-              className={`dock-action-btn ${isDeafened ? "deafened" : ""}`}
-              onClick={onToggleDeafen}
-              title={isDeafened ? "Ativar Áudio da Sala" : "Desativar Áudio da Sala"}
-            >
-              <span className="material-symbols-outlined text-[20px]">
-                {isDeafened ? "headset_off" : "headphones"}
-              </span>
-              <span className="dock-btn-label">{isDeafened ? "Surdo" : "Áudio"}</span>
-            </button>
-          )}
-
-          <div className="dock-divider" />
 
           {/* Leave Button */}
           <button
@@ -324,17 +208,8 @@ export function GroupCallModal({
             <span className="material-symbols-outlined text-[20px] rotate-[135deg]">
               call_end
             </span>
-            <span className="dock-btn-label">Sair</span>
+            <span className="dock-btn-label">Desligar</span>
           </button>
-        </div>
-
-        <div className="pulse-call-footer-side right">
-          <div className="pulse-call-health-pill">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Opus UHD</span>
-            <span className="text-slate-600">•</span>
-            <span className="text-emerald-400">0% loss</span>
-          </div>
         </div>
       </footer>
     </div>

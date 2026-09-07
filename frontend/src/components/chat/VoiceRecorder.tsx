@@ -136,28 +136,34 @@ export function VoiceRecorder({ isRecording, onCancel, onSendVoiceNote }: VoiceR
       <div className="voice-recording-info">
         <span className="recording-indicator-dot" />
         <span className="recording-timer">{formatTimer(duration)}</span>
-        <span className="recording-hint">Gravando áudio de voz...</span>
+        <div className="voice-recording-waves" aria-hidden="true">
+          <span className="voice-wave-bar bar-1" />
+          <span className="voice-wave-bar bar-2" />
+          <span className="voice-wave-bar bar-3" />
+          <span className="voice-wave-bar bar-4" />
+        </div>
+        <span className="recording-hint">Gravando áudio...</span>
       </div>
 
       <div className="voice-recorder-actions">
         <button
           type="button"
-          className="voice-cancel-btn flex items-center justify-center"
+          className="voice-cancel-btn"
           onClick={handleCancelRecording}
-          title="Cancelar gravação"
-          aria-label="Cancelar"
+          title="Cancelar e apagar gravação"
+          aria-label="Cancelar e apagar gravação"
         >
-          <span className="material-symbols-outlined text-[18px]">delete</span>
+          <span className="material-symbols-outlined">delete</span>
         </button>
 
         <button
           type="button"
-          className="voice-send-btn flex items-center justify-center"
+          className="voice-send-btn"
           onClick={handleStopAndSend}
           title="Enviar áudio gravado"
           aria-label="Enviar áudio"
         >
-          <span className="material-symbols-outlined text-[18px]">send</span>
+          <span className="material-symbols-outlined">send</span>
         </button>
       </div>
     </div>
