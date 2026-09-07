@@ -74,6 +74,8 @@ export type Message = {
   starredBy?: Array<{
     userId: string;
   }>;
+  expiresAt?: string | null;
+  ttl?: number | null;
   createdAt: string;
   updatedAt?: string;
   conversationId?: string;
@@ -108,6 +110,9 @@ export type Conversation = {
     id: string;
     content: string;
     createdAt: string;
+    expiresAt?: string | null;
+    ttl?: number | null;
+    isDeleted?: boolean;
     sender: {
       id: string;
       name: string;
@@ -248,6 +253,7 @@ export type SendMessagePayload = {
   duration?: number;
   replyToId?: string;
   isForwarded?: boolean;
+  ttl?: number;
 };
 
 export function sendMessage(

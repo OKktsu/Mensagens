@@ -18,6 +18,7 @@ import { isFrontendOriginAllowed } from "./config/frontend-origins.js";
 import { setupSocketServer } from "./realtime/socket.js";
 import { ensureBucketExists } from "./config/supabase.js";
 import { initStorageCleanupCron } from "./jobs/cleanup.cron.js";
+import { initTtlScheduler } from "./services/ttl-scheduler.service.js";
 import { prisma } from "./database/prisma.js";
 
 const port = Number(process.env.PORT ?? 3333);
@@ -39,9 +40,10 @@ const io = new Server(httpServer, {
 
 setupSocketServer(io);
 
-// Inicializa o bucket privado do Supabase Storage e o Agendador (Cron/Worker)
+// Inicializa o bucket privado do Supabase Storage, o Agendador de Limpeza e o Scheduler de Autodestruição (TTL)
 ensureBucketExists().catch(() => {});
 initStorageCleanupCron();
+initTtlScheduler().catch(() => {});
 
 // Testa a conexão do banco de dados na inicialização
 prisma.$connect()

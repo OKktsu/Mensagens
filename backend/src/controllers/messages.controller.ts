@@ -40,7 +40,7 @@ export async function index(request: Request, response: Response) {
 export async function create(request: Request, response: Response) {
   const userId = getAuthenticatedUserId(request);
   const { conversationId } = request.params;
-  const { content, type, fileUrl, fileName, fileSize, duration, replyToId, isForwarded } =
+  const { content, type, fileUrl, fileName, fileSize, duration, replyToId, isForwarded, ttl } =
     request.body;
 
   const message = await createMessage(conversationId, userId, {
@@ -52,6 +52,7 @@ export async function create(request: Request, response: Response) {
     duration,
     replyToId,
     isForwarded,
+    ttl: ttl ? Number(ttl) : undefined,
   });
 
   return response.status(201).json({

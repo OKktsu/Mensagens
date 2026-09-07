@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { Message, User } from "../../services/api";
 import { getMediaUrl } from "../../services/api";
 import { formatTime } from "../../utils/chat-helpers";
@@ -43,6 +43,19 @@ function formatFileName(fileName?: string | null): string {
   return cleaned || fileName;
 }
 
+function formatRemainingTime(seconds: number): string {
+  if (seconds <= 0) return "Expirando...";
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs > 0 ? `${secs}s` : ""}`;
+  }
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  return `${hours}h ${mins > 0 ? `${mins}m` : ""}`;
+}
+
 export function MessageItem({
   message,
   currentUserId,
@@ -67,6 +80,35 @@ export function MessageItem({
   const type = message.type || "text";
   const isDeleted = Boolean(message.isDeleted);
   const isStarred = message.starredBy?.some((s) => s.userId === currentUserId) ?? false;
+
+  // ⏱️ Contagem regressiva em tempo real para mensagens autodestrutivas (TTL)
+  const [secondsRemaining, setSecondsRemaining] = useState<number | null>(() => {
+    if (!message.expiresAt) return null;
+    const diff = Math.max(0, Math.ceil((new Date(message.expiresAt).getTime() - Date.now()) / 1000));
+    return diff;
+  });
+
+  useEffect(() => {
+    if (!message.expiresAt || isDeleted) return;
+
+    const calculateRemaining = () => {
+      const diff = Math.max(0, Math.ceil((new Date(message.expiresAt!).getTime() - Date.now()) / 1000));
+      setSecondsRemaining(diff);
+      return diff;
+    };
+
+    const initialDiff = calculateRemaining();
+    if (initialDiff <= 0) return;
+
+    const interval = setInterval(() => {
+      const diff = calculateRemaining();
+      if (diff <= 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [message.expiresAt, isDeleted]);
 
   // Cache local permanente no IndexedDB (0ms de carregamento)
   const rawMediaUrl = message.fileUrl ? getMediaUrl(message.fileUrl) : null;
@@ -118,8 +160,18 @@ export function MessageItem({
     ? message.sender.name.slice(0, 2).toUpperCase()
     : "??";
 
+  const isMessageExpired = Boolean(
+    (message.expiresAt && secondsRemaining !== null && secondsRemaining <= 0) ||
+    message.content === "Esta mensagem expirou" ||
+    (isDeleted && Boolean(message.ttl || message.expiresAt))
+  );
+  const isTtlActive = Boolean(message.expiresAt && !isDeleted && !isMessageExpired);
+
   return (
-    <div id={`message-${message.id}`} className="stitch-message-row group">
+    <div
+      id={`message-${message.id}`}
+      className={`stitch-message-row group ${isTtlActive ? "has-ttl" : ""} ${isMessageExpired ? "is-expired" : ""}`}
+    >
       {/* Coluna Esquerda: Avatar Squircle */}
       <div
         className="stitch-msg-avatar-col"
@@ -142,7 +194,7 @@ export function MessageItem({
 
       {/* Coluna Central: Conteúdo da Mensagem */}
       <div className="stitch-msg-content-col">
-        {/* Linha de Cabeçalho: Nome + Badge + Timestamp + Checks */}
+        {/* Linha de Cabeçalho: Nome + Badge + Timestamp + TTL + Checks */}
         <div className="stitch-msg-meta-line">
           <span
             className={`stitch-msg-author ${isMine ? "is-me" : "is-partner"} cursor-pointer hover:underline`}
@@ -157,7 +209,21 @@ export function MessageItem({
             <span className="stitch-msg-role-tag">AMIGO</span>
           )}
           <span className="stitch-msg-time">Hoje às {formatTime(message.createdAt)}</span>
-          {isMine && !isDeleted && (
+          
+          {/* BADGE DE AUTODESTRUIÇÃO (TTL) EM TEMPO REAL */}
+          {isTtlActive && secondsRemaining !== null && (
+            <span
+              className={`stitch-msg-ttl-pill ${secondsRemaining <= 10 ? "urgent" : ""}`}
+              title="Esta mensagem se autodestruirá"
+            >
+              <span className="material-symbols-outlined text-[13px] stitch-ttl-flame-icon">
+                local_fire_department
+              </span>
+              <span>{formatRemainingTime(secondsRemaining)}</span>
+            </span>
+          )}
+
+          {isMine && !isDeleted && !isMessageExpired && (
             <span
               className={`material-symbols-outlined stitch-msg-check ${
                 isRead ? "read" : "delivered"
@@ -167,7 +233,7 @@ export function MessageItem({
               done_all
             </span>
           )}
-          {message.isEdited && !isDeleted && (
+          {message.isEdited && !isDeleted && !isMessageExpired && (
             <span className="stitch-msg-edited-tag">(editada)</span>
           )}
           {isStarred && (
@@ -186,7 +252,7 @@ export function MessageItem({
         )}
 
         {/* Bloco de Citação / Resposta */}
-        {message.replyTo && !isDeleted && (
+        {message.replyTo && !isDeleted && !isMessageExpired && (
           <div
             className="stitch-msg-reply-quote"
             onClick={() => onJumpToQuotedMessage?.(message.replyTo!.id)}
@@ -204,8 +270,20 @@ export function MessageItem({
         )}
 
         {/* Corpo da Mensagem */}
-        {isDeleted ? (
-          <p className="stitch-msg-deleted">🚫 Esta mensagem foi apagada</p>
+        {isMessageExpired ? (
+          <div className="stitch-msg-expired-card">
+            <span className="material-symbols-outlined stitch-expired-icon">
+              history_toggle_off
+            </span>
+            <span className="stitch-expired-text">Esta mensagem expirou</span>
+          </div>
+        ) : isDeleted ? (
+          <div className="stitch-msg-deleted-card">
+            <span className="material-symbols-outlined stitch-deleted-icon">
+              remove_circle_outline
+            </span>
+            <span className="stitch-deleted-text">Esta mensagem foi apagada</span>
+          </div>
         ) : (
           <div className="stitch-msg-body">
             {/* Foto / Imagem */}
@@ -295,6 +373,18 @@ export function MessageItem({
                     <LinkPreviewCard url={firstUrl} token={token} />
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Barra de Progresso de Autodestruição (TTL) */}
+            {isTtlActive && message.ttl && secondsRemaining !== null && secondsRemaining > 0 && (
+              <div className="stitch-msg-ttl-progress-track" title={`Expira em ${formatRemainingTime(secondsRemaining)}`}>
+                <div
+                  className={`stitch-msg-ttl-progress-bar ${secondsRemaining <= 10 ? "urgent" : ""}`}
+                  style={{
+                    width: `${Math.min(100, Math.max(0, (secondsRemaining / message.ttl) * 100))}%`,
+                  }}
+                />
               </div>
             )}
           </div>

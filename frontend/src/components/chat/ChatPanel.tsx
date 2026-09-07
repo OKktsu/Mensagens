@@ -40,14 +40,14 @@ type ChatPanelProps = {
   onJoinGroupCall?: () => void;
   onStartVoiceCall?: () => void;
   onStartVideoCall?: () => void;
-  onSendFile?: (file: File) => void;
-  onSendVoiceNote?: (audioBlob: Blob, duration: number) => void;
+  onSendFile?: (file: File, ttl?: number) => void;
+  onSendVoiceNote?: (audioBlob: Blob, duration: number, ttl?: number) => void;
   token?: string | null;
   onImageClick?: (url: string) => void;
   onPdfClick?: (url: string, fileName?: string) => void;
   onUserClick?: (user: import("../../services/api").User) => void;
   onMessageChange: (text: string) => void;
-  onSendMessage: (event: FormEvent<HTMLFormElement>) => void;
+  onSendMessage: (event: FormEvent<HTMLFormElement>, ttl?: number) => void;
   onTypingStart?: () => void;
   onTypingStop?: () => void;
   isLoadingMessages?: boolean;

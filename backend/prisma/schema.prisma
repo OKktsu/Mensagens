@@ -76,6 +76,8 @@ model Message {
   pinnedInConversations  Conversation[]       @relation("PinnedMessage")
   senderId               String               @map("sender_id")
   conversationId         String               @map("conversation_id")
+  expiresAt              DateTime?            @map("expires_at")
+  ttl                    Int?                 @map("ttl") // Tempo de vida em segundos (autodestruição)
   createdAt              DateTime             @default(now()) @map("created_at")
   updatedAt              DateTime             @default(now()) @updatedAt @map("updated_at")
   sender                 User                 @relation(fields: [senderId], references: [id], onDelete: Cascade)
@@ -83,6 +85,7 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@index([conversationId, id])
+  @@index([expiresAt])
   @@map("messages")
 }
 

@@ -220,24 +220,31 @@ export function App() {
     );
   }, []);
 
-  // Manipulador de mensagem excluída em tempo real (soft delete)
+  // Manipulador de mensagem excluída em tempo real (soft delete / expiração)
   const handleMessageDeleted = useCallback((payload: { conversationId: string; messageId: string }) => {
     setMessages((current) =>
-      current.map((msg) =>
-        msg.id === payload.messageId
-          ? { ...msg, isDeleted: true, content: "🚫 Esta mensagem foi apagada", type: "text" }
-          : msg
-      )
+      current.map((msg) => {
+        if (msg.id !== payload.messageId) return msg;
+        const isTtl = Boolean(msg.ttl || msg.expiresAt);
+        return {
+          ...msg,
+          isDeleted: true,
+          content: isTtl ? "Esta mensagem expirou" : "Esta mensagem foi apagada",
+          type: "text",
+        };
+      })
     );
     setConversations((current) =>
       current.map((c) => {
         if (c.id === payload.conversationId && c.messages?.[0]?.id === payload.messageId) {
+          const targetMsg = c.messages[0];
+          const isTtl = Boolean(targetMsg.ttl || targetMsg.expiresAt);
           return {
             ...c,
             messages: [
               {
-                ...c.messages[0],
-                content: "🚫 Esta mensagem foi apagada",
+                ...targetMsg,
+                content: isTtl ? "Esta mensagem expirou" : "Esta mensagem foi apagada",
               },
             ],
           };
@@ -762,7 +769,7 @@ export function App() {
     }
   }
 
-  async function handleSendMessage(event: FormEvent<HTMLFormElement>) {
+  async function handleSendMessage(event: FormEvent<HTMLFormElement>, ttl?: number) {
     event.preventDefault();
     if (!token || !selectedConversationId || !messageText.trim()) return;
 
@@ -772,6 +779,7 @@ export function App() {
         content: messageText,
         type: "text",
         replyToId: replyingToMessage?.id,
+        ttl: ttl && ttl > 0 ? ttl : undefined,
       });
       setMessages((current) => addMessageIfMissing(current, response.message));
       setMessageText("");
@@ -784,7 +792,7 @@ export function App() {
   }
 
   const handleSendFile = useCallback(
-    async (file: File) => {
+    async (file: File, ttl?: number) => {
       if (!token || !selectedConversationId) return;
       try {
         setIsUploadingAttachment(true);
@@ -796,6 +804,7 @@ export function App() {
           fileName: uploadRes.fileName,
           fileSize: uploadRes.fileSize,
           replyToId: replyingToMessage?.id,
+          ttl: ttl && ttl > 0 ? ttl : undefined,
         });
         setMessages((current) => addMessageIfMissing(current, sendRes.message));
         setReplyingToMessage(null);
@@ -813,7 +822,7 @@ export function App() {
   );
 
   const handleSendVoiceNote = useCallback(
-    async (audioBlob: Blob, duration: number) => {
+    async (audioBlob: Blob, duration: number, ttl?: number) => {
       if (!token || !selectedConversationId) return;
       try {
         setIsUploadingAttachment(true);
@@ -829,6 +838,7 @@ export function App() {
           fileSize: uploadRes.fileSize,
           duration,
           replyToId: replyingToMessage?.id,
+          ttl: ttl && ttl > 0 ? ttl : undefined,
         });
         setMessages((current) => addMessageIfMissing(current, sendRes.message));
         setReplyingToMessage(null);
@@ -892,7 +902,7 @@ export function App() {
         setMessages((current) =>
           current.map((m) =>
             m.id === messageId
-              ? { ...m, isDeleted: true, content: "🚫 Esta mensagem foi apagada", type: "text" }
+              ? { ...m, isDeleted: true, content: "Esta mensagem foi apagada", type: "text" }
               : m,
           ),
         );

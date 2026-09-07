@@ -7,9 +7,9 @@ import { VoiceRecorder } from "./VoiceRecorder";
 type MessageInputProps = {
   messageText: string;
   onMessageChange: (text: string) => void;
-  onSendMessage: (event: FormEvent<HTMLFormElement>) => void;
-  onSendFile?: (file: File) => void;
-  onSendVoiceNote?: (audioBlob: Blob, duration: number) => void;
+  onSendMessage: (event: FormEvent<HTMLFormElement>, ttl?: number) => void;
+  onSendFile?: (file: File, ttl?: number) => void;
+  onSendVoiceNote?: (audioBlob: Blob, duration: number, ttl?: number) => void;
   onTypingStart?: () => void;
   onTypingStop?: () => void;
   replyingToMessage?: Message | null;
@@ -20,6 +20,23 @@ type MessageInputProps = {
   disabled: boolean;
   isUploading?: boolean;
 };
+
+const TTL_PRESETS = [
+  { label: "Desativado", seconds: null, icon: "timer_off" },
+  { label: "5 segundos", seconds: 5, icon: "local_fire_department" },
+  { label: "10 segundos", seconds: 10, icon: "local_fire_department" },
+  { label: "30 segundos", seconds: 30, icon: "local_fire_department" },
+  { label: "1 minuto", seconds: 60, icon: "timer" },
+  { label: "5 minutos", seconds: 300, icon: "timer" },
+  { label: "1 hora", seconds: 3600, icon: "timer" },
+  { label: "24 horas", seconds: 86400, icon: "timer" },
+];
+
+function formatTtlBadge(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  return `${Math.floor(seconds / 3600)}h`;
+}
 
 export function MessageInput({
   messageText,
@@ -39,11 +56,34 @@ export function MessageInput({
 }: MessageInputProps) {
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [selectedTtl, setSelectedTtl] = useState<number | null>(null);
+  const [isTtlMenuOpen, setIsTtlMenuOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const ttlMenuRef = useRef<HTMLDivElement | null>(null);
+  const ttlBtnRef = useRef<HTMLButtonElement | null>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
+
+  // Fecha menu de TTL ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (
+        ttlMenuRef.current &&
+        !ttlMenuRef.current.contains(target) &&
+        ttlBtnRef.current &&
+        !ttlBtnRef.current.contains(target)
+      ) {
+        setIsTtlMenuOpen(false);
+      }
+    }
+    if (isTtlMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isTtlMenuOpen]);
 
   const detectedUrl = useMemo(() => extractFirstUrl(messageText), [messageText]);
 
@@ -119,7 +159,7 @@ export function MessageInput({
         return;
       }
       if (onSendFile) {
-        onSendFile(file);
+        onSendFile(file, selectedTtl || undefined);
       }
     }
     event.target.value = "";
@@ -145,7 +185,8 @@ export function MessageInput({
     }
 
     setIsEmojiOpen(false);
-    onSendMessage(event);
+    setIsTtlMenuOpen(false);
+    onSendMessage(event, selectedTtl || undefined);
   }
 
   const hasText = Boolean(messageText.trim());
@@ -166,9 +207,66 @@ export function MessageInput({
         onSelectEmoji={handleSelectEmoji}
       />
 
-      <div className={`stitch-dock-container ${replyingToMessage || editingMessage || detectedUrl ? "has-banner" : ""}`}>
+      {/* MENU POPOVER DE SELEÇÃO DE TTL (AUTODESTRUIÇÃO) */}
+      {isTtlMenuOpen && (
+        <div ref={ttlMenuRef} className="stitch-ttl-popover-menu" role="dialog" aria-label="Seletor de Autodestruição">
+          <div className="stitch-ttl-menu-header">
+            <span className="material-symbols-outlined text-[16px] text-amber-500">local_fire_department</span>
+            <span>Mensagens Autodestrutivas</span>
+          </div>
+          <div className="stitch-ttl-menu-list">
+            {TTL_PRESETS.map((preset) => {
+              const isSelected = selectedTtl === preset.seconds;
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className={`stitch-ttl-option-btn ${isSelected ? "selected" : ""}`}
+                  onClick={() => {
+                    setSelectedTtl(preset.seconds);
+                    setIsTtlMenuOpen(false);
+                  }}
+                >
+                  <span className="material-symbols-outlined text-[18px]">
+                    {preset.icon}
+                  </span>
+                  <span className="stitch-ttl-option-label">{preset.label}</span>
+                  {isSelected && (
+                    <span className="material-symbols-outlined text-[16px] stitch-ttl-check">
+                      check
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className={`stitch-dock-container ${replyingToMessage || editingMessage || detectedUrl || selectedTtl ? "has-banner" : ""}`}>
+        {/* BANNER DE AUTODESTRUIÇÃO ATIVA */}
+        {selectedTtl && !replyingToMessage && !editingMessage && (
+          <div className="input-ttl-active-banner">
+            <div className="ttl-banner-info">
+              <span className="material-symbols-outlined ttl-banner-icon">local_fire_department</span>
+              <span className="ttl-banner-text">
+                Autodestruição armada: a mensagem desaparecerá <strong>{formatTtlBadge(selectedTtl)}</strong> após o envio.
+              </span>
+            </div>
+            <button
+              type="button"
+              className="ttl-banner-clear"
+              onClick={() => setSelectedTtl(null)}
+              title="Desativar autodestruição"
+              aria-label="Desativar"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        )}
+
         {/* BANNER DE LINK DETECTADO DURANTE A DIGITAÇÃO */}
-        {detectedUrl && !replyingToMessage && !editingMessage && (
+        {detectedUrl && !replyingToMessage && !editingMessage && !selectedTtl && (
           <div className="input-link-detect-banner">
             <div className="link-detect-info">
               <span className="material-symbols-outlined link-banner-icon">link</span>
@@ -238,7 +336,7 @@ export function MessageInput({
             onCancel={() => setIsRecording(false)}
             onSendVoiceNote={(blob, duration) => {
               setIsRecording(false);
-              onSendVoiceNote?.(blob, duration);
+              onSendVoiceNote?.(blob, duration, selectedTtl || undefined);
             }}
           />
         ) : (
@@ -277,6 +375,8 @@ export function MessageInput({
             placeholder={
               editingMessage
                 ? "Edite sua mensagem..."
+                : selectedTtl
+                ? `Mensagem autodestrutiva (${formatTtlBadge(selectedTtl)})...`
                 : "Escreva uma mensagem ou envie anexos..."
             }
             aria-label="Mensagem"
@@ -287,11 +387,45 @@ export function MessageInput({
 
           {/* DECK DE AÇÕES À DIREITA */}
           <div className="stitch-input-deck">
+            {/* BOTÃO DE AUTODESTRUIÇÃO (TTL) */}
+            {!editingMessage && (
+              <button
+                ref={ttlBtnRef}
+                type="button"
+                className={`stitch-deck-btn ${selectedTtl ? "active-ttl" : ""} ${isTtlMenuOpen ? "open" : ""}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsEmojiOpen(false);
+                  setIsTtlMenuOpen((prev) => !prev);
+                }}
+                disabled={disabled}
+                title={
+                  selectedTtl
+                    ? `Autodestruição ativa (${formatTtlBadge(selectedTtl)}) - clique para alterar`
+                    : "Definir tempo de autodestruição (TTL)"
+                }
+                aria-label="Autodestruição"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  {selectedTtl ? "local_fire_department" : "timer"}
+                </span>
+                {selectedTtl && (
+                  <span className="stitch-deck-ttl-pill">{formatTtlBadge(selectedTtl)}</span>
+                )}
+              </button>
+            )}
+
             {/* BOTÃO DE EMOJIS */}
             <button
               type="button"
               className={`stitch-deck-btn ${isEmojiOpen ? "active" : ""}`}
-              onClick={() => setIsEmojiOpen((prev) => !prev)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsTtlMenuOpen(false);
+                setIsEmojiOpen((prev) => !prev);
+              }}
               disabled={disabled}
               title="Inserir emoji"
               aria-label="Emojis"
@@ -324,9 +458,9 @@ export function MessageInput({
             ) : hasText ? (
               <button
                 type="submit"
-                className="stitch-send-btn"
+                className={`stitch-send-btn ${selectedTtl ? "ttl-armed" : ""}`}
                 disabled={disabled}
-                title="Enviar mensagem"
+                title={selectedTtl ? `Enviar com autodestruição (${formatTtlBadge(selectedTtl)})` : "Enviar mensagem"}
               >
                 <span className="material-symbols-outlined text-[19px]">send</span>
               </button>

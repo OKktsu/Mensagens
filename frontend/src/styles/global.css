@@ -12134,5 +12134,290 @@ a.details-doc-action-btn:visited {
   animation: spin 0.75s linear infinite;
 }
 
+/* ==========================================================================
+   SELF-DESTRUCTING MESSAGES / TTL STYLES (LEVEL 4)
+   ========================================================================== */
+
+/* Active TTL Deck Button */
+.stitch-deck-btn.active-ttl {
+  color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.15) !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+
+.stitch-deck-btn.active-ttl:hover {
+  background: rgba(245, 158, 11, 0.25) !important;
+  color: #fbbf24 !important;
+}
+
+/* Mini Badge on Button */
+.stitch-deck-ttl-pill {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #f59e0b;
+  color: #0f1013;
+  font-size: 8.5px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 6px;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* TTL Popover Menu */
+.stitch-ttl-popover-menu {
+  position: absolute;
+  bottom: calc(100% - 2px);
+  right: 60px;
+  width: 220px;
+  background: #14161f;
+  border: 1px solid #282a35;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), 0 0 25px rgba(245, 158, 11, 0.12);
+  z-index: 100;
+  padding: 6px;
+  animation: zoomIn 0.18s ease-out;
+}
+
+.stitch-ttl-menu-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stitch-ttl-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.stitch-ttl-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #cbd5e1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.stitch-ttl-option-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.stitch-ttl-option-btn.selected {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.stitch-ttl-option-label {
+  flex: 1;
+}
+
+.stitch-ttl-check {
+  color: #f59e0b;
+}
+
+/* Banner Armed in Dock */
+.input-ttl-active-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 14px;
+  background: rgba(245, 158, 11, 0.1);
+  border-left: 3px solid #f59e0b;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  font-size: 11.5px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.ttl-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ttl-banner-icon {
+  font-size: 16px;
+  color: #f59e0b;
+}
+
+.ttl-banner-clear {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.ttl-banner-clear:hover {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Message Item TTL Flame Pill */
+.stitch-msg-ttl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  letter-spacing: 0.3px;
+}
+
+.stitch-msg-ttl-pill.urgent {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.45);
+  animation: pulseGlow 1s infinite alternate;
+}
+
+.stitch-ttl-flame-icon {
+  font-size: 12px;
+}
+
+/* TTL Burning Progress Bar in Message Body */
+.stitch-msg-ttl-progress-track {
+  width: 100%;
+  max-width: 260px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.stitch-msg-ttl-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+.stitch-msg-ttl-progress-bar.urgent {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+}
+
+/* Disintegrate / Smoke Fade Animation when Message Expires */
+.stitch-message-row.disintegrating {
+  animation: disintegrateFade 0.6s forwards cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+@keyframes disintegrateFade {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.97) translateY(-2px);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.92) translateY(-6px);
+    filter: blur(6px);
+    height: 0;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@keyframes pulseGlow {
+  from {
+    box-shadow: 0 0 2px rgba(239, 68, 68, 0.2);
+  }
+  to {
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+  }
+}
+
+/* ==========================================================================
+   DELETED & EXPIRED MESSAGE SYSTEM CARDS (NO GENERIC ICONS)
+   ========================================================================== */
+
+.stitch-msg-deleted-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 13px;
+  font-style: italic;
+  user-select: none;
+}
+
+.stitch-deleted-icon {
+  font-size: 16px;
+  color: #64748b;
+  line-height: 1;
+}
+
+.stitch-deleted-text {
+  line-height: 1.2;
+}
+
+.stitch-msg-expired-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px dashed rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  font-size: 13px;
+  font-style: italic;
+  user-select: none;
+}
+
+.stitch-expired-icon {
+  font-size: 16px;
+  color: #f59e0b;
+  line-height: 1;
+}
+
+.stitch-expired-text {
+  line-height: 1.2;
+}
+
+
+
 
 

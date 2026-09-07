@@ -39,6 +39,8 @@ export type MessagePayload = {
   starredBy?: Array<{
     userId: string;
   }>;
+  expiresAt?: Date | string | null;
+  ttl?: number | null;
   createdAt: Date;
   updatedAt?: Date;
   conversationId: string;

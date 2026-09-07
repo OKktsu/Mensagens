@@ -8,6 +8,10 @@ import {
 } from "../realtime/socket.js";
 import { createSignedMediaUrl } from "../config/supabase.js";
 import { AppError } from "../utils/app-error.js";
+import {
+  scheduleMessageExpiration,
+  cancelMessageExpiration,
+} from "./ttl-scheduler.service.js";
 
 const messageSelect = {
   id: true,
@@ -21,6 +25,8 @@ const messageSelect = {
   isEdited: true,
   isDeleted: true,
   replyToId: true,
+  expiresAt: true,
+  ttl: true,
   replyTo: {
     select: {
       id: true,
@@ -130,8 +136,17 @@ export async function listMessages(
   await ensureConversationMember(conversationId, userId);
 
   const limit = options.limit ? Math.min(Math.max(Number(options.limit), 1), 100) : 25;
-  const whereClause: { conversationId: string; createdAt?: { lt: Date } } = {
+  const now = new Date();
+  const whereClause: {
+    conversationId: string;
+    createdAt?: { lt: Date };
+    OR?: Array<{ expiresAt: null } | { expiresAt: { gt: Date } }>;
+  } = {
     conversationId,
+    OR: [
+      { expiresAt: null },
+      { expiresAt: { gt: now } },
+    ],
   };
 
   if (options.before) {
@@ -180,6 +195,7 @@ type CreateMessageInput = {
   duration?: number;
   replyToId?: string;
   isForwarded?: boolean;
+  ttl?: number;
 };
 
 export async function createMessage(
@@ -196,6 +212,8 @@ export async function createMessage(
   const duration = isString ? undefined : input.duration;
   const replyToId = isString ? undefined : input.replyToId;
   const isForwarded = isString ? false : Boolean(input.isForwarded);
+  const ttl = !isString && input.ttl ? Math.floor(Number(input.ttl)) : undefined;
+  const expiresAt = ttl && ttl > 0 ? new Date(Date.now() + ttl * 1000) : null;
 
   if (!content && !fileUrl) {
     throw new AppError("Mensagem ou anexo obrigatorio.");
@@ -228,11 +246,18 @@ export async function createMessage(
       duration: duration ? Math.floor(duration) : null,
       replyToId: replyToId ?? null,
       isForwarded,
+      ttl: ttl && ttl > 0 ? ttl : null,
+      expiresAt,
       senderId,
       conversationId,
     },
     select: messageSelect,
   });
+
+  // Se houver data de expiração, agenda a autodestruição no milissegundo exato
+  if (message.expiresAt) {
+    scheduleMessageExpiration(message.id, message.expiresAt, message.conversationId);
+  }
 
   const enrichedMessage = await enrichMessageWithSignedUrls(message);
 
@@ -313,11 +338,14 @@ export async function deleteMessage(
     throw new AppError("Apenas o autor pode apagar a mensagem.", 403);
   }
 
+  // Cancela agendamento de autodestruição se houver
+  cancelMessageExpiration(messageId);
+
   // Soft delete: limpa mídias e marca isDeleted como true
   const deletedMessage = await prisma.message.update({
     where: { id: messageId },
     data: {
-      content: "🚫 Esta mensagem foi apagada",
+      content: "Esta mensagem foi apagada",
       fileUrl: null,
       fileName: null,
       fileSize: null,
