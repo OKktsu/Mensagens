@@ -6583,6 +6583,16 @@ button:disabled, input:disabled {
   border-radius: 18px;
 }
 
+.pulse-call-video-element.screen-share {
+  object-fit: contain;
+  background: #000000;
+}
+
+.pulse-call-remote-video-frame.screen-stage {
+  background: #000000;
+  border-color: #1e202e;
+}
+
 .pulse-call-video-tag {
   position: absolute;
   bottom: 16px;
@@ -6884,12 +6894,21 @@ button:disabled, input:disabled {
   transform: translateY(-1px);
 }
 
-/* TOP FLOATING MINIMIZE BUTTON */
-.pulse-call-top-minimize-btn {
+/* TOP FLOATING ACTIONS BAR (MINIMIZE, GRID/SPOTLIGHT, FULLSCREEN) */
+.pulse-call-top-actions-bar {
   position: absolute;
   top: 16px;
+  left: 16px;
   right: 16px;
   z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.pulse-call-top-minimize-btn {
+  pointer-events: auto;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -6912,6 +6931,95 @@ button:disabled, input:disabled {
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.15);
   transform: translateY(-1px);
+}
+
+.pulse-call-top-right-controls {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulse-call-header-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(24, 26, 36, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  transition: all 0.15s ease;
+}
+
+.pulse-call-header-btn:hover {
+  background: #2a2d3d;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.pulse-call-header-btn.active {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #818cf8;
+}
+
+/* SPOTLIGHT CONTAINER & FILMSTRIP */
+.pulse-spotlight-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.pulse-spotlight-container .pulse-call-remote-video-frame {
+  flex: 1;
+  max-height: calc(100% - 70px);
+}
+
+.pulse-filmstrip-bar {
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 8px;
+}
+
+.pulse-filmstrip-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(24, 26, 36, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  max-width: 140px;
+}
+
+.pulse-filmstrip-item:hover {
+  background: #2a2d3d;
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.pulse-filmstrip-item.active {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
 }
 
 /* MINIMIZED FLOATING CALL SQUARE (DRAGGABLE 1:1 PiP) */

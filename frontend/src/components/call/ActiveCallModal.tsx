@@ -141,18 +141,44 @@ export function ActiveCallModal({
       role="region"
       aria-label="Chamada PulseChat"
     >
-      {/* BOTÃO FLUTUANTE DE MINIMIZAR */}
-      {onMinimize && (
-        <button
-          type="button"
-          className="pulse-call-top-minimize-btn"
-          onClick={onMinimize}
-          title="Minimizar chamada (continuar navegando no chat)"
-        >
-          <span className="material-symbols-outlined text-[18px]">expand_more</span>
-          <span className="text-xs font-semibold">Minimizar</span>
-        </button>
-      )}
+      {/* BARRA SUPERIOR DE AÇÕES RÁPIDAS (MINIMIZAR, MODO GRADE/FOCO, TELA CHEIA) */}
+      <div className="pulse-call-top-actions-bar">
+        {onMinimize && (
+          <button
+            type="button"
+            className="pulse-call-top-minimize-btn"
+            onClick={onMinimize}
+            title="Minimizar chamada (continuar navegando no chat)"
+          >
+            <span className="material-symbols-outlined text-[18px]">expand_more</span>
+            <span className="text-xs font-semibold">Minimizar</span>
+          </button>
+        )}
+
+        <div className="pulse-call-top-right-controls">
+          <button
+            type="button"
+            className={`pulse-call-header-btn ${layoutMode === "grid" ? "active" : ""}`}
+            onClick={() => setLayoutMode((prev) => (prev === "grid" ? "speaker" : "grid"))}
+            title={layoutMode === "grid" ? "Modo Destaque" : "Modo Grade"}
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              {layoutMode === "grid" ? "view_agenda" : "grid_view"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className="pulse-call-header-btn"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              {isFullscreen ? "fullscreen_exit" : "fullscreen"}
+            </span>
+          </button>
+        </div>
+      </div>
 
       {/* 1. PALCO PRINCIPAL (MAIN STAGE) */}
       <main className="pulse-call-main-stage">
@@ -166,7 +192,7 @@ export function ActiveCallModal({
                   ref={setRemoteVideoNode}
                   autoPlay
                   playsInline
-                  className="pulse-call-video-element"
+                  className="pulse-call-video-element screen-share"
                 />
               ) : (
                 <div className="pulse-call-remote-avatar-card">
@@ -191,13 +217,13 @@ export function ActiveCallModal({
 
             {/* Tile 2: Você */}
             <div className="pulse-call-remote-video-frame">
-              {hasLocalVideo ? (
+              {hasLocalVideo || isScreenSharing ? (
                 <video
                   ref={setLocalVideoNode}
                   autoPlay
                   playsInline
                   muted
-                  className="pulse-call-video-element local-preview"
+                  className={`pulse-call-video-element local-preview ${isScreenSharing ? "screen-share" : ""}`}
                 />
               ) : (
                 <div className="pulse-call-remote-avatar-card">
@@ -210,14 +236,89 @@ export function ActiveCallModal({
                 </div>
               )}
               <div className="pulse-call-peer-tag">
-                <span className="font-bold text-white text-xs">{currentUserName} (Você)</span>
+                <span className="font-bold text-white text-xs">
+                  {currentUserName} {isScreenSharing ? "(Sua Tela)" : "(Você)"}
+                </span>
                 {isMuted && (
                   <span className="material-symbols-outlined text-[13px] text-rose-400 ml-1">mic_off</span>
                 )}
               </div>
             </div>
           </div>
+        ) : hasRemoteVideo ? (
+          /* MODO PALCO: VÍDEO OU TELA REMOTA EM DESTAQUE */
+          <div className="pulse-call-video-stage">
+            <div className="pulse-call-remote-video-frame screen-stage">
+              <video
+                ref={setRemoteVideoNode}
+                autoPlay
+                playsInline
+                className="pulse-call-video-element screen-share"
+              />
+
+              {/* Tag de identificação do transmissor */}
+              <div className="pulse-call-video-tag">
+                <span className="material-symbols-outlined text-[16px] text-indigo-400 animate-pulse">
+                  screen_share
+                </span>
+                <span className="font-bold text-white text-xs">{peerName} (Transmissão ao Vivo)</span>
+              </div>
+
+              {/* Miniatura Picture-in-Picture do usuário local */}
+              <div className="pulse-call-pip-video">
+                {hasLocalVideo || isScreenSharing ? (
+                  <video
+                    ref={setLocalVideoNode}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="pip-fallback-avatar">
+                    <Avatar name={currentUserName} size="medium" />
+                  </div>
+                )}
+                <div className="pip-name-tag">
+                  <span>{currentUserName} (Você)</span>
+                  {isMuted && (
+                    <span className="material-symbols-outlined text-[12px] text-rose-400 ml-auto">mic_off</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : isScreenSharing ? (
+          /* MODO PALCO: SUA TELA EM DESTAQUE */
+          <div className="pulse-call-video-stage">
+            <div className="pulse-call-remote-video-frame screen-stage">
+              <video
+                ref={setLocalVideoNode}
+                autoPlay
+                playsInline
+                muted
+                className="pulse-call-video-element screen-share"
+              />
+
+              {/* Tag indicativa */}
+              <div className="pulse-call-video-tag" style={{ background: "rgba(16, 185, 129, 0.9)" }}>
+                <span className="material-symbols-outlined text-[16px] text-white">screen_share</span>
+                <span className="font-bold text-white text-xs">Você está compartilhando sua tela</span>
+              </div>
+
+              {/* Miniatura Picture-in-Picture do contato */}
+              <div className="pulse-call-pip-video">
+                <div className="pip-fallback-avatar">
+                  <Avatar name={peerName} src={peerAvatarUrl} size="medium" />
+                </div>
+                <div className="pip-name-tag">
+                  <span>{peerName}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         ) : isVideoCall && hasLocalVideo ? (
+          /* MODO PRÉVIA DE VÍDEO LOCAL (CHAMANDO) */
           <div className="pulse-call-video-stage">
             <div className="pulse-call-remote-video-frame preview-mode">
               <video
@@ -250,6 +351,7 @@ export function ActiveCallModal({
             </div>
           </div>
         ) : (
+          /* MODO DE VOZ PADRÃO COM ONDAS SONORAS */
           <div className="pulse-call-voice-stage">
             <div className="pulse-call-avatar-resonance">
               <div className="pulse-call-glow-ring ring-1" />

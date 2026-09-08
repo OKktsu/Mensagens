@@ -142,6 +142,12 @@ export function useGroupWebRTCCall(
         localStreamRef.current.getTracks().forEach((track) => {
           pc.addTrack(track, localStreamRef.current!);
         });
+        if (localStreamRef.current.getVideoTracks().length === 0) {
+          pc.addTransceiver("video", { direction: "sendrecv" });
+        }
+      } else {
+        pc.addTransceiver("audio", { direction: "sendrecv" });
+        pc.addTransceiver("video", { direction: "sendrecv" });
       }
 
       pc.onicecandidate = (event) => {
@@ -316,7 +322,7 @@ export function useGroupWebRTCCall(
 
   // Alternar tela
   const toggleScreenShare = useCallback(async () => {
-    if (peersRef.current.size === 0) {
+    if (peersRef.current.size === 0 && !isInGroupCall) {
       setIsScreenSharing((prev) => !prev);
       return;
     }
@@ -327,17 +333,20 @@ export function useGroupWebRTCCall(
       }
       const localVideoTrack = localStreamRef.current?.getVideoTracks()[0] || null;
       for (const [, pc] of peersRef.current) {
-        const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+        const videoSender = pc.getSenders().find((s) => (s.track && s.track.kind === "video") || s.track === null);
         if (videoSender) {
-          videoSender.replaceTrack(localVideoTrack);
+          await videoSender.replaceTrack(localVideoTrack);
         }
       }
+      setLocalStream(localStreamRef.current);
       setIsScreenSharing(false);
     } else {
       try {
         if (!navigator.mediaDevices?.getDisplayMedia) return;
         const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
         screenStreamRef.current = displayStream;
+        setLocalStream(displayStream);
+
         const screenVideoTrack = displayStream.getVideoTracks()[0];
         if (screenVideoTrack) {
           screenVideoTrack.onended = () => {
@@ -345,22 +354,30 @@ export function useGroupWebRTCCall(
               screenStreamRef.current.getTracks().forEach((track) => track.stop());
               screenStreamRef.current = null;
             }
-            const localVideoTrack = localStreamRef.current?.getVideoTracks()[0] || null;
+            const fallbackVideoTrack = localStreamRef.current?.getVideoTracks()[0] || null;
             for (const [, pc] of peersRef.current) {
-              const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+              const videoSender = pc.getSenders().find((s) => (s.track && s.track.kind === "video") || s.track === null);
               if (videoSender) {
-                videoSender.replaceTrack(localVideoTrack);
+                videoSender.replaceTrack(fallbackVideoTrack).catch(() => {});
               }
             }
+            setLocalStream(localStreamRef.current);
             setIsScreenSharing(false);
           };
 
           for (const [, pc] of peersRef.current) {
-            const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+            const videoSender = pc.getSenders().find((s) => (s.track && s.track.kind === "video") || s.track === null);
             if (videoSender) {
-              videoSender.replaceTrack(screenVideoTrack);
+              await videoSender.replaceTrack(screenVideoTrack);
             } else {
-              pc.addTrack(screenVideoTrack, displayStream);
+              const videoTransceiver = pc.getTransceivers().find(
+                (t) => t.sender && (!t.sender.track || t.sender.track.kind === "video"),
+              );
+              if (videoTransceiver && videoTransceiver.sender) {
+                await videoTransceiver.sender.replaceTrack(screenVideoTrack);
+              } else {
+                pc.addTrack(screenVideoTrack, displayStream);
+              }
             }
           }
           setIsScreenSharing(true);
@@ -369,7 +386,7 @@ export function useGroupWebRTCCall(
         console.warn("Falha no compartilhamento de tela:", screenErr);
       }
     }
-  }, [isScreenSharing]);
+  }, [isScreenSharing, isInGroupCall]);
 
   // Processa candidatos ICE pendentes
   const drainPendingCandidates = async (userId: string, pc: RTCPeerConnection) => {

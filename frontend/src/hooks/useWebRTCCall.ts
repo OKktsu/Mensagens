@@ -338,6 +338,11 @@ export function useWebRTCCall(
           pc.addTrack(track, stream);
         });
 
+        // Garante suporte bidirecional de vídeo para compartilhamento de tela mesmo em chamadas iniciadas em áudio
+        if (stream.getVideoTracks().length === 0) {
+          pc.addTransceiver("video", { direction: "sendrecv" });
+        }
+
         pc.onicecandidate = (event) => {
           if (event.candidate) {
             socket.emit("call:ice-candidate", {
@@ -414,6 +419,14 @@ export function useWebRTCCall(
       stream.getTracks().forEach((track) => {
         pc.addTrack(track, stream);
       });
+
+      // Garante transceptor de vídeo caso a chamada tenha sido aceita em áudio
+      if (stream.getVideoTracks().length === 0) {
+        const hasVideo = pc.getTransceivers().some((t) => t.receiver?.track?.kind === "video");
+        if (!hasVideo) {
+          pc.addTransceiver("video", { direction: "sendrecv" });
+        }
+      }
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
@@ -604,11 +617,12 @@ export function useWebRTCCall(
         screenStreamRef.current.getTracks().forEach((track) => track.stop());
         screenStreamRef.current = null;
       }
-      const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+      const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video" || s.track === null);
       const localVideoTrack = localStreamRef.current?.getVideoTracks()[0] || null;
       if (videoSender) {
         await videoSender.replaceTrack(localVideoTrack);
       }
+      setLocalStream(localStreamRef.current);
       setIsScreenSharing(false);
     } else {
       try {
@@ -621,6 +635,7 @@ export function useWebRTCCall(
           audio: true,
         });
         screenStreamRef.current = displayStream;
+        setLocalStream(displayStream);
 
         const screenVideoTrack = displayStream.getVideoTracks()[0];
         if (screenVideoTrack) {
@@ -629,19 +644,27 @@ export function useWebRTCCall(
               screenStreamRef.current.getTracks().forEach((track) => track.stop());
               screenStreamRef.current = null;
             }
-            const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
-            const localVideoTrack = localStreamRef.current?.getVideoTracks()[0] || null;
-            if (videoSender) {
-              videoSender.replaceTrack(localVideoTrack);
+            const sender = pc.getSenders().find((s) => (s.track && s.track.kind === "video") || s.track === null);
+            const fallbackVideoTrack = localStreamRef.current?.getVideoTracks()[0] || null;
+            if (sender) {
+              sender.replaceTrack(fallbackVideoTrack).catch(() => {});
             }
+            setLocalStream(localStreamRef.current);
             setIsScreenSharing(false);
           };
 
-          const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+          const videoSender = pc.getSenders().find((s) => (s.track && s.track.kind === "video") || s.track === null);
           if (videoSender) {
             await videoSender.replaceTrack(screenVideoTrack);
           } else {
-            pc.addTrack(screenVideoTrack, displayStream);
+            const videoTransceiver = pc.getTransceivers().find(
+              (t) => t.sender && (!t.sender.track || t.sender.track.kind === "video"),
+            );
+            if (videoTransceiver && videoTransceiver.sender) {
+              await videoTransceiver.sender.replaceTrack(screenVideoTrack);
+            } else {
+              pc.addTrack(screenVideoTrack, displayStream);
+            }
           }
           setIsScreenSharing(true);
         }
