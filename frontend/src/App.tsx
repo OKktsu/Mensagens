@@ -596,10 +596,14 @@ export function App() {
         }
         setConversationReads(initialReads);
 
+        const isMobileViewport = typeof window !== "undefined" && window.innerWidth < 768;
         const firstConvId = conversationsResponse.conversations[0]?.id ?? null;
-        setSelectedConversationId((currentId) => currentId ?? firstConvId);
+        setSelectedConversationId((currentId) => {
+          if (currentId) return currentId;
+          return isMobileViewport ? null : firstConvId;
+        });
 
-        if (firstConvId) {
+        if (!isMobileViewport && firstConvId) {
           markConversationAsRead(authToken, firstConvId).catch(() => {});
         }
       } catch (caughtError) {
@@ -1411,8 +1415,15 @@ export function App() {
     );
   }
 
+  const isMobileChatActive = Boolean(
+    selectedConversationId ||
+    ((callState === "calling" || callState === "connected") && !isCallMinimized) ||
+    (isInGroupCall && !isGroupCallMinimized) ||
+    pdfModalData
+  );
+
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${isMobileChatActive ? "has-active-conversation" : "no-active-conversation"}`}>
       <Sidebar
         users={users}
         userSearchText={userSearchText}
@@ -1552,6 +1563,7 @@ export function App() {
           onTypingStart={handleTypingStart}
           onTypingStop={handleTypingStop}
           onRetryMessage={handleRetryMessage}
+          onBack={() => setSelectedConversationId(null)}
         />
       )}
 

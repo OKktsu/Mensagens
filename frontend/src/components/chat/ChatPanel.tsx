@@ -56,6 +56,7 @@ type ChatPanelProps = {
   isLoadingMoreMessages?: boolean;
   onLoadMoreMessages?: () => void;
   onRetryMessage?: (message: Message) => void;
+  onBack?: () => void;
 };
 
 export function ChatPanel({
@@ -102,6 +103,7 @@ export function ChatPanel({
   onTypingStart,
   onTypingStop,
   onRetryMessage,
+  onBack,
 }: ChatPanelProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
@@ -130,6 +132,7 @@ export function ChatPanel({
           onUserClick={onUserClick}
           isDetailsOpen={isDetailsOpen}
           onToggleDetails={() => setIsDetailsOpen((prev) => !prev)}
+          onBack={onBack}
         />
 
         {/* BANNER DE MENSAGEM FIXADA */}
@@ -193,6 +196,15 @@ export function ChatPanel({
           isUploading={isUploading}
         />
       </section>
+
+      {/* BACKDROP FLUTUANTE PARA TABLET / CELULAR */}
+      {isDetailsOpen && (
+        <div
+          className="chat-details-backdrop"
+          onClick={() => setIsDetailsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
 
       {/* 3ª COLUNA LATERAL DE INFORMAÇÕES, MÍDIAS, ARQUIVOS, LINKS E FIXADAS */}
       <ChatDetailsSidebar

@@ -18,6 +18,7 @@ type ChatHeaderProps = {
   onUserClick?: (user: import("../../services/api").User) => void;
   isDetailsOpen?: boolean;
   onToggleDetails?: () => void;
+  onBack?: () => void;
 };
 
 // Gera tags de função baseadas no nome
@@ -51,6 +52,7 @@ export function ChatHeader({
   onUserClick,
   isDetailsOpen = false,
   onToggleDetails,
+  onBack,
 }: ChatHeaderProps) {
   const isGroup = Boolean(
     conversation?.title || (conversation && conversation.members.length > 2),
@@ -82,19 +84,35 @@ export function ChatHeader({
   return (
     <header className="stitch-chat-header" aria-label="Cabeçalho da conversa">
       {conversation ? (
-        <div
-          className={`stitch-header-left ${onToggleDetails || (!isGroup && otherMember?.user) ? "cursor-pointer" : ""}`}
-          onClick={handleHeaderClick}
-          title={isGroup ? "Ver detalhes do Squad" : "Ver dados do contato e mídias"}
-        >
-          {/* Avatar com squircle e indicador de presença */}
-          <div className="stitch-header-avatar-wrap">
-            <Avatar
-              initial={initial}
-              isOnline={!isGroup && isOnline}
-              size="medium"
-            />
-          </div>
+        <div className="stitch-header-left-group">
+          {onBack && (
+            <button
+              type="button"
+              className="stitch-mobile-back-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onBack();
+              }}
+              title="Voltar para a lista de conversas"
+              aria-label="Voltar para a lista de conversas"
+            >
+              <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+            </button>
+          )}
+
+          <div
+            className={`stitch-header-left ${onToggleDetails || (!isGroup && otherMember?.user) ? "cursor-pointer" : ""}`}
+            onClick={handleHeaderClick}
+            title={isGroup ? "Ver detalhes do Squad" : "Ver dados do contato e mídias"}
+          >
+            {/* Avatar com squircle e indicador de presença */}
+            <div className="stitch-header-avatar-wrap">
+              <Avatar
+                initial={initial}
+                isOnline={!isGroup && isOnline}
+                size="medium"
+              />
+            </div>
 
           <div className="stitch-header-info">
             <div className="stitch-header-title-row">
@@ -139,6 +157,7 @@ export function ChatHeader({
             </div>
           </div>
         </div>
+      </div>
       ) : (
         <div className="stitch-header-empty">
           <span className="stitch-header-title">Nenhuma conversa selecionada</span>
