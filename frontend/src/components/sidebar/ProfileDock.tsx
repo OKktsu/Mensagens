@@ -99,7 +99,7 @@ export function ProfileDock({
               <img
                 src={currentUser.avatarUrl}
                 alt={currentUser.name}
-                className="w-full h-full object-cover rounded-full"
+                className="avatar-img"
               />
             ) : (
               <span>{initial}</span>

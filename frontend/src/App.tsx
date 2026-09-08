@@ -1567,31 +1567,37 @@ export function App() {
         />
       )}
 
-      <FriendRequestsModal
-        isOpen={isFriendRequestsOpen}
-        receivedRequests={receivedRequests}
-        sentRequests={sentRequests}
-        onClose={() => setIsFriendRequestsOpen(false)}
-        onAccept={handleAcceptFriendRequest}
-        onReject={handleRejectFriendRequest}
-        onCancel={handleCancelFriendRequest}
-      />
-      <CreateGroupModal
-        isOpen={isCreateGroupOpen}
-        onClose={() => setIsCreateGroupOpen(false)}
-        users={users}
-        onCreateGroup={handleCreateGroup}
-      />
+      {isFriendRequestsOpen && (
+        <FriendRequestsModal
+          isOpen={isFriendRequestsOpen}
+          receivedRequests={receivedRequests}
+          sentRequests={sentRequests}
+          onClose={() => setIsFriendRequestsOpen(false)}
+          onAccept={handleAcceptFriendRequest}
+          onReject={handleRejectFriendRequest}
+          onCancel={handleCancelFriendRequest}
+        />
+      )}
+      {isCreateGroupOpen && (
+        <CreateGroupModal
+          isOpen={isCreateGroupOpen}
+          onClose={() => setIsCreateGroupOpen(false)}
+          users={users}
+          onCreateGroup={handleCreateGroup}
+        />
+      )}
 
-      <ForwardMessageModal
-        isOpen={Boolean(messageToForward)}
-        onClose={() => setMessageToForward(null)}
-        messageToForward={messageToForward}
-        conversations={conversations}
-        users={users}
-        currentUserId={currentUser.id}
-        onForward={handleForwardMessage}
-      />
+      {Boolean(messageToForward) && (
+        <ForwardMessageModal
+          isOpen={Boolean(messageToForward)}
+          onClose={() => setMessageToForward(null)}
+          messageToForward={messageToForward}
+          conversations={conversations}
+          users={users}
+          currentUserId={currentUser.id}
+          onForward={handleForwardMessage}
+        />
+      )}
 
       {incomingCall && callState === "incoming" && (
         <IncomingCallModal
@@ -1607,7 +1613,7 @@ export function App() {
         <ImageLightbox src={lightboxImage} onClose={() => setLightboxImage(null)} />
       )}
 
-      {currentUser && token && (
+      {isProfileModalOpen && currentUser && token && (
         <ProfileSettingsModal
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}
@@ -1638,37 +1644,39 @@ export function App() {
       )}
 
       {/* MODAL DE BUSCA GLOBAL (CTRL+K / COMMAND PALETTE) */}
-      <GlobalSearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        token={token}
-        activeConversationId={selectedConversationId}
-        onlineUserIds={onlineUserIds}
-        onSelectConversation={(conversationId) => {
-          setSelectedConversationId(conversationId);
-        }}
-        onSelectUser={handleGlobalUserAction}
-        onOpenCreateGroup={() => {
-          setIsCreateGroupOpen(true);
-        }}
-        onOpenProfileSettings={() => {
-          setIsProfileModalOpen(true);
-        }}
-        onOpenFriendRequests={() => setIsFriendRequestsOpen(true)}
-        onSelectMessage={(conversationId, messageId) => {
-          setSelectedConversationId(conversationId);
-          setTimeout(() => {
-            const el = document.getElementById(`message-${messageId}`);
-            if (el) {
-              el.scrollIntoView({ behavior: "smooth", block: "center" });
-              el.classList.add("highlight-pulse");
-              setTimeout(() => {
-                el.classList.remove("highlight-pulse");
-              }, 1500);
-            }
-          }, 350);
-        }}
-      />
+      {isSearchOpen && (
+        <GlobalSearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          token={token}
+          activeConversationId={selectedConversationId}
+          onlineUserIds={onlineUserIds}
+          onSelectConversation={(conversationId) => {
+            setSelectedConversationId(conversationId);
+          }}
+          onSelectUser={handleGlobalUserAction}
+          onOpenCreateGroup={() => {
+            setIsCreateGroupOpen(true);
+          }}
+          onOpenProfileSettings={() => {
+            setIsProfileModalOpen(true);
+          }}
+          onOpenFriendRequests={() => setIsFriendRequestsOpen(true)}
+          onSelectMessage={(conversationId, messageId) => {
+            setSelectedConversationId(conversationId);
+            setTimeout(() => {
+              const el = document.getElementById(`message-${messageId}`);
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                el.classList.add("highlight-pulse");
+                setTimeout(() => {
+                  el.classList.remove("highlight-pulse");
+                }, 1500);
+              }
+            }, 350);
+          }}
+        />
+      )}
       {/* WIDGET FLUTUANTE DE CHAMADA MINIMIZADA (PIP) */}
       {isCallMinimized && (callState === "calling" || callState === "connected") && (
         <MinimizedCallWidget

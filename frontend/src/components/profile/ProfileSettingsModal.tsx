@@ -228,6 +228,10 @@ export function ProfileSettingsModal({
   const userHandle = `@${currentUser.email ? currentUser.email.split("@")[0] : "user"}`;
   const initial = name.trim() ? name.trim().slice(0, 1).toUpperCase() : "U";
 
+  if (!isOpen) {
+    return null;
+  }
+
   return (
     <div className="profile-edit-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div className="profile-edit-modal-container" onClick={(e) => e.stopPropagation()}>

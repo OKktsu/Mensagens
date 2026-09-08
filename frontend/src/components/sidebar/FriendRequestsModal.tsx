@@ -46,6 +46,10 @@ export function FriendRequestsModal({
     }
   }
 
+  if (!isOpen) {
+    return null;
+  }
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div

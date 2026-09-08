@@ -214,6 +214,10 @@ export function ChatDetailsSidebar({
     }
   };
 
+  if (!isOpen) {
+    return null;
+  }
+
   const subViewInfo = getSubViewInfo();
 
   return (
